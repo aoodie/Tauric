@@ -229,6 +229,23 @@ def rehearse(images, output, local=False, ai=True, emit_failure_diagnostics=Fals
                 capture_output=True,
                 check=False,
             ).stdout.decode(errors="replace")
+            container_ids = subprocess.run(
+                compose + ["ps", "--all", "--quiet"],
+                capture_output=True,
+                check=False,
+            ).stdout.decode().split()
+            if container_ids:
+                diagnostics += "\n" + subprocess.run(
+                    [
+                        "docker", "inspect", "--format",
+                        "{{.Name}} health={{json .State.Health}} oom={{json .State.OOMKilled}} memory={{.HostConfig.Memory}}",
+                        *container_ids,
+                    ], capture_output=True, check=False,
+                ).stdout.decode(errors="replace")
+                diagnostics += "\n" + subprocess.run(
+                    ["docker", "stats", "--no-stream", "--format", "{{json .}}", *container_ids],
+                    capture_output=True, check=False,
+                ).stdout.decode(errors="replace")
             for path in (state / "secrets").iterdir():
                 if path.is_file():
                     diagnostics = diagnostics.replace(
