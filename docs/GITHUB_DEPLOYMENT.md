@@ -6,13 +6,13 @@ The repository now contains a GitHub Actions delivery path and a server-only Com
 
 Use a dedicated Tauric repository. This workstation folder is currently inside a larger parent Git repository; do not publish the parent workspace or its other projects. The private `.env*`, `artifacts/`, local environments and runtime directories remain excluded. GitHub credentials must be connected before publishing; do not add tokens to the repository.
 
-`checks.yml` runs backend/database checks, deployment controls, frontend build/formatting and the pinned OpenClaw contract checks on Ubuntu 24.04. Tagging a tested commit with `v*` starts `release.yml`: it reruns checks, builds API/native-worker/web/OpenClaw images for Linux amd64 and arm64, publishes them to GHCR, records immutable digests and assembles a server-only downloadable artifact. Official actions are pinned by commit. Build provenance and SBOMs are attached to image publication. A GitHub publication is separate from permission to deploy or enable trading on a host.
+`checks.yml` runs backend/database checks, deployment controls, frontend build/formatting and the pinned OpenClaw contract checks on Ubuntu 24.04. Tagging a tested commit with `v*`, pushing the dedicated `codex/deployment-candidate` branch or manually running the workflow starts `release.yml`: it reruns checks, builds API/native-worker/web/OpenClaw images for Linux amd64 and arm64, publishes them to GHCR, records immutable digests and assembles a server-only downloadable artifact after an actual amd64 installation/restore rehearsal. Official actions are pinned by commit. Build provenance and SBOMs are attached to image publication. A GitHub publication is separate from permission to deploy or enable trading on a host.
 
 Repository owners should require the checks job before merging, restrict release-tag creation and enable GitHub secret scanning where available. Private GHCR packages require a server-side login with package-read access. Use an interactive login or password input through standard input; keep registry credentials outside this bundle.
 
 ## Install a candidate
 
-Download the `tauric-deployment-VERSION` artifact from the successful release workflow, unpack its archive, and keep `release-manifest.json` with the selected images. The bundle includes source/file checksums and exact image digests, rather than mutable tags. Python 3 and Docker with Compose 2.24.4 or later are required on the host. Builds happen in GitHub; the host only pulls images.
+Download the `tauric-deployment-COMMIT` artifact from the successful release workflow, unpack its archive, and keep `release-manifest.json` with the selected images. The bundle includes source/file checksums and exact image digests, rather than mutable tags. Python 3 and Docker with Compose 2.24.4 or later are required on the host. Builds happen in GitHub; the host only pulls images.
 
 For initial private access, run from the unpacked bundle:
 

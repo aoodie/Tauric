@@ -2,6 +2,8 @@ name: Publish deployment candidate
 on:
   push:
     tags: ["v*"]
+    branches: [codex/deployment-candidate]
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
@@ -113,7 +115,7 @@ jobs:
         run: python scripts/release_smoke.py --images artifacts/tauric-release/images.env --output artifacts/release-smoke.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: tauric-deployment-${{ github.ref_name }}
+          name: tauric-deployment-${{ github.sha }}
           path: |
             artifacts/tauric-release.tar.gz
             artifacts/release-smoke.json
