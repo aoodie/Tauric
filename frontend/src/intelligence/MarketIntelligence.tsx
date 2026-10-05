@@ -14,7 +14,12 @@ import {
 import { api, type Analysis } from "../api/client";
 import type { components } from "../api/schema";
 import { InstrumentDiscovery } from "../market/InstrumentDiscovery";
-import { createChart, ColorType, LineSeries, type UTCTimestamp } from "lightweight-charts";
+import {
+  createChart,
+  ColorType,
+  LineSeries,
+  type UTCTimestamp,
+} from "lightweight-charts";
 import "./intelligence.css";
 
 type Dashboard = components["schemas"]["IntelligenceDashboard"];
@@ -246,22 +251,63 @@ function SourceReceipt({
   );
 }
 
-function PriceHistory({move, close}: {move:Move; close:()=>void}) {
-  const dialog=useRef<HTMLDialogElement>(null), host=useRef<HTMLDivElement>(null);
-  useEffect(()=>{
+function PriceHistory({ move, close }: { move: Move; close: () => void }) {
+  const dialog = useRef<HTMLDialogElement>(null),
+    host = useRef<HTMLDivElement>(null);
+  useEffect(() => {
     dialog.current?.showModal();
     if (!host.current) return;
-    const chart=createChart(host.current,{height:320,autoSize:true,layout:{background:{type:ColorType.Solid,color:"#071522"},textColor:"#adbfcd"},grid:{vertLines:{color:"#173041"},horzLines:{color:"#173041"}}});
-    const line=chart.addSeries(LineSeries,{color:"#26d9c6",lineWidth:2});
-    line.setData((move.daily_bars??[]).map(bar=>({time:Math.floor(new Date(String(bar.close_time)).getTime()/1000) as UTCTimestamp,value:Number(bar.close)})));
+    const chart = createChart(host.current, {
+      height: 320,
+      autoSize: true,
+      layout: {
+        background: { type: ColorType.Solid, color: "#071522" },
+        textColor: "#adbfcd",
+      },
+      grid: {
+        vertLines: { color: "#173041" },
+        horzLines: { color: "#173041" },
+      },
+    });
+    const line = chart.addSeries(LineSeries, {
+      color: "#26d9c6",
+      lineWidth: 2,
+    });
+    line.setData(
+      (move.daily_bars ?? []).map((bar) => ({
+        time: Math.floor(
+          new Date(String(bar.close_time)).getTime() / 1000,
+        ) as UTCTimestamp,
+        value: Number(bar.close),
+      })),
+    );
     chart.timeScale().fitContent();
-    return()=>chart.remove();
-  },[move]);
-  return <dialog ref={dialog} className="drawer mi-price-history" aria-label="Daily price history" onCancel={event=>{event.preventDefault();close();}}>
-    <div className="drawer-head"><h2>{move.instrument.symbol} · completed daily closes</h2><button className="icon-button" aria-label="Close daily price history" onClick={close}><X size={18}/></button></div>
-    <div ref={host} className="mi-price-chart"/>
-    <p>{move.warning??"Saved provider daily observations."}</p>
-  </dialog>;
+    return () => chart.remove();
+  }, [move]);
+  return (
+    <dialog
+      ref={dialog}
+      className="drawer mi-price-history"
+      aria-label="Daily price history"
+      onCancel={(event) => {
+        event.preventDefault();
+        close();
+      }}
+    >
+      <div className="drawer-head">
+        <h2>{move.instrument.symbol} · completed daily closes</h2>
+        <button
+          className="icon-button"
+          aria-label="Close daily price history"
+          onClick={close}
+        >
+          <X size={18} />
+        </button>
+      </div>
+      <div ref={host} className="mi-price-chart" />
+      <p>{move.warning ?? "Saved provider daily observations."}</p>
+    </dialog>
+  );
 }
 
 export function MarketIntelligence({
@@ -288,8 +334,8 @@ export function MarketIntelligence({
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [catalogLoading,setCatalogLoading]=useState(true);
-  const [priceHistory,setPriceHistory]=useState<Move>();
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [priceHistory, setPriceHistory] = useState<Move>();
   const acting = useRef(false),
     sequence = useRef(0);
   const [refresh, setRefresh] = useState(0);
@@ -304,13 +350,23 @@ export function MarketIntelligence({
   const [jobs, setJobs] = useState<Analysis[]>([]);
   const [reportError, setReportError] = useState("");
   const [reportsLoading, setReportsLoading] = useState(false);
-  useEffect(()=>{
-    let active=true;
-    api.refreshIntelligenceCatalogs().then(()=>{if(active)setRefresh(value=>value+1);})
-      .catch(error=>{if(active)setError(failure(error));})
-      .finally(()=>{if(active)setCatalogLoading(false);});
-    return()=>{active=false;};
-  },[]);
+  useEffect(() => {
+    let active = true;
+    api
+      .refreshIntelligenceCatalogs()
+      .then(() => {
+        if (active) setRefresh((value) => value + 1);
+      })
+      .catch((error) => {
+        if (active) setError(failure(error));
+      })
+      .finally(() => {
+        if (active) setCatalogLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
   useEffect(() => {
     let active = true;
     const seq = ++sequence.current;
@@ -342,20 +398,35 @@ export function MarketIntelligence({
       active = false;
     };
   }, [market, offset, query, watched, refresh]);
-  useEffect(()=>{
-    if(!data || catalogLoading || loading || acting.current) return;
-    const missing=data.moves.filter(move=>move.state==="empty").map(move=>move.instrument.id);
-    if(!missing.length) return;
-    let active=true;
-    acting.current=true;
+  useEffect(() => {
+    if (!data || catalogLoading || loading || acting.current) return;
+    const missing = data.moves
+      .filter((move) => move.state === "empty")
+      .map((move) => move.instrument.id);
+    if (!missing.length) return;
+    let active = true;
+    acting.current = true;
     setBusy(true);
     setNotice("Loading daily prices for this page…");
-    api.refreshIntelligence({instrument_ids:missing,sources:false})
-      .then(()=>{if(active){setRefresh(value=>value+1);setNotice("");}})
-      .catch(error=>{if(active)setError(failure(error));})
-      .finally(()=>{acting.current=false;if(active)setBusy(false);});
-    return()=>{active=false;};
-  },[data,catalogLoading,loading]);
+    api
+      .refreshIntelligence({ instrument_ids: missing, sources: false })
+      .then(() => {
+        if (active) {
+          setRefresh((value) => value + 1);
+          setNotice("");
+        }
+      })
+      .catch((error) => {
+        if (active) setError(failure(error));
+      })
+      .finally(() => {
+        acting.current = false;
+        if (active) setBusy(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [data, catalogLoading, loading]);
   useEffect(() => {
     let active = true;
     setJobs([]);
@@ -518,10 +589,34 @@ export function MarketIntelligence({
         ))}
       </nav>
       <section className="mi-catalogs" aria-label="Connected market catalogs">
-        {(data?.catalogs??[]).map(catalog=><button key={catalog.market} className="secondary" disabled={busy} onClick={()=>selectMarket(catalog.market)}>
-          <strong>{catalog.total.toLocaleString()}</strong> {catalog.label}<small>{catalogLoading?"Checking catalog…":catalog.status}{catalog.warning?` · ${catalog.warning}`:""}</small>
-        </button>)}
-        <button className="secondary" disabled={busy||catalogLoading} onClick={()=>{setCatalogLoading(true);api.refreshIntelligenceCatalogs().then(()=>setRefresh(value=>value+1)).catch(error=>setError(failure(error))).finally(()=>setCatalogLoading(false));}}>Reload markets</button>
+        {(data?.catalogs ?? []).map((catalog) => (
+          <button
+            key={catalog.market}
+            className="secondary"
+            disabled={busy}
+            onClick={() => selectMarket(catalog.market)}
+          >
+            <strong>{catalog.total.toLocaleString()}</strong> {catalog.label}
+            <small>
+              {catalogLoading ? "Checking catalog…" : catalog.status}
+              {catalog.warning ? ` · ${catalog.warning}` : ""}
+            </small>
+          </button>
+        ))}
+        <button
+          className="secondary"
+          disabled={busy || catalogLoading}
+          onClick={() => {
+            setCatalogLoading(true);
+            api
+              .refreshIntelligenceCatalogs()
+              .then(() => setRefresh((value) => value + 1))
+              .catch((error) => setError(failure(error)))
+              .finally(() => setCatalogLoading(false));
+          }}
+        >
+          Reload markets
+        </button>
       </section>
       <div className="mi-toolbar">
         <form onSubmit={submit} className="mi-search">
@@ -639,7 +734,9 @@ export function MarketIntelligence({
                 aria-label="Market movement summary"
               >
                 <div>
-                  <span className="eyebrow">{watched?"WATCHLIST":"MARKET UNIVERSE"}</span>
+                  <span className="eyebrow">
+                    {watched ? "WATCHLIST" : "MARKET UNIVERSE"}
+                  </span>
                   <strong>
                     {data.moves.length}
                     <small> / {data.total} symbols</small>
@@ -699,7 +796,9 @@ export function MarketIntelligence({
                                   ? "FX"
                                   : family(m) === "crypto"
                                     ? "Spot"
-                                    : m.instrument.asset_type === "us_listing" ? "US listing" : "Stock"}
+                                    : m.instrument.asset_type === "us_listing"
+                                      ? "US listing"
+                                      : "Stock"}
                             </small>
                           </button>
                         ))}
@@ -955,8 +1054,15 @@ export function MarketIntelligence({
                       <div className="mi-instrument-actions">
                         <button
                           className="primary"
-                          disabled={!selected.daily_bars?.length && !selected.instrument.registered}
-                          onClick={() => selected.instrument.registered ? chart(selected.instrument.id) : setPriceHistory(selected)}
+                          disabled={
+                            !selected.daily_bars?.length &&
+                            !selected.instrument.registered
+                          }
+                          onClick={() =>
+                            selected.instrument.registered
+                              ? chart(selected.instrument.id)
+                              : setPriceHistory(selected)
+                          }
                         >
                           Open daily chart <ArrowRight size={14} />
                         </button>
@@ -978,8 +1084,24 @@ export function MarketIntelligence({
                         )}
                       </div>
                       <h3>Related context</h3>
-                      {selected.price_receipt_id && <button className="text-button" onClick={()=>setReceipt(selected.price_receipt_id!)}>Price evidence</button>}
-                      {!selected.instrument.registered && <p>Market listing. Add it to the research workspace through Find more symbols to use research services{selected.instrument.asset_type==="us_listing"?" and choose Stock or ETF classification":""}.</p>}
+                      {selected.price_receipt_id && (
+                        <button
+                          className="text-button"
+                          onClick={() => setReceipt(selected.price_receipt_id!)}
+                        >
+                          Price evidence
+                        </button>
+                      )}
+                      {!selected.instrument.registered && (
+                        <p>
+                          Market listing. Add it to the research workspace
+                          through Find more symbols to use research services
+                          {selected.instrument.asset_type === "us_listing"
+                            ? " and choose Stock or ETF classification"
+                            : ""}
+                          .
+                        </p>
+                      )}
                       {news
                         .filter((i) => relevant(i, selected))
                         .slice(0, 3)
@@ -1125,7 +1247,12 @@ export function MarketIntelligence({
           timezone={timezone}
         />
       )}
-      {priceHistory && <PriceHistory move={priceHistory} close={()=>setPriceHistory(undefined)}/>}
+      {priceHistory && (
+        <PriceHistory
+          move={priceHistory}
+          close={() => setPriceHistory(undefined)}
+        />
+      )}
     </main>
   );
 }

@@ -329,6 +329,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/intelligence/catalogs/refresh": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Catalogs */
+    post: operations["catalogs_api_v1_intelligence_catalogs_refresh_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/intelligence": {
     parameters: {
       query?: never;
@@ -4097,6 +4114,27 @@ export interface components {
       /** Native Research Ready */
       readonly native_research_ready: boolean;
     };
+    /** IntelligenceCatalog */
+    IntelligenceCatalog: {
+      /**
+       * Market
+       * @enum {string}
+       */
+      market: "fx" | "stocks" | "crypto";
+      /** Label */
+      label: string;
+      /** Total */
+      total: number;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "available" | "stale" | "unavailable" | "missing";
+      /** Checked At */
+      checked_at?: string | null;
+      /** Warning */
+      warning?: string | null;
+    };
     /** IntelligenceDashboard */
     IntelligenceDashboard: {
       /**
@@ -4126,6 +4164,8 @@ export interface components {
       watchlist: components["schemas"]["IntelligenceWatchlistView"];
       /** Coverage */
       coverage: string[];
+      /** Catalogs */
+      catalogs?: components["schemas"]["IntelligenceCatalog"][];
     };
     /** IntelligenceItem */
     IntelligenceItem: {
@@ -4179,7 +4219,7 @@ export interface components {
     };
     /** IntelligenceMove */
     IntelligenceMove: {
-      instrument: components["schemas"]["InstrumentView"];
+      instrument: components["schemas"]["IntelligenceSymbol"];
       /** Price */
       price?: string | null;
       /** Changes */
@@ -4198,6 +4238,12 @@ export interface components {
       warning?: string | null;
       /** Snapshot Id */
       snapshot_id?: string | null;
+      /** Price Receipt Id */
+      price_receipt_id?: string | null;
+      /** Daily Bars */
+      daily_bars?: {
+        [key: string]: unknown;
+      }[];
       /** Source */
       source: string;
       /** Volume Type */
@@ -4255,6 +4301,75 @@ export interface components {
        * @default false
        */
       truncated: boolean;
+    };
+    /** IntelligenceSymbol */
+    IntelligenceSymbol: {
+      /** Id */
+      id: string;
+      /** Symbol */
+      symbol: string;
+      /** Name */
+      name: string;
+      /** Provider */
+      provider: string;
+      /** Provider Symbol */
+      provider_symbol: string;
+      /**
+       * Asset Type
+       * @enum {string}
+       */
+      asset_type: "crypto_spot" | "fx" | "equity" | "etf" | "us_listing";
+      /** Base Currency */
+      base_currency: string;
+      /** Quote Currency */
+      quote_currency: string;
+      /**
+       * Volume Type
+       * @enum {string}
+       */
+      volume_type: "exchange_base" | "provider_ticks" | "feed_shares";
+      /** Native Symbol */
+      native_symbol: string;
+      /**
+       * Native Asset Type
+       * @enum {string}
+       */
+      native_asset_type: "crypto" | "forex" | "stock";
+      /** Analysis Scope */
+      analysis_scope: string;
+      /**
+       * Calendar Id
+       * @default crypto_24x7
+       * @enum {string}
+       */
+      calendar_id: "crypto_24x7" | "oanda_fx" | "us_equity";
+      /**
+       * Price Side
+       * @default trades
+       * @enum {string}
+       */
+      price_side: "trades" | "midpoint" | "bid_ask";
+      /**
+       * Supported Intervals
+       * @default [
+       *       "1m",
+       *       "5m",
+       *       "15m",
+       *       "1h",
+       *       "4h",
+       *       "1d"
+       *     ]
+       */
+      supported_intervals: ("1m" | "5m" | "15m" | "1h" | "4h" | "1d")[];
+      /**
+       * Registered
+       * @default true
+       */
+      registered: boolean;
+      /** Catalog Id */
+      catalog_id?: string | null;
+      /** Native Research Ready */
+      readonly native_research_ready: boolean;
     };
     /** IntelligenceWatchlistChange */
     IntelligenceWatchlistChange: {
@@ -6902,6 +7017,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  catalogs_api_v1_intelligence_catalogs_refresh_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["IntelligenceCatalog"][];
         };
       };
     };
