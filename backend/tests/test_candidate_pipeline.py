@@ -382,9 +382,9 @@ def test_many_instrument_cycle_has_no_model_work(signed_in, scanner_feed, databa
     assert result["metrics"]["published_candidate_count"] == 2
     with Session(database[0]) as db:
         assert db.scalar(select(func.count()).select_from(AnalysisJob)) == 0
-    (
-        Path(__file__).resolve().parents[2] / "artifacts/scanner-pipeline-performance.json"
-    ).write_text(
+    output = Path(__file__).resolve().parents[2] / "artifacts/scanner-pipeline-performance.json"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(
         json.dumps(
             {
                 "fixture": "100 registered synthetic crypto instruments; offline HTTP transport and disposable PostgreSQL",
