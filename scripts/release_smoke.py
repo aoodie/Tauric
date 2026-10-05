@@ -12,9 +12,59 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 from uuid import uuid4
+from urllib.parse import quote
 
 import server
 import server_soak
+
+
+def redact_diagnostics(diagnostics, private, password=None):
+    values = {password} if password else set()
+
+    def collect(value):
+        if isinstance(value, str) and value:
+            values.add(value)
+        elif isinstance(value, dict):
+            for item in value.values():
+                collect(item)
+        elif isinstance(value, list):
+            for item in value:
+                collect(item)
+
+    for path in private.iterdir():
+        if path.is_file():
+            value = path.read_text().strip()
+            if value:
+                values.add(value)
+                try:
+                    collect(json.loads(value))
+                except json.JSONDecodeError:
+                    pass
+    for value in sorted(values, key=len, reverse=True):
+        diagnostics = diagnostics.replace(quote(value, safe=""), "[private]")
+        diagnostics = diagnostics.replace(value, "[private]")
+    return diagnostics
+
+
+def health_diagnostics(compose):
+    container_ids = subprocess.run(
+        compose + ["ps", "--all", "--quiet"],
+        capture_output=True, check=False, timeout=20,
+    ).stdout.decode().split()
+    if not container_ids:
+        return ""
+    output = subprocess.run(
+        [
+            "docker", "inspect", "--format",
+            "{{.Name}} health={{json .State.Health}} oom={{json .State.OOMKilled}} memory={{.HostConfig.Memory}}",
+            *container_ids,
+        ], capture_output=True, check=False, timeout=20,
+    ).stdout.decode(errors="replace")
+    output += "\n" + subprocess.run(
+        ["docker", "stats", "--no-stream", "--format", "{{json .}}", *container_ids],
+        capture_output=True, check=False, timeout=20,
+    ).stdout.decode(errors="replace")
+    return output
 
 
 def request(opener, origin, path, body=None, method="GET", csrf=None, expected=200):
@@ -79,6 +129,10 @@ def rehearse(images, output, local=False, ai=True, emit_failure_diagnostics=Fals
             )
             if startup.returncode:
                 raise RuntimeError("Release startup failed; redacted diagnostics saved.")
+            if emit_failure_diagnostics:
+                result["startup_readiness_diagnostics"] = redact_diagnostics(
+                    health_diagnostics(compose), state / "secrets"
+                )
             result["fresh_install_ready"] = True
             server.run(
                 compose
@@ -229,30 +283,11 @@ def rehearse(images, output, local=False, ai=True, emit_failure_diagnostics=Fals
                 capture_output=True,
                 check=False,
             ).stdout.decode(errors="replace")
-            container_ids = subprocess.run(
-                compose + ["ps", "--all", "--quiet"],
-                capture_output=True,
-                check=False,
-            ).stdout.decode().split()
-            if container_ids:
-                diagnostics += "\n" + subprocess.run(
-                    [
-                        "docker", "inspect", "--format",
-                        "{{.Name}} health={{json .State.Health}} oom={{json .State.OOMKilled}} memory={{.HostConfig.Memory}}",
-                        *container_ids,
-                    ], capture_output=True, check=False,
-                ).stdout.decode(errors="replace")
-                diagnostics += "\n" + subprocess.run(
-                    ["docker", "stats", "--no-stream", "--format", "{{json .}}", *container_ids],
-                    capture_output=True, check=False,
-                ).stdout.decode(errors="replace")
-            for path in (state / "secrets").iterdir():
-                if path.is_file():
-                    diagnostics = diagnostics.replace(
-                        path.read_text().strip(), "[private]"
-                    )
-            if password:
-                diagnostics = diagnostics.replace(password, "[private]")
+            try:
+                diagnostics += "\n" + health_diagnostics(compose)
+            except subprocess.TimeoutExpired:
+                diagnostics += "\nReadiness diagnostics timed out."
+            diagnostics = redact_diagnostics(diagnostics, state / "secrets", password)
             output.parent.mkdir(parents=True, exist_ok=True)
             failure = output.with_suffix(".failure.log")
             failure.write_text(diagnostics)
