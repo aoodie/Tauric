@@ -1,0 +1,63 @@
+{
+  "id": "tauric-governance-tools",
+  "name": "Tauric governance and chat tools",
+  "description": "Read Tauric evidence and queue bounded owner-requested native research. Cannot place orders or rewrite reports.",
+  "version": "0.6.0",
+  "configSchema": {
+    "type": "object",
+    "required": [
+      "platformUrl",
+      "platformToken"
+    ],
+    "properties": {
+      "platformUrl": {
+        "type": "string"
+      },
+      "platformToken": {
+        "type": "string"
+      }
+    },
+    "additionalProperties": false
+  },
+  "activation": {
+    "onStartup": true
+  },
+  "contracts": {
+    "tools": [
+      "tauric_paper_context",
+      "tauric_review_context",
+      "tauric_chat_context",
+      "tauric_request_research",
+      "tauric_research_status",
+      "tauric_portfolio_action",
+      "tauric_request_portfolio_research",
+      "tauric_broker_review_context"
+    ]
+  },
+  "toolMetadata": {
+    "tauric_paper_context": {
+      "optional": true
+    },
+    "tauric_review_context": {
+      "optional": true
+    },
+    "tauric_chat_context": {
+      "optional": true
+    },
+    "tauric_request_research": {
+      "optional": true
+    },
+    "tauric_research_status": {
+      "optional": true
+    },
+    "tauric_portfolio_action": {
+      "optional": true
+    },
+    "tauric_request_portfolio_research": {
+      "optional": true
+    },
+    "tauric_broker_review_context": {
+      "optional": true
+    }
+  }
+}

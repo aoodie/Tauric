@@ -1,0 +1,9 @@
+FROM python:3.13-slim-bookworm@sha256:5024f48ba9441d4b13a95d3945abc6365538e3a31109833367a1923523c6efed
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+WORKDIR /app
+COPY backend/requirements.lock ./requirements.lock
+RUN pip install --no-cache-dir -r requirements.lock && useradd --create-home --uid 10001 tauric
+COPY backend/ ./
+ENTRYPOINT ["python", "-m", "tauric.container_start"]
+EXPOSE 8000
+CMD ["uvicorn", "tauric.app:app", "--host", "0.0.0.0", "--port", "8000", "--no-proxy-headers"]

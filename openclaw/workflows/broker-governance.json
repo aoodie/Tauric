@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "runtime": "openclaw@2026.9.7",
+  "agents": ["broker-governor-cloud", "broker-governor-local"],
+  "context_tool": "tauric_broker_review_context",
+  "input": {"job_id": "uuid", "context_checksum": "sha256", "assessment_job_id": "uuid", "native_artifact_id": "uuid", "strategy_version_id": "uuid", "policy_id": "uuid", "provider": "oanda|alpaca", "instrument_id": "registered instrument", "side": "buy", "quantity": "exact decimal string"},
+  "response": {"job_id": "uuid", "context_checksum": "sha256", "assessment_job_id": "uuid", "native_artifact_id": "uuid", "strategy_version_id": "uuid", "policy_id": "uuid", "provider": "oanda|alpaca", "instrument_id": "registered instrument", "side": "buy", "quantity": "exact decimal string", "outcome": "allow|reject|defer", "reason": "3..500 characters"},
+  "authority": "one_exact_demo_broker_entry",
+  "execution": "A validated immutable allow can be consumed by one strategy-attributed platform intent. Models have no order tool. Scheduled signal discovery is separate."
+}

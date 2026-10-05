@@ -1,0 +1,11 @@
+FROM node:24-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS build
+WORKDIR /frontend
+COPY frontend/package*.json ./
+RUN npm ci --no-fund --no-audit
+COPY frontend/ ./
+RUN npm run build
+
+FROM caddy:2-alpine@sha256:881bbc60f9986d5ab8e7cfd6cf7e4ef3c9c0439fef2429d035d065577882f028
+COPY deploy/Caddyfile /etc/caddy/Caddyfile
+COPY --from=build /frontend/dist /srv
+EXPOSE 80

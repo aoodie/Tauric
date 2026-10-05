@@ -1,0 +1,118 @@
+# Isolated production-asset browser checks; shares only the development DB server.
+name: tauric_browser_checks
+services:
+  test_api:
+    image: tauric_foundation-api
+    volumes:
+      - ../artifacts/browser-model-key:/run/setup-model-key:ro
+      - ../.env.openclaw-private.json:/run/setup-openclaw-private.json:ro
+    environment:
+      TAURIC_DATABASE_URL: ${BROWSER_DATABASE_URL:?Create the private browser fixture first}
+      TAURIC_ALLOWED_ORIGINS: '["http://127.0.0.1:8081"]'
+      TAURIC_SECURE_COOKIES: "false"
+    networks:
+      default:
+        aliases: [api]
+      storage: {}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+  web:
+    image: tauric_foundation-web
+    ports: ["127.0.0.1:8081:80"]
+    depends_on:
+      test_api:
+        condition: service_healthy
+  model_reader:
+    profiles: [verification]
+    image: tauric_foundation-worker
+    environment:
+      TAURIC_DATABASE_URL: ${BROWSER_DATABASE_URL:?Create the private browser fixture first}
+    volumes:
+      - ../artifacts/browser-model-key:/run/setup-model-key:ro
+    networks:
+      storage: {}
+    command: ["python", "-c", "from sqlalchemy.orm import Session; from tauric.database import engine; from tauric.model_profiles import load_profiles, encryption; from tauric.models import ModelConnectionVersion; from sqlalchemy import select; db = Session(engine()); encryption(); records = db.scalars(select(ModelConnectionVersion)).all(); profiles, error = load_profiles(db); assert not records or (profiles and not error); print('Built worker can decrypt saved Settings connections; no model calls made.')"]
+  test_openclaw:
+    profiles: [verification]
+    image: tauric_foundation-openclaw
+    volumes:
+      - ../.env.openclaw-private.json:/run/setup-openclaw-private.json:ro
+      - test_openclaw_state:/state
+    depends_on:
+      test_api:
+        condition: service_healthy
+    mem_limit: 1g
+    networks:
+      default:
+        aliases: [openclaw]
+  test_native_worker:
+    profiles: [verification]
+    image: tauric_foundation-worker
+    environment:
+      TAURIC_DATABASE_URL: ${BROWSER_DATABASE_URL:?Create the private browser fixture first}
+      TAURIC_RUNTIME_DIRECTORY: /runtime
+    volumes:
+      - ../artifacts/browser-model-key:/run/setup-model-key:ro
+      - ../.env.openclaw-private.json:/run/setup-openclaw-private.json:ro
+      - test_native_runtime:/runtime
+    networks:
+      storage: {}
+    depends_on:
+      test_api:
+        condition: service_healthy
+    mem_limit: 1g
+  test_strategy_scheduler:
+    profiles: [verification]
+    image: tauric_foundation-strategy_scheduler
+    environment:
+      TAURIC_DATABASE_URL: ${BROWSER_DATABASE_URL:?Create the private browser fixture first}
+    networks:
+      storage: {}
+    command: ["python", "-m", "tauric.strategy_scheduler_worker"]
+    depends_on:
+      test_api:
+        condition: service_healthy
+    mem_limit: 256m
+  test_autonomous_paper:
+    profiles: [verification]
+    image: tauric_foundation-autonomous_paper
+    environment:
+      TAURIC_DATABASE_URL: ${BROWSER_DATABASE_URL:?Create the private browser fixture first}
+    networks:
+      storage: {}
+    command: ["python", "-m", "tauric.autonomous_worker"]
+    depends_on:
+      test_api:
+        condition: service_healthy
+    mem_limit: 256m
+  fixture_model:
+    profiles: [governance_fixture]
+    image: tauric_foundation-api
+    volumes:
+      - ../scripts:/fixtures:ro
+    command: ["uvicorn", "governance_model_fixture:app", "--app-dir", "/fixtures", "--host", "0.0.0.0", "--port", "9000", "--no-access-log"]
+  test_governance_worker:
+    profiles: [governance_fixture]
+    image: tauric_foundation-api
+    environment:
+      TAURIC_DATABASE_URL: ${BROWSER_DATABASE_URL:?Create the private browser fixture first}
+    volumes:
+      - ../artifacts/browser-model-key:/run/setup-model-key:ro
+      - ../.env.openclaw-private.json:/run/setup-openclaw-private.json:ro
+    networks:
+      default: {}
+      storage: {}
+    command: ["python", "-m", "tauric.governance_worker"]
+    depends_on:
+      test_openclaw:
+        condition: service_healthy
+volumes:
+  test_openclaw_state:
+  test_native_runtime:
+networks:
+  storage:
+    external: true
+    name: tauric_foundation_default

@@ -1,0 +1,127 @@
+.settings-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+  margin: 0 0 24px;
+  padding-bottom: 12px;
+  flex-wrap: wrap;
+}
+.settings-tabs button {
+  padding: 10px 16px;
+  color: var(--muted);
+  border: 1px solid transparent;
+  font-size: 12px;
+}
+.settings-tabs button[aria-selected="true"] {
+  color: var(--cyan);
+  background: #103149;
+  border-color: #247fa2;
+}
+.connection-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.connection-form {
+  border: 1px solid var(--border);
+  padding: 24px;
+  background: var(--panel);
+}
+.owner-settings-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.owner-settings-heading h2 {
+  font:
+    500 28px "Barlow Condensed",
+    sans-serif;
+  margin-top: 8px;
+}
+.owner-settings-heading svg {
+  color: var(--gold);
+}
+.connection-form > p {
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 12px 0 20px;
+}
+.connection-form fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+.connection-form label {
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.connection-models {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.connection-models label {
+  min-width: 0;
+}
+.connection-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.connection-actions span,
+.credential-note {
+  font-size: 11px;
+  color: var(--muted);
+}
+.connection-error {
+  margin-top: 16px;
+}
+.connection-error .text-button {
+  margin-top: 10px;
+}
+.connection-form .settings-success {
+  color: var(--green);
+  margin: 18px 0 0;
+  font-size: 12px;
+}
+.password-form {
+  max-width: 560px;
+}
+.market-connection-check {
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  font-size: 12px;
+}
+.market-connection-check strong {
+  color: var(--cyan);
+}
+.market-connection-check p {
+  margin: 8px 0;
+}
+@media (max-width: 900px) {
+  .connection-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 500px) {
+  .connection-form {
+    padding: 18px;
+  }
+  .connection-models {
+    grid-template-columns: 1fr;
+  }
+  .settings-tabs button {
+    padding: 9px 11px;
+  }
+}

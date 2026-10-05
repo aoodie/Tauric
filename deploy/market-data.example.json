@@ -1,0 +1,4 @@
+{
+  "oanda": {"token": "", "account_id": "", "environment": "practice"},
+  "alpaca": {"key": "", "secret": "", "environment": "paper", "feed": "iex", "delay_minutes": 15}
+}

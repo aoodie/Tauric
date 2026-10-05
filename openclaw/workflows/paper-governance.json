@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "runtime": "openclaw@2026.9.7",
+  "agents": [
+    "governor-cloud",
+    "governor-local"
+  ],
+  "context_tool": "tauric_review_context",
+  "input": {
+    "job_id": "uuid",
+    "context_checksum": "sha256",
+    "proposal_id": "uuid",
+    "policy_id": "uuid"
+  },
+  "response": {
+    "job_id": "uuid",
+    "context_checksum": "sha256",
+    "proposal_id": "uuid",
+    "policy_id": "uuid",
+    "outcome": "allow|reject|defer",
+    "reason": "3..500 characters"
+  },
+  "authority": "paper_only",
+  "execution": "Validated immutable decisions feed the deterministic paper planner; OpenClaw has no order tool."
+}

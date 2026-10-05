@@ -1,0 +1,334 @@
+.chat-workspace {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  gap: 16px;
+  min-height: 560px;
+  height: calc(100dvh - 275px);
+}
+.portfolio-picker {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 16px 0;
+}
+.portfolio-picker select {
+  min-width: 240px;
+}
+.portfolio-panel {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  background: #081421;
+}
+.portfolio-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+.portfolio-allocations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin: 16px 0;
+}
+.portfolio-allocations > div {
+  display: grid;
+  gap: 8px;
+}
+.portfolio-settings {
+  margin: 16px 0;
+}
+.portfolio-settings form {
+  display: grid;
+  gap: 16px;
+  max-width: 760px;
+  margin: 20px 0;
+}
+.portfolio-settings label:not(.check-row) {
+  display: grid;
+  gap: 8px;
+}
+.portfolio-settings textarea {
+  min-height: 100px;
+}
+.portfolio-settings fieldset {
+  border: 1px solid var(--border);
+  padding: 16px;
+}
+.portfolio-settings .check-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0;
+}
+.portfolio-form-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.portfolio-panel summary,
+.chat-research summary {
+  cursor: pointer;
+}
+.portfolio-panel pre,
+.chat-research pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+@media (max-width: 650px) {
+  .portfolio-picker {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+.chat-history {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid var(--border);
+  background: #081421;
+  border-radius: 8px;
+}
+.chat-history > button {
+  padding: 10px;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  flex-shrink: 0;
+}
+.chat-history > button.selected {
+  border-color: #24c8f4;
+  color: #24c8f4;
+  background: #102b3e;
+}
+.chat-history .eyebrow {
+  margin-top: 10px;
+}
+.chat-main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: linear-gradient(140deg, #0b1a2a, #07121e);
+  overflow: hidden;
+}
+.chat-state {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.chat-state > svg {
+  color: #24c8f4;
+}
+.chat-messages {
+  overflow: auto;
+  flex: 1;
+  padding: 22px;
+  min-height: 200px;
+}
+.chat-empty {
+  padding: 60px 15px;
+  text-align: center;
+}
+.chat-empty > svg {
+  color: #24c8f4;
+}
+.chat-turn {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+.chat-bubble {
+  max-width: 90%;
+  padding: 14px 18px;
+  border: 1px solid #223d54;
+  border-radius: 10px;
+  overflow-wrap: anywhere;
+}
+.chat-bubble p {
+  white-space: pre-wrap;
+  margin: 8px 0 0;
+  line-height: 1.6;
+}
+.chat-bubble.user {
+  align-self: flex-end;
+  background: #102b3e;
+}
+.chat-bubble.assistant {
+  align-self: flex-start;
+  background: #0b1a2a;
+}
+.chat-bubble.assistant .eyebrow {
+  color: #24c8f4;
+}
+.chat-compose {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 16px;
+  border-top: 1px solid var(--border);
+}
+.chat-compose textarea {
+  background: #07121e;
+  border: 1px solid #223d54;
+  border-radius: 6px;
+  color: #dde8f3;
+  font: inherit;
+  padding: 12px 14px;
+  resize: vertical;
+  min-height: 70px;
+  max-height: 180px;
+  flex: 1;
+  min-width: 0;
+}
+.chat-compose textarea:focus {
+  outline: 1px solid #24c8f4;
+  border-color: #24c8f4;
+}
+.chat-footnote {
+  padding: 0 16px 12px;
+  margin: 0;
+  font-size: 12px;
+}
+.chat-channel-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin: 20px 0;
+}
+.chat-channel {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #0b1a2a;
+}
+.chat-channel legend {
+  color: #24c8f4;
+  font-weight: 600;
+  padding: 0 6px;
+}
+.chat-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 16px 0;
+}
+.chat-check {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.chat-field input,
+.chat-field select {
+  width: 100%;
+}
+.chat-connections {
+  max-width: 1100px;
+}
+.chat-connections form > .chat-field {
+  max-width: 360px;
+}
+.chat-connections .muted {
+  line-height: 1.65;
+}
+.chat-connections .muted svg {
+  vertical-align: middle;
+}
+@media (max-width: 800px) {
+  .chat-workspace {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 0;
+  }
+  .chat-history {
+    max-height: 175px;
+  }
+  .chat-main {
+    height: 65dvh;
+    min-height: 480px;
+  }
+  .chat-channel-grid {
+    grid-template-columns: 1fr;
+  }
+  .chat-state {
+    flex-wrap: wrap;
+  }
+  .chat-bubble {
+    max-width: 100%;
+  }
+}
+
+.chat-compose .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.chat-research {
+  padding: 16px 18px;
+  border: 1px solid #223d54;
+  border-left: 3px solid #24c8f4;
+  border-radius: 8px;
+  background: #081724;
+}
+.chat-research-heading,
+.chat-research-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.chat-research .muted {
+  line-height: 1.6;
+  margin: 12px 0;
+}
+
+.portfolio-research-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: 12px;
+}
+.portfolio-experiment {
+  border: 1px solid var(--border);
+  padding: 12px;
+  margin: 12px 0;
+  display: grid;
+  gap: 10px;
+}
+.portfolio-research fieldset {
+  border: 1px solid var(--border);
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.portfolio-research-runs {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+.portfolio-research pre {
+  max-height: 360px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.portfolio-research p {
+  overflow-wrap: anywhere;
+}

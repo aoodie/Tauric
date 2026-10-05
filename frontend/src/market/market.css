@@ -1,0 +1,345 @@
+.market-chart-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--panel);
+}
+.market-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.market-controls select {
+  width: auto;
+  padding: 6px 8px;
+  font-size: 11px;
+}
+.market-controls .secondary {
+  padding: 6px 9px;
+  font-size: 11px;
+}
+.market-analyze {
+  margin-left: auto;
+}
+.market-check {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.market-check input {
+  width: 13px;
+  margin: 0;
+  accent-color: var(--cyan);
+}
+.market-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 8px 12px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.market-meta .badge {
+  margin-left: auto;
+}
+.market-error {
+  padding: 10px 12px;
+  background: #3a1b28;
+  color: var(--red);
+  font-size: 11px;
+}
+.market-readout {
+  padding: 5px 12px 10px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-height: 38px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9px;
+  color: var(--muted);
+}
+.market-readout strong {
+  color: var(--text);
+  font-weight: 400;
+}
+.market-canvas-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 160px;
+}
+.market-canvas {
+  position: absolute;
+  inset: 0;
+}
+.market-await {
+  position: absolute;
+  inset: 0 65px 30px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 25px;
+  text-align: center;
+  background: var(--panel);
+}
+.market-await svg {
+  color: #4d8098;
+}
+.market-await h3 {
+  font-size: 15px;
+}
+.market-await p {
+  font-size: 12px;
+  max-width: 350px;
+}
+.market-overlay-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  font-size: 9px;
+  color: var(--muted);
+}
+.market-overlay-controls input[type="number"] {
+  width: 58px;
+  padding: 4px 5px;
+  font-size: 10px;
+}
+.market-overlay-controls button {
+  margin-left: auto;
+  font-size: 10px;
+}
+.market-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  color: #7895ac;
+  font-size: 9px;
+}
+.market-foot a {
+  color: #9bb6cb;
+}
+.native-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 17px;
+  height: 100%;
+  overflow: auto;
+}
+.native-panel .panel-kicker {
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 10px;
+}
+.native-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.native-heading svg {
+  color: var(--cyan);
+  flex-shrink: 0;
+}
+.native-heading h3 {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 24px;
+}
+.native-heading p,
+.native-panel p {
+  font-size: 11px;
+}
+.native-scope {
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 0;
+}
+.native-scope strong {
+  display: block;
+  margin-bottom: 8px;
+  font-family: "IBM Plex Mono", monospace;
+  color: var(--cyan);
+}
+.native-panel label,
+.native-panel select {
+  font-size: 11px;
+}
+.native-runs-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--border);
+  padding-top: 15px;
+}
+.native-empty {
+  padding: 12px 0;
+}
+.native-run-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 180px;
+  overflow: auto;
+}
+.native-run-list button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 7px;
+  border: 1px solid var(--border);
+  text-align: left;
+  font-size: 10px;
+}
+.native-run-list button.selected {
+  border-color: #247fa2;
+  background: #103149;
+}
+.native-job {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.native-rating {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  font-size: 11px;
+}
+.native-rating strong {
+  color: var(--cyan);
+}
+.native-report pre {
+  padding: 15px 0;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.7;
+}
+
+.fx-policy {
+  margin: 14px 0;
+  border: 1px solid var(--border);
+  padding: 12px;
+  font-size: 11px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.fx-policy summary {
+  cursor: pointer;
+  color: var(--cyan);
+}
+.fx-policy summary .badge {
+  display: inline-block;
+  margin-left: 6px;
+}
+.fx-policy p,
+.fx-policy small {
+  color: var(--muted);
+}
+.fx-policy-currency {
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+.fx-policy-currency > strong {
+  color: var(--cyan);
+}
+.fx-policy-source {
+  margin-top: 6px;
+}
+.fx-policy a {
+  color: var(--cyan);
+}
+.fx-policy ul {
+  margin: 6px 0 10px;
+  padding-left: 16px;
+}
+.fx-policy small {
+  display: block;
+}
+.fx-policy .fx-policy-warning {
+  color: var(--gold);
+}
+.native-limit {
+  margin-top: auto;
+  padding-top: 15px;
+  border-top: 1px solid var(--border);
+  font-size: 10px;
+  color: var(--gold);
+  line-height: 1.6;
+}
+.model-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+.model-profile-grid article {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  padding: 20px;
+}
+.model-profile-grid .badge {
+  float: right;
+}
+.model-profile-grid h3 {
+  margin: 14px 0 8px;
+}
+.model-profile-grid p {
+  margin-top: 10px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 700px) {
+  .mobile-panel .market-chart-panel {
+    min-height: 520px;
+  }
+  .model-profile-grid {
+    grid-template-columns: 1fr;
+  }
+  .market-analyze {
+    margin-left: 0;
+  }
+  .market-controls {
+    gap: 6px;
+  }
+  .native-panel {
+    height: auto;
+    min-height: 100%;
+  }
+}
+
+.fx-supplement {
+  padding: 12px;
+  margin: 12px 0;
+  border: 1px solid var(--border);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.fx-supplement summary {
+  cursor: pointer;
+  color: var(--cyan);
+}
+.fx-supplement small {
+  display: block;
+  color: var(--muted);
+  margin: 4px 0;
+}
+.fx-supplement li {
+  margin-bottom: 10px;
+}

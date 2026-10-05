@@ -1,0 +1,16 @@
+{
+  "cloud": {
+    "provider": "openai",
+    "base_url": "",
+    "quick_model": "",
+    "deep_model": "",
+    "api_key": ""
+  },
+  "local": {
+    "provider": "openai_compatible",
+    "base_url": "",
+    "quick_model": "",
+    "deep_model": "",
+    "api_key": ""
+  }
+}

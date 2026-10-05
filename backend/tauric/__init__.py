@@ -1,0 +1,1 @@
+"""Tauric platform foundation."""

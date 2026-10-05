@@ -1,0 +1,21 @@
+services:
+  api:
+    environment:
+      TAURIC_SECURE_COOKIES: "true"
+  web:
+    ports: !override
+      - "80:80"
+      - "443:443"
+    environment:
+      TAURIC_DOMAIN: ${TAURIC_DOMAIN:?Set a public DNS hostname}
+    volumes:
+      - ./Caddyfile.https:/etc/caddy/Caddyfile:ro
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "--spider",
+          "https://${TAURIC_DOMAIN:?Set a public DNS hostname}/health/ready",
+        ]

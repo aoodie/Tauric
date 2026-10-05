@@ -1,0 +1,135 @@
+.instrument-discovery {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  padding: 10px 12px;
+  min-width: 0;
+  font-size: 11px;
+}
+.market-chart-panel > .instrument-discovery {
+  margin: 8px 12px;
+  max-height: 340px;
+  overflow: auto;
+  flex-shrink: 0;
+}
+.instrument-discovery > summary {
+  color: var(--cyan);
+  cursor: pointer;
+}
+.scanner-universe > .instrument-discovery {
+  flex-basis: 100%;
+}
+.instrument-discovery > summary svg {
+  vertical-align: middle;
+  margin-right: 7px;
+}
+.discovery-search {
+  display: flex;
+  gap: 10px;
+  align-items: end;
+  flex-wrap: wrap;
+  padding-top: 14px;
+}
+.discovery-search label {
+  flex: 1;
+  min-width: 130px;
+  font-size: 11px;
+}
+.discovery-search input,
+.discovery-search select {
+  font-size: 11px;
+  padding: 7px;
+  width: 100%;
+}
+.discovery-count {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 0 8px;
+  color: var(--muted);
+}
+.discovery-count strong {
+  color: var(--text);
+  font-weight: 500;
+}
+.discovery-results {
+  max-height: 280px;
+  overflow: auto;
+}
+.discovery-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  padding: 10px 0;
+}
+.discovery-identity {
+  flex: 1;
+  min-width: 0;
+}
+.discovery-identity strong {
+  display: block;
+  color: var(--text);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+}
+.discovery-identity span,
+.discovery-identity small {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.discovery-row select {
+  width: 106px;
+  padding: 6px;
+  font-size: 11px;
+}
+.discovery-row button {
+  white-space: nowrap;
+}
+.discovery-saved,
+.discovery-notice {
+  color: var(--green);
+}
+.discovery-warning {
+  color: var(--gold) !important;
+}
+.discovery-error {
+  color: var(--red);
+}
+.discovery-help,
+.discovery-error,
+.discovery-notice {
+  padding: 10px 0 4px;
+  line-height: 1.5;
+}
+.discovery-pages {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  color: var(--muted);
+}
+.discovery-coverage {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  margin-top: 10px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.discovery-coverage p {
+  margin-top: 7px;
+}
+@media (max-width: 500px) {
+  .discovery-row {
+    flex-wrap: wrap;
+  }
+  .discovery-identity {
+    flex-basis: 100%;
+  }
+  .discovery-pages {
+    font-size: 10px;
+  }
+}

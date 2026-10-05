@@ -1,0 +1,13 @@
+FROM python:3.13-slim-bookworm@sha256:5024f48ba9441d4b13a95d3945abc6365538e3a31109833367a1923523c6efed
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 LANGSMITH_TRACING=false
+WORKDIR /app
+COPY backend/requirements.runtime.lock ./requirements.runtime.lock
+RUN sed -E '/^(pytest|ruff|iniconfig|pluggy|Pygments)==/d' requirements.runtime.lock > requirements.worker.lock \
+    && pip install --no-cache-dir -r requirements.worker.lock \
+    && useradd --create-home --uid 10001 tauric \
+    && mkdir -p /runtime && chown tauric:tauric /runtime
+ADD --checksum=sha256:cd50792b6a41ff0830cd9149a9a8fd2e27100799257dd7d2147534574db39299 https://codeload.github.com/TauricResearch/TradingAgents/tar.gz/8b22d43d01d9ddda5d686d093d5385884622f3de /tmp/upstream.tar.gz
+RUN pip install --no-cache-dir --no-deps /tmp/upstream.tar.gz && rm /tmp/upstream.tar.gz
+COPY backend/tauric ./tauric
+ENTRYPOINT ["python", "-m", "tauric.container_start"]
+CMD ["python", "-m", "tauric.worker"]

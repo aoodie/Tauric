@@ -1,0 +1,257 @@
+.paper-settings,
+.paper-account-list {
+  display: grid;
+  gap: 20px;
+}
+.paper-card {
+  min-width: 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 22px;
+}
+.paper-card h2,
+.paper-intro h2,
+.paper-governance h2 {
+  font:
+    500 26px "Barlow Condensed",
+    sans-serif;
+  margin: 8px 0 18px;
+}
+.paper-card p,
+.paper-intro p,
+.paper-governance p {
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 12px 0;
+}
+.paper-card-head,
+.paper-actions,
+.paper-intro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.paper-card-head {
+  justify-content: space-between;
+}
+.paper-intro {
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  padding: 20px;
+  border: 1px solid var(--border);
+  color: var(--cyan);
+}
+.paper-intro h2 {
+  margin: 0 0 6px;
+}
+.paper-intro p {
+  color: var(--muted);
+  margin: 0;
+}
+.paper-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 14px 0;
+  font-size: 12px;
+}
+.paper-card fieldset {
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.paper-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 18px;
+}
+.paper-balances {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 15px;
+  margin: 20px 0;
+}
+.paper-balances span,
+.paper-position span,
+.paper-deployment span,
+.paper-journal-row span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 6px;
+}
+.paper-balances strong,
+.paper-plan dd {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.paper-warning {
+  border-left: 2px solid var(--gold);
+  background: #33291544;
+  color: #dbc697;
+  font-size: 12px;
+  line-height: 1.6;
+  padding: 14px 18px;
+  margin-bottom: 24px;
+}
+.paper-flow-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+.paper-results {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  margin-top: 24px;
+}
+.paper-plan {
+  margin: 20px 0;
+}
+.paper-plan div {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  padding: 12px 0;
+}
+.paper-plan dt {
+  font-size: 11px;
+  color: var(--muted);
+}
+.paper-plan dd {
+  margin: 0;
+  text-align: right;
+}
+.paper-position {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  border-bottom: 1px solid var(--border);
+  padding: 18px 0;
+  font-size: 12px;
+}
+.paper-position > div:first-child {
+  flex: 1;
+  min-width: 140px;
+}
+.paper-journal-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+}
+.paper-journal-row > div {
+  flex: 1;
+  min-width: 0;
+}
+.paper-journal-row time {
+  color: var(--muted);
+  font-size: 10px;
+}
+.paper-journal {
+  padding: 12px;
+}
+.paper-card .paper-journal {
+  padding: 0;
+}
+.paper-governance,
+.paper-positions.compact {
+  padding: 20px;
+  overflow: auto;
+  height: 100%;
+}
+.paper-deployment {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+@media (max-width: 1100px) {
+  .paper-flow-grid {
+    grid-template-columns: 1fr;
+  }
+  .paper-results {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .paper-card {
+    padding: 16px;
+  }
+  .paper-form-grid,
+  .paper-balances {
+    grid-template-columns: 1fr;
+  }
+  .paper-intro {
+    padding: 16px;
+  }
+  .paper-card input,
+  .paper-card select {
+    width: 100%;
+    min-width: 0;
+  }
+  .paper-workbench .page-heading {
+    align-items: flex-start;
+  }
+}
+.strategy-runner button {
+  margin-right: 6px;
+  margin-bottom: 6px;
+}
+
+.capital-history {
+  margin-top: 18px;
+  font-size: 12px;
+}
+.capital-history > div {
+  display: grid;
+  gap: 6px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.capital-history span,
+.capital-history time {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.paper-card textarea {
+  width: 100%;
+  min-width: 0;
+  resize: vertical;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 10px;
+  font: inherit;
+}
+.deployment-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 14px;
+}
+.deployment-controls form {
+  flex-basis: 100%;
+}
+.capital-history summary {
+  cursor: pointer;
+  color: var(--cyan);
+}
+.strategy-schedule {
+  margin-bottom: 18px;
+}
+.strategy-schedule button {
+  margin: 10px 8px 0 0;
+}
+.strategy-schedule .schedule-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.strategy-schedule .schedule-toggle input {
+  width: auto;
+}

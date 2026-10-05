@@ -1,0 +1,18 @@
+[project]
+name = "tauric-platform"
+version = "0.11.0"
+requires-python = ">=3.12"
+dependencies = ["fastapi", "uvicorn", "sqlalchemy", "alembic", "psycopg[binary]", "argon2-cffi", "pydantic-settings", "cryptography"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+markers = ["browser: optional built-frontend browser checks"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501", "B008"]
