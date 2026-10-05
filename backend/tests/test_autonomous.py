@@ -8,7 +8,7 @@ from decimal import Decimal
 
 import pytest
 from fastapi import HTTPException
-from sqlalchemy import func, select, text
+from sqlalchemy import event, func, select, text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 from test_governance import ready as ready
@@ -43,7 +43,18 @@ def clock(monkeypatch, rule_feed):
     ) + timedelta(minutes=17)
     for module in (analysis, autonomous, governance, openclaw_api, strategy_scheduler):
         monkeypatch.setattr(module, "now", lambda: rule_feed["now"])
-    return rule_feed
+    # ORM defaults retain their original function even when service clocks are patched.
+    # Fills must share this clock so an afternoon wall clock cannot place an entry
+    # after the simulated next closed bar and suppress the attributed exit.
+    def stamp_record(mapper, connection, record):
+        if record.created_at is None:
+            record.created_at = rule_feed["now"]
+
+    event.listen(TradingRecord, "before_insert", stamp_record)
+    try:
+        yield rule_feed
+    finally:
+        event.remove(TradingRecord, "before_insert", stamp_record)
 
 
 @pytest.fixture

@@ -6,7 +6,7 @@ from datetime import timedelta
 from decimal import Decimal, localcontext
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import event, select
 from sqlalchemy.orm import Session
 from test_autonomous import policy
 from test_autonomous import process as autonomy_process
@@ -35,7 +35,7 @@ from tauric import (
     strategy_scheduler,
 )
 from tauric.market_calendars import periods
-from tauric.models import AnalysisArtifact, AnalysisJob, GatewayStatus, Owner
+from tauric.models import AnalysisArtifact, AnalysisJob, GatewayStatus, Owner, TradingRecord
 
 STOCK = "alpaca:equity:AAPL"
 COSTS = dict(
@@ -97,7 +97,17 @@ def stock_clock(monkeypatch):
         return rows[-300:], state["now"], state["now"], context.model_dump(mode="json")
 
     monkeypatch.setattr(market.PROVIDERS["alpaca_stocks"], "collect", collect)
-    return state
+
+    # Persisted fills must use the same simulated clock as exit-bar selection.
+    def stamp_record(mapper, connection, record):
+        if record.created_at is None:
+            record.created_at = state["now"]
+
+    event.listen(TradingRecord, "before_insert", stamp_record)
+    try:
+        yield state
+    finally:
+        event.remove(TradingRecord, "before_insert", stamp_record)
 
 
 @pytest.fixture
