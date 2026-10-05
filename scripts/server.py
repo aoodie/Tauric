@@ -100,8 +100,7 @@ def setup(directory, images, domain=None, port=8080, local=False):
     # directory is 0700; readable leaf files let non-root containers consume
     # only their explicitly mounted secrets without any bootstrap capabilities.
     for name in PRIVATE_FILES:
-        if name != "database-admin":
-            (private / name).chmod(0o644)
+        (private / name).chmod(0o644)
     values = {key: values[key] for key in IMAGE_KEYS}
     values.update(
         TAURIC_SECRETS_DIR=str(private.resolve()),
@@ -162,8 +161,10 @@ def validate(directory, project, local=False):
         path = private / name
         if path.is_symlink() or not path.is_file() or path.stat().st_mode & 0o022:
             raise ValueError("Secret files must exist and reject group/other writes.")
-        if name == "database-admin" and path.stat().st_mode & 0o077:
-            raise ValueError("The administrator password must be owner-only.")
+        if path.stat().st_mode & 0o444 != 0o444:
+            raise ValueError(
+                "File-mounted secrets need readable leaf permissions inside private directories."
+            )
     rendered = json.loads(
         run(
             command(directory, project)
@@ -469,7 +470,7 @@ def restore_check(directory, project, archive, local=False):
             "".join(f"{key}={value}\n" for key, value in values.items()),
         )
         for path in (directory / "secrets").iterdir():
-            path.chmod(0o600 if path.name == "database-admin" else 0o644)
+            path.chmod(0o644)
         (directory / "secrets").chmod(0o700)
         validate(directory, project, local)
         compose = command(directory, project) + ["--profile", "*"]
