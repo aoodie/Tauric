@@ -109,6 +109,9 @@ export function unwrap<T>(result: {
 export const api = {
   refreshIntelligenceCatalogs: async () =>
     unwrap(await client.POST("/api/v1/intelligence/catalogs/refresh")),
+  registerIntelligenceSymbol: async (
+    body: components["schemas"]["IntelligenceRegister"],
+  ) => unwrap(await client.POST("/api/v1/intelligence/register", { body })),
   intelligence: async (query: {
     market: components["schemas"]["IntelligenceDashboard"]["market"];
     offset?: number;

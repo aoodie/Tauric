@@ -8,11 +8,12 @@ from .intelligence_contracts import (
     IntelligenceMarket,
     IntelligenceRefresh,
     IntelligenceRefreshResult,
+    IntelligenceRegister,
     IntelligenceWatchlistChange,
     IntelligenceWatchlistView,
 )
 from .intelligence_models import IntelligenceReceipt
-from .market_contracts import AnalysisView
+from .market_contracts import AnalysisView, InstrumentView
 
 router = APIRouter(prefix="/api/v1/intelligence", tags=["market intelligence"])
 
@@ -20,6 +21,11 @@ router = APIRouter(prefix="/api/v1/intelligence", tags=["market intelligence"])
 @router.post("/catalogs/refresh", response_model=list[IntelligenceCatalog])
 def catalogs(db: Db, owner: CurrentOwner):
     return intelligence_catalog.synchronize(db, owner)
+
+
+@router.post("/register", response_model=InstrumentView)
+def register(body: IntelligenceRegister, db: Db, owner: CurrentOwner):
+    return intelligence_catalog.register(db, owner, body)
 
 
 @router.get("", response_model=IntelligenceDashboard)

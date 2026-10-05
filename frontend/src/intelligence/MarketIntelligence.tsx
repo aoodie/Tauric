@@ -14,6 +14,7 @@ import {
 import { api, type Analysis } from "../api/client";
 import type { components } from "../api/schema";
 import { InstrumentDiscovery } from "../market/InstrumentDiscovery";
+import { useMarket } from "../market/MarketContext";
 import {
   createChart,
   ColorType,
@@ -330,6 +331,10 @@ export function MarketIntelligence({
     return MARKETS.some((m) => m.id === v) ? (v as Market) : "overview";
   });
   const [data, setData] = useState<Dashboard>();
+  const marketContext = useMarket();
+  const [classification, setClassification] = useState<"equity" | "etf" | "">(
+    "",
+  );
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
@@ -338,6 +343,7 @@ export function MarketIntelligence({
   const [priceHistory, setPriceHistory] = useState<Move>();
   const acting = useRef(false),
     sequence = useRef(0);
+  const attemptedPrices = useRef(new Set<string>());
   const [refresh, setRefresh] = useState(0);
   const [offset, setOffset] = useState(0);
   const [search, setSearch] = useState("");
@@ -401,31 +407,28 @@ export function MarketIntelligence({
   useEffect(() => {
     if (!data || catalogLoading || loading || acting.current) return;
     const missing = data.moves
-      .filter((move) => move.state === "empty")
+      .filter(
+        (move) =>
+          move.state === "empty" &&
+          !attemptedPrices.current.has(move.instrument.id),
+      )
       .map((move) => move.instrument.id);
     if (!missing.length) return;
-    let active = true;
+    missing.forEach((id) => attemptedPrices.current.add(id));
     acting.current = true;
     setBusy(true);
     setNotice("Loading daily prices for this page…");
     api
       .refreshIntelligence({ instrument_ids: missing, sources: false })
       .then(() => {
-        if (active) {
-          setRefresh((value) => value + 1);
-          setNotice("");
-        }
+        setRefresh((value) => value + 1);
+        setNotice("");
       })
-      .catch((error) => {
-        if (active) setError(failure(error));
-      })
+      .catch((error) => setError(failure(error)))
       .finally(() => {
         acting.current = false;
-        if (active) setBusy(false);
+        setBusy(false);
       });
-    return () => {
-      active = false;
-    };
   }, [data, catalogLoading, loading]);
   useEffect(() => {
     let active = true;
@@ -511,6 +514,35 @@ export function MarketIntelligence({
     }
   }
   const selected = data?.moves.find((m) => m.instrument.id === selectedId);
+  async function registerSelected() {
+    if (!selected || acting.current) return;
+    const asset =
+      selected.instrument.asset_type === "us_listing"
+        ? classification
+        : selected.instrument.asset_type;
+    if (!asset) return;
+    acting.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      await api.registerIntelligenceSymbol({
+        instrument_id: selected.instrument.id,
+        asset_type: asset,
+      });
+      await marketContext.reloadInstruments();
+      setRefresh((value) => value + 1);
+      setClassification("");
+      setNotice(
+        `${selected.instrument.symbol} added to the research workspace.`,
+      );
+    } catch (error) {
+      setError(failure(error));
+    } finally {
+      acting.current = false;
+      setBusy(false);
+    }
+  }
+  useEffect(() => setClassification(""), [selectedId]);
   const news = data?.items.filter((i) => i.kind === "headline") ?? [];
   const events = (
     data?.items.filter((i) => i.kind === "policy_meeting") ?? []
@@ -1093,14 +1125,43 @@ export function MarketIntelligence({
                         </button>
                       )}
                       {!selected.instrument.registered && (
-                        <p>
-                          Market listing. Add it to the research workspace
-                          through Find more symbols to use research services
-                          {selected.instrument.asset_type === "us_listing"
-                            ? " and choose Stock or ETF classification"
-                            : ""}
-                          .
-                        </p>
+                        <div className="mi-register">
+                          <p>
+                            Browsing and watching this listing do not add it to
+                            a scanner. Add it to the research workspace when you
+                            want to use research services.
+                          </p>
+                          {selected.instrument.asset_type === "us_listing" && (
+                            <label>
+                              Listing classification{" "}
+                              <select
+                                aria-label="Listing classification"
+                                value={classification}
+                                onChange={(event) =>
+                                  setClassification(
+                                    event.target.value as "equity" | "etf" | "",
+                                  )
+                                }
+                              >
+                                <option value="">Choose Stock or ETF</option>
+                                <option value="equity">Stock</option>
+                                <option value="etf">ETF</option>
+                              </select>
+                            </label>
+                          )}
+                          <button
+                            className="secondary"
+                            disabled={
+                              busy ||
+                              (selected.instrument.asset_type ===
+                                "us_listing" &&
+                                !classification)
+                            }
+                            onClick={() => void registerSelected()}
+                          >
+                            Add to research workspace
+                          </button>
+                        </div>
                       )}
                       {news
                         .filter((i) => relevant(i, selected))

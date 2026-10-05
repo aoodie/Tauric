@@ -237,3 +237,68 @@ def resolve(db, owner, keys):
             422, "This symbol is not in the saved provider catalogs. Reload markets and try again."
         )
     return [known[key] for key in dict.fromkeys(keys)]
+
+
+def register(db, owner, body):
+    spec = resolve(db, owner, [body.instrument_id])[0]
+    if spec.registered:
+        if spec.asset_type != body.asset_type:
+            raise HTTPException(
+                409, "This symbol is already registered with a different classification."
+            )
+        return InstrumentView.model_validate(
+            spec.model_dump(exclude={"registered", "catalog_id", "native_research_ready"})
+        )
+    if (
+        spec.asset_type == "us_listing"
+        and body.asset_type not in {"equity", "etf"}
+        or spec.asset_type != "us_listing"
+        and body.asset_type != spec.asset_type
+    ):
+        raise HTTPException(422, "Choose a classification that matches this market listing.")
+    if spec.provider != "binance_spot_public":
+        provider = "oanda" if spec.asset_type == "fx" else "alpaca"
+        _, revision, _ = stored_connection(db, provider)
+        return instrument_discovery.register(
+            db,
+            owner,
+            instrument_discovery.InstrumentAdd(
+                provider=provider,
+                symbol=spec.provider_symbol,
+                asset_type=body.asset_type,
+                expected_connection_revision=revision,
+            ),
+        )
+    if not db.scalar(select(func.pg_try_advisory_xact_lock(913570082))):
+        raise HTTPException(409, "A crypto instrument is being registered. Try again shortly.")
+    if spec.provider_symbol not in {item["symbol"] for item in fetch("crypto", db)}:
+        raise HTTPException(422, "This crypto spot pair is no longer available.")
+    key = "binance:spot:" + spec.provider_symbol
+    current = db.get(Instrument, key)
+    if current:
+        return InstrumentView.model_validate(current.definition)
+    saved = InstrumentView.model_validate(
+        {
+            **spec.model_dump(exclude={"registered", "catalog_id", "native_research_ready"}),
+            "id": key,
+            "native_symbol": spec.base_currency + "USD",
+            "asset_type": "crypto_spot",
+        }
+    )
+    db.add(
+        Instrument(
+            id=key, definition=saved.model_dump(mode="json", exclude={"native_research_ready"})
+        )
+    )
+    db.flush()
+    services.audit(
+        db,
+        owner,
+        "instrument.registered",
+        "instrument",
+        key,
+        "Added provider-verified crypto spot instrument",
+        {"provider_symbol": spec.provider_symbol},
+    )
+    db.commit()
+    return saved

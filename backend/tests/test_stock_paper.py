@@ -99,9 +99,14 @@ def stock_clock(monkeypatch):
     monkeypatch.setattr(market.PROVIDERS["alpaca_stocks"], "collect", collect)
 
     # Persisted fills must use the same simulated clock as exit-bar selection.
+    record_sequence = 0
+
     def stamp_record(mapper, connection, record):
+        nonlocal record_sequence
         if record.created_at is None:
-            record.created_at = state["now"]
+            # Preserve insertion order when several ledger facts share a fixed clock.
+            record_sequence += 1
+            record.created_at = state["now"] + timedelta(microseconds=record_sequence)
 
     event.listen(TradingRecord, "before_insert", stamp_record)
     try:

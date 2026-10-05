@@ -880,6 +880,47 @@
         }
       }
     },
+    "/api/v1/intelligence/register": {
+      "post": {
+        "tags": [
+          "market intelligence"
+        ],
+        "summary": "Register",
+        "operationId": "register_api_v1_intelligence_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntelligenceRegister"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstrumentView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/intelligence": {
       "get": {
         "tags": [
@@ -11297,6 +11338,32 @@
           "receipt_ids"
         ],
         "title": "IntelligenceRefreshResult"
+      },
+      "IntelligenceRegister": {
+        "properties": {
+          "instrument_id": {
+            "type": "string",
+            "maxLength": 120,
+            "title": "Instrument Id"
+          },
+          "asset_type": {
+            "type": "string",
+            "enum": [
+              "fx",
+              "equity",
+              "etf",
+              "crypto_spot"
+            ],
+            "title": "Asset Type"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "instrument_id",
+          "asset_type"
+        ],
+        "title": "IntelligenceRegister"
       },
       "IntelligenceSource": {
         "properties": {
