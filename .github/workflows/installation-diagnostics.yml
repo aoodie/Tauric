@@ -1,0 +1,38 @@
+name: Diagnose published installation
+on:
+  push:
+    branches: [codex/installation-diagnostics]
+permissions:
+  contents: read
+  packages: read
+jobs:
+  published-installation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pin already published candidate images
+        run: |
+          mkdir -p artifacts
+          cat > artifacts/published-images.env <<'IMAGES'
+          TAURIC_API_IMAGE=ghcr.io/aoodie/tauric-api@sha256:4a1dfdcc67349c50b0c9093e78a80db130c5c7f11e2a76b9bd292cdb95a8d6b0
+          TAURIC_WORKER_IMAGE=ghcr.io/aoodie/tauric-worker@sha256:431fc1a94e2749edc67c7e6712d136c35f95e13f6cf5167c02320e9284bdfc00
+          TAURIC_WEB_IMAGE=ghcr.io/aoodie/tauric-web@sha256:28de684de00b02d850e69e128a577351b21a371acdcfb060e3e15dc1b7f6d3bd
+          TAURIC_OPENCLAW_IMAGE=ghcr.io/aoodie/tauric-openclaw@sha256:05fd4c08fe8759577690c50d66a8c4861257dde9b7e0000240430ed5ee543309
+          IMAGES
+      - name: Diagnose isolated Linux installation and restoration
+        run: python scripts/release_smoke.py --images artifacts/published-images.env --output artifacts/published-installation.json --emit-failure-diagnostics
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: published-installation-diagnostics
+          path: |
+            artifacts/published-installation.json
+            artifacts/published-installation.failure.log
+          retention-days: 7
+          if-no-files-found: ignore

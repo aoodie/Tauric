@@ -45,7 +45,7 @@ def request(opener, origin, path, body=None, method="GET", csrf=None, expected=2
     )
 
 
-def rehearse(images, output, local=False, ai=True):
+def rehearse(images, output, local=False, ai=True, emit_failure_diagnostics=False):
     token = uuid4().hex[:12]
     project = "tauric_release_" + token
     restored_project = "tauric_restore_" + token
@@ -66,11 +66,19 @@ def rehearse(images, output, local=False, ai=True):
         if ai:
             compose += ["--profile", "analysis", "--profile", "governance"]
         recovery_compose = None
+        startup_diagnostics = ""
+        password = None
         try:
-            server.run(
+            startup = subprocess.run(
                 compose + ["up", "-d", "--wait", "--wait-timeout", "240"],
-                stdout=subprocess.PIPE,
+                capture_output=True,
+                check=False,
             )
+            startup_diagnostics = (startup.stdout + startup.stderr).decode(
+                errors="replace"
+            )
+            if startup.returncode:
+                raise RuntimeError("Release startup failed; redacted diagnostics saved.")
             result["fresh_install_ready"] = True
             server.run(
                 compose
@@ -211,8 +219,13 @@ def rehearse(images, output, local=False, ai=True):
                 production_acceptance_complete=False,
             )
         except Exception:
-            diagnostics = subprocess.run(
+            diagnostics = startup_diagnostics + "\n" + subprocess.run(
                 compose + ["logs", "--no-color", "--tail", "50"],
+                capture_output=True,
+                check=False,
+            ).stdout.decode(errors="replace")
+            diagnostics += "\n" + subprocess.run(
+                compose + ["ps", "--all", "--format", "json"],
                 capture_output=True,
                 check=False,
             ).stdout.decode(errors="replace")
@@ -221,10 +234,14 @@ def rehearse(images, output, local=False, ai=True):
                     diagnostics = diagnostics.replace(
                         path.read_text().strip(), "[private]"
                     )
+            if password:
+                diagnostics = diagnostics.replace(password, "[private]")
             output.parent.mkdir(parents=True, exist_ok=True)
             failure = output.with_suffix(".failure.log")
             failure.write_text(diagnostics)
             failure.chmod(0o600)
+            if emit_failure_diagnostics:
+                print("Redacted disposable release diagnostics:\n" + diagnostics)
             raise
         finally:
             # These names are random and created by this invocation, never the
@@ -255,10 +272,17 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--local-images", action="store_true")
     parser.add_argument("--skip-ai", action="store_true")
+    parser.add_argument("--emit-failure-diagnostics", action="store_true")
     args = parser.parse_args()
     print(
         json.dumps(
-            rehearse(args.images, args.output, args.local_images, not args.skip_ai),
+            rehearse(
+                args.images,
+                args.output,
+                args.local_images,
+                not args.skip_ai,
+                args.emit_failure_diagnostics,
+            ),
             indent=2,
         )
     )
