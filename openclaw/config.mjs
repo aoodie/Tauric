@@ -1,4 +1,8 @@
 // Build only project-owned configuration; the pinned OpenClaw runtime is untouched.
+export function gatewayRunning(child) {
+  return !!child && child.exitCode === null && child.signalCode === null;
+}
+
 export function buildConfig(root, tokens, runtime) {
   const providers = {}, entries = {}, allowed = {};
   const settings = runtime.settings ?? {timeout_seconds:180,max_output_tokens:2000};
