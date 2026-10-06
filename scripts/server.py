@@ -138,13 +138,26 @@ def command(directory, project):
     return result
 
 
+class ServerOperationError(RuntimeError):
+    def __init__(self, result):
+        super().__init__(
+            "Server operation failed; inspect local service diagnostics privately."
+        )
+        self.diagnostics = ""
+        for value in (result.stdout, result.stderr):
+            if value:
+                self.diagnostics += (
+                    value.decode(errors="replace")
+                    if isinstance(value, bytes)
+                    else value
+                )
+
+
 def run(args, **kwargs):
     result = subprocess.run(args, stderr=subprocess.PIPE, check=False, **kwargs)
     if result.returncode:
         # Docker/SQL failures may contain expanded connection details.
-        raise RuntimeError(
-            "Server operation failed; inspect local service diagnostics privately."
-        )
+        raise ServerOperationError(result)
     return result
 
 

@@ -91,7 +91,7 @@
           "CMD",
           "python",
           "-c",
-          "from sqlalchemy.orm import Session; from tauric.database import engine; from tauric.models import WorkerStatus, now; db=Session(engine()); row=db.get(WorkerStatus, 'autonomous_paper'); assert row and (now()-row.heartbeat_at).total_seconds()<60"
+          "from sqlalchemy import text; from tauric.database import engine; c=engine().connect(); assert c.scalar(text(\"SELECT heartbeat_at <= now() AND heartbeat_at > now() - (:max_age * interval '1 second') FROM worker_status WHERE id = :worker\"), {'worker': 'autonomous_paper', 'max_age': 60}) is True"
         ],
         "timeout": "5s",
         "interval": "10s",
@@ -164,7 +164,7 @@
           "CMD",
           "python",
           "-c",
-          "from sqlalchemy.orm import Session; from tauric.database import engine; from tauric.models import WorkerStatus, now; db=Session(engine()); row=db.get(WorkerStatus, 'broker_execution'); assert row and (now()-row.heartbeat_at).total_seconds()<60"
+          "from sqlalchemy import text; from tauric.database import engine; c=engine().connect(); assert c.scalar(text(\"SELECT heartbeat_at <= now() AND heartbeat_at > now() - (:max_age * interval '1 second') FROM worker_status WHERE id = :worker\"), {'worker': 'broker_execution', 'max_age': 60}) is True"
         ],
         "timeout": "5s",
         "interval": "10s",
@@ -241,7 +241,7 @@
           "CMD",
           "python",
           "-c",
-          "from sqlalchemy.orm import Session; from tauric.database import engine; from tauric.models import WorkerStatus, now; db=Session(engine()); row=db.get(WorkerStatus,'candidate_research'); assert row and 0 <= (now()-row.heartbeat_at).total_seconds() < 30"
+          "from sqlalchemy import text; from tauric.database import engine; c=engine().connect(); assert c.scalar(text(\"SELECT heartbeat_at <= now() AND heartbeat_at > now() - (:max_age * interval '1 second') FROM worker_status WHERE id = :worker\"), {'worker': 'candidate_research', 'max_age': 30}) is True"
         ],
         "timeout": "5s",
         "interval": "10s",
@@ -354,7 +354,7 @@
           "CMD",
           "python",
           "-c",
-          "from sqlalchemy.orm import Session; from tauric.database import engine; from tauric.models import WorkerStatus, now; db=Session(engine()); row=db.get(WorkerStatus, 'chat'); assert row and 0 <= (now()-row.heartbeat_at).total_seconds()<90"
+          "from sqlalchemy import text; from tauric.database import engine; c=engine().connect(); assert c.scalar(text(\"SELECT heartbeat_at <= now() AND heartbeat_at > now() - (:max_age * interval '1 second') FROM worker_status WHERE id = :worker\"), {'worker': 'chat', 'max_age': 90}) is True"
         ],
         "interval": "15s",
         "timeout": "5s",
@@ -376,7 +376,7 @@
       "healthcheck": {
         "test": [
           "CMD-SHELL",
-          "pg_isready -U tauric_admin -d tauric"
+          "pg_isready -h 127.0.0.1 -U tauric_admin -d tauric"
         ],
         "timeout": "3s",
         "interval": "3s",
@@ -483,7 +483,7 @@
           "CMD",
           "python",
           "-c",
-          "from sqlalchemy.orm import Session; from tauric.database import engine; from tauric.models import WorkerStatus, now; db=Session(engine()); row=db.get(WorkerStatus, 'governance'); assert row and 0 <= (now()-row.heartbeat_at).total_seconds()<90"
+          "from sqlalchemy import text; from tauric.database import engine; c=engine().connect(); assert c.scalar(text(\"SELECT heartbeat_at <= now() AND heartbeat_at > now() - (:max_age * interval '1 second') FROM worker_status WHERE id = :worker\"), {'worker': 'governance', 'max_age': 90}) is True"
         ],
         "interval": "15s",
         "timeout": "5s",
@@ -601,7 +601,7 @@
           "CMD",
           "python",
           "-c",
-          "from sqlalchemy.orm import Session; from tauric.database import engine; from tauric.models import WorkerStatus, now; db=Session(engine()); row=db.get(WorkerStatus, 'portfolio_research'); assert row and (now()-row.heartbeat_at).total_seconds()<90"
+          "from sqlalchemy import text; from tauric.database import engine; c=engine().connect(); assert c.scalar(text(\"SELECT heartbeat_at <= now() AND heartbeat_at > now() - (:max_age * interval '1 second') FROM worker_status WHERE id = :worker\"), {'worker': 'portfolio_research', 'max_age': 90}) is True"
         ],
         "timeout": "5s",
         "interval": "10s",
@@ -737,7 +737,7 @@
           "CMD",
           "python",
           "-c",
-          "from sqlalchemy.orm import Session; from tauric.database import engine; from tauric.strategy_scheduler import status; db=Session(engine()); assert status(db).ready"
+          "from sqlalchemy import text; from tauric.database import engine; c=engine().connect(); assert c.scalar(text(\"SELECT heartbeat_at <= now() AND heartbeat_at > now() - (:max_age * interval '1 second') FROM worker_status WHERE id = :worker\"), {'worker': 'strategy_scheduler', 'max_age': 60}) is True"
         ],
         "timeout": "5s",
         "interval": "10s",
@@ -893,7 +893,7 @@
           "CMD",
           "python",
           "-c",
-          "from sqlalchemy.orm import Session; from tauric.database import engine; from tauric.models import WorkerStatus, now; db=Session(engine()); row=db.get(WorkerStatus, 'native'); assert row and 0 <= (now()-row.heartbeat_at).total_seconds()<90"
+          "from sqlalchemy import text; from tauric.database import engine; c=engine().connect(); assert c.scalar(text(\"SELECT heartbeat_at <= now() AND heartbeat_at > now() - (:max_age * interval '1 second') FROM worker_status WHERE id = :worker\"), {'worker': 'native', 'max_age': 90}) is True"
         ],
         "interval": "15s",
         "timeout": "5s",

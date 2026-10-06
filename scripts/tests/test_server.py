@@ -3,6 +3,7 @@
 import io
 import json
 import os
+import subprocess
 import sys
 import tarfile
 import tempfile
@@ -13,6 +14,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import github_source
 import release_bundle
+import release_smoke
 import server
 
 
@@ -31,6 +33,37 @@ class ServerControls(unittest.TestCase):
 
     def tearDown(self):
         self.folder.cleanup()
+
+    def test_operation_errors_keep_private_diagnostics_out_of_the_exception_message(
+        self,
+    ):
+        failed = subprocess.CompletedProcess(
+            [], 1, stdout=b"private-output", stderr=b"private-password"
+        )
+        with (
+            patch("server.subprocess.run", return_value=failed),
+            self.assertRaises(server.ServerOperationError) as error,
+        ):
+            server.run(["docker", "compose", "up"])
+        self.assertNotIn("private-password", str(error.exception))
+        self.assertIn("private-password", error.exception.diagnostics)
+
+    def test_failure_diagnostics_remove_nested_tokens_and_encoded_passwords(self):
+        private = self.root / "secrets"
+        private.mkdir()
+        (private / "database-app").write_text("db/password?\n")
+        (private / "tokens").write_text(json.dumps({"tokens": ["gateway-secret"]}))
+        (private / "empty").write_text("\n")
+        text = "db/password? db%2Fpassword%3F gateway-secret owner-password service unhealthy"
+        redacted = release_smoke.redact_diagnostics(text, private, "owner-password")
+        for secret in (
+            "db/password?",
+            "db%2Fpassword%3F",
+            "gateway-secret",
+            "owner-password",
+        ):
+            self.assertNotIn(secret, redacted)
+        self.assertIn("service unhealthy", redacted)
 
     def test_setup_is_private_and_cannot_overwrite_existing_keys(self):
         state = self.root / "state"
