@@ -11,8 +11,8 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
-from uuid import uuid4
 from urllib.parse import quote
+from uuid import uuid4
 
 import server
 import server_soak
@@ -21,12 +21,24 @@ import server_soak
 def redact_diagnostics(diagnostics, private, password=None):
     values = {password} if password else set()
 
-    def collect(value):
-        if isinstance(value, str) and value:
+    def collect(value, sensitive=False):
+        if isinstance(value, str) and value and (sensitive or len(value) >= 12):
             values.add(value)
         elif isinstance(value, dict):
-            for item in value.values():
-                collect(item)
+            for key, item in value.items():
+                collect(
+                    item,
+                    any(
+                        word in key.lower()
+                        for word in (
+                            "password",
+                            "token",
+                            "secret",
+                            "key",
+                            "authorization",
+                        )
+                    ),
+                )
         elif isinstance(value, list):
             for item in value:
                 collect(item)
@@ -47,22 +59,35 @@ def redact_diagnostics(diagnostics, private, password=None):
 
 
 def health_diagnostics(compose):
-    container_ids = subprocess.run(
-        compose + ["ps", "--all", "--quiet"],
-        capture_output=True, check=False, timeout=20,
-    ).stdout.decode().split()
+    container_ids = (
+        subprocess.run(
+            compose + ["ps", "--all", "--quiet"],
+            capture_output=True,
+            check=False,
+            timeout=20,
+        )
+        .stdout.decode()
+        .split()
+    )
     if not container_ids:
         return ""
     output = subprocess.run(
         [
-            "docker", "inspect", "--format",
+            "docker",
+            "inspect",
+            "--format",
             "{{.Name}} health={{json .State.Health}} oom={{json .State.OOMKilled}} memory={{.HostConfig.Memory}}",
             *container_ids,
-        ], capture_output=True, check=False, timeout=20,
+        ],
+        capture_output=True,
+        check=False,
+        timeout=20,
     ).stdout.decode(errors="replace")
     output += "\n" + subprocess.run(
         ["docker", "stats", "--no-stream", "--format", "{{json .}}", *container_ids],
-        capture_output=True, check=False, timeout=20,
+        capture_output=True,
+        check=False,
+        timeout=20,
     ).stdout.decode(errors="replace")
     return output
 
@@ -128,7 +153,9 @@ def rehearse(images, output, local=False, ai=True, emit_failure_diagnostics=Fals
                 errors="replace"
             )
             if startup.returncode:
-                raise RuntimeError("Release startup failed; redacted diagnostics saved.")
+                raise RuntimeError(
+                    "Release startup failed; redacted diagnostics saved."
+                )
             if emit_failure_diagnostics:
                 result["startup_readiness_diagnostics"] = redact_diagnostics(
                     health_diagnostics(compose), state / "secrets"
@@ -272,12 +299,18 @@ def rehearse(images, output, local=False, ai=True, emit_failure_diagnostics=Fals
                 connected_automatic_cycle_verified=False,
                 production_acceptance_complete=False,
             )
-        except Exception:
-            diagnostics = startup_diagnostics + "\n" + subprocess.run(
-                compose + ["logs", "--no-color", "--tail", "50"],
-                capture_output=True,
-                check=False,
-            ).stdout.decode(errors="replace")
+        except Exception as error:
+            diagnostics = (
+                startup_diagnostics
+                + "\n"
+                + getattr(error, "diagnostics", "")
+                + "\n"
+                + subprocess.run(
+                    compose + ["logs", "--no-color", "--tail", "50"],
+                    capture_output=True,
+                    check=False,
+                ).stdout.decode(errors="replace")
+            )
             diagnostics += "\n" + subprocess.run(
                 compose + ["ps", "--all", "--format", "json"],
                 capture_output=True,
@@ -287,6 +320,17 @@ def rehearse(images, output, local=False, ai=True, emit_failure_diagnostics=Fals
                 diagnostics += "\n" + health_diagnostics(compose)
             except subprocess.TimeoutExpired:
                 diagnostics += "\nReadiness diagnostics timed out."
+            if (recovered / "server.env").exists():
+                recovered_compose = server.command(recovered, restored_project) + [
+                    "--profile",
+                    "*",
+                ]
+                diagnostics += "\nRestoration project:\n" + subprocess.run(
+                    recovered_compose + ["logs", "--no-color", "--tail", "50"],
+                    capture_output=True,
+                    check=False,
+                    timeout=20,
+                ).stdout.decode(errors="replace")
             diagnostics = redact_diagnostics(diagnostics, state / "secrets", password)
             output.parent.mkdir(parents=True, exist_ok=True)
             failure = output.with_suffix(".failure.log")

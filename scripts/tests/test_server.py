@@ -41,7 +41,12 @@ class ServerControls(unittest.TestCase):
         (private / "empty").write_text("\n")
         text = "db/password? db%2Fpassword%3F gateway-secret owner-password service unhealthy"
         redacted = release_smoke.redact_diagnostics(text, private, "owner-password")
-        for secret in ("db/password?", "db%2Fpassword%3F", "gateway-secret", "owner-password"):
+        for secret in (
+            "db/password?",
+            "db%2Fpassword%3F",
+            "gateway-secret",
+            "owner-password",
+        ):
             self.assertNotIn(secret, redacted)
         self.assertIn("service unhealthy", redacted)
 
