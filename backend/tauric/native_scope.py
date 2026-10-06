@@ -1,14 +1,22 @@
 """Current daily native routes, independent of chart-provider credentials."""
 
+import re
+
 NATIVE_ASSET_TYPES = {"crypto_spot": "crypto", "equity": "stock", "etf": "stock", "fx": "forex"}
 FX_POLICY_CURRENCIES = {"USD", "EUR", "GBP", "JPY"}
 
 
 def supported(spec):
-    if spec.asset_type == "fx" and not {spec.base_currency, spec.quote_currency}.issubset(
-        FX_POLICY_CURRENCIES
-    ):
-        return False
+    if spec.asset_type == "fx":
+        return (
+            spec.provider == "oanda_v20"
+            and spec.native_asset_type == "forex"
+            and spec.base_currency != spec.quote_currency
+            and all(
+                re.fullmatch(r"[A-Z]{3}", c) and c not in {"XAU", "XAG", "XPT", "XPD"}
+                for c in (spec.base_currency, spec.quote_currency)
+            )
+        )
     return NATIVE_ASSET_TYPES.get(spec.asset_type) == spec.native_asset_type
 
 
@@ -23,5 +31,5 @@ def daily_scope(asset_type):
             )
         return scope
     if asset_type == "fx":
-        return "Forex daily research uses closed OANDA bid/ask candles, official central-bank headlines and policy-meeting dates. Run fetches daily evidence separately from the chart timeframe. Source gaps remain explicit; economic releases, policy benchmarks and account financing are supplied when their provider connections pass validation. Research status is REVIEW."
+        return "Forex daily research supports provider-verified currency pairs using closed OANDA bid/ask candles. Official central-bank headlines and policy-meeting dates are included where a source adapter exists. Run fetches daily evidence separately from the chart timeframe. Source gaps remain explicit; economic releases, policy benchmarks and account financing are supplied when their provider connections pass validation. Research status is REVIEW."
     return "Native research for this asset is not enabled."

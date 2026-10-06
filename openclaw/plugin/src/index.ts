@@ -116,7 +116,7 @@ export default defineToolPlugin({
   }), tool({
     name: "tauric_request_research",
     label: "Request current daily Tauric research",
-    description: "Only when the owner explicitly asks to run research: queue current daily research for supported registered crypto, stocks or ETFs in the unchanged native Tauric graph. Uses the owner's configured chat AI route and daily allowance. Repeated identical daily research reuses the original run, including failed runs. Returns immediately with the real job ID; no orders or governance authority. Read fresh tauric_chat_context for instrument IDs and scope. Forex daily research uses the analysis screen; chat dispatch is unavailable. Commodities, weekly, intraday, historical and futures scopes must not be substituted with daily research.",
+    description: "Only when the owner explicitly asks to run research: queue current daily research for supported registered crypto, stocks, ETFs or Forex currency pairs in the unchanged native Tauric graph. Uses the owner's configured chat AI route and daily allowance. Repeated identical daily research reuses the original run, including failed runs. Returns immediately with the real job ID; no orders or governance authority. Read fresh tauric_chat_context for instrument IDs and scope. Forex daily research requires recent closed OANDA prices; missing currency policy/economic sources remain explicit. Commodities, weekly, intraday, historical and futures scopes must not be substituted with daily research.",
     optional: true,
     parameters: Type.Object({instrument_id: Type.String({minLength:3,maxLength:100})},{additionalProperties:false}),
     factory({config,toolContext}) {

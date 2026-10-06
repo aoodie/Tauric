@@ -151,3 +151,31 @@ def test_policy_evidence_binding_is_checked_before_model_use(offline, fault):
     snapshot["checksum"] = forex_macro.digest(data) if fault != "checksum" else "wrong"
     with pytest.raises(ValueError):
         forex_macro.validate(snapshot, spec(FX).model_dump())
+
+
+@pytest.mark.parametrize("currencies", [("NZD", "USD"), ("AUD", "CAD"), ("SEK", "NOK")])
+def test_missing_currency_adapters_are_explicit_gaps_not_pair_failures(offline, currencies):
+    instrument = spec(FX).model_copy(
+        update={"base_currency": currencies[0], "quote_currency": currencies[1]}
+    )
+    snapshot = forex_macro.collect(instrument)
+    data = forex_macro.validate(snapshot, instrument.model_dump())
+    missing = [row for row in data["sources"] if row["currency"] not in forex_macro.SOURCES]
+    assert missing and all(
+        row["status"] == "unavailable" and row["items"] == [] and row["url"] is None
+        for row in missing
+    )
+    assert len(offline["requests"]) == 2 * sum(c in forex_macro.SOURCES for c in currencies)
+    for fault in ("status", "items", "url"):
+        altered = copy.deepcopy(snapshot)
+        row = next(
+            row for row in altered["data"]["sources"] if row["currency"] not in forex_macro.SOURCES
+        )
+        row[fault] = {
+            "status": "available",
+            "items": [{"title": "invented policy"}],
+            "url": "https://untrusted.example/",
+        }[fault]
+        altered["checksum"] = forex_macro.digest(altered["data"])
+        with pytest.raises(ValueError):
+            forex_macro.validate(altered, instrument.model_dump())

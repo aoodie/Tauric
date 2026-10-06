@@ -10,12 +10,25 @@ from .tradingview_connection import credentials
 from .tradingview_mcp import EconomicMCP
 
 URL = "https://www.tradingview.com/mcp/docs"
-COUNTRIES = {"USD": "US", "EUR": "EU", "GBP": "GB", "JPY": "JP"}
+COUNTRIES = {
+    "USD": "US",
+    "EUR": "EU",
+    "GBP": "GB",
+    "JPY": "JP",
+    "AUD": "AU",
+    "CAD": "CA",
+    "CHF": "CH",
+    "NZD": "NZ",
+}
 COUNTRY_NAMES = {
     "US": {"United States"},
     "EU": {"Euro Area", "European Union"},
     "GB": {"United Kingdom"},
     "JP": {"Japan"},
+    "AU": {"Australia"},
+    "CA": {"Canada"},
+    "CH": {"Switzerland"},
+    "NZ": {"New Zealand"},
 }
 
 
@@ -183,8 +196,13 @@ def collect(db, spec):
             return sources
         with EconomicMCP(config["access_token"]) as client:
             for source in sources:
-                country = COUNTRIES[source["currency"]]
+                country = COUNTRIES.get(source["currency"])
                 source["connection_revision"] = revision
+                if not country:
+                    source["warning"] = (
+                        f"No verified economic country mapping for {source['currency']}; this coverage is unavailable."
+                    )
+                    continue
                 try:
                     if source["kind"] == "economic_calendar":
                         data = client.call(

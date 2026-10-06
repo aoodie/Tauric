@@ -18,7 +18,16 @@ from .models import now
 
 VERSION = "tauric_fx_supplemental_v1"
 TRADINGVIEW_VERSION = "tauric_fx_tradingview_v1"
-COUNTRIES = {"USD": "United States", "EUR": "Euro Area", "GBP": "United Kingdom", "JPY": "Japan"}
+COUNTRIES = {
+    "USD": "United States",
+    "EUR": "Euro Area",
+    "GBP": "United Kingdom",
+    "JPY": "Japan",
+    "AUD": "Australia",
+    "CAD": "Canada",
+    "CHF": "Switzerland",
+    "NZD": "New Zealand",
+}
 HOST = "https://api.tradingeconomics.com"
 
 
@@ -218,8 +227,8 @@ def collect(db, spec):
     use_tradingview = bool(tv_config.get("access_token")) or not key
     with httpx.Client(timeout=httpx.Timeout(6, connect=4), follow_redirects=False) as client:
         for currency in [spec.base_currency, spec.quote_currency]:
-            country = COUNTRIES[currency]
-            encoded = quote(country.lower(), safe="")
+            country = COUNTRIES.get(currency)
+            encoded = quote(country.lower(), safe="") if country else ""
             for kind in ("economic_calendar", "policy_rate"):
                 url = (
                     f"{HOST}/calendar/country/{encoded}/{(stamp - timedelta(days=7)).date()}/{(stamp + timedelta(days=14)).date()}"
@@ -230,14 +239,18 @@ def collect(db, spec):
                     "currency": currency,
                     "kind": kind,
                     "provider": "Trading Economics",
-                    "url": url,
+                    "url": url if country else HOST,
                     "status": "unavailable",
                     "items": [],
                     "checked_at": stamp.isoformat(),
                     "warning": "Configure Trading Economics calendar and indicators access in Settings.",
                     "connection_revision": revision,
                 }
-                if key and not use_tradingview:
+                if not country:
+                    source["warning"] = (
+                        f"No verified economic country mapping for {currency}; this coverage is unavailable."
+                    )
+                if country and key and not use_tradingview:
                     try:
                         data = fetch(client, url, {"Authorization": key})
                         source["items"] = (

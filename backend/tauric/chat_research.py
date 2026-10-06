@@ -6,7 +6,7 @@ from datetime import timedelta
 from uuid import NAMESPACE_URL, uuid5
 
 from fastapi import HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 
 from . import analysis, chat, market, native_scope, paper, services
 from .market_contracts import AnalysisRequest
@@ -18,7 +18,13 @@ LOCK = 913570051
 
 def capabilities(db):
     """Fresh registry-backed facts; readiness and permissions are checked at admission."""
-    records = list(db.scalars(select(Instrument).order_by(Instrument.id).limit(200)))
+    records = list(
+        db.scalars(
+            select(Instrument)
+            .order_by(case((Instrument.id.like("oanda:fx:%"), 0), else_=1), Instrument.id)
+            .limit(200)
+        )
+    )
     instruments = []
     for record in records:
         spec = market.instrument(db, record.id)
@@ -29,13 +35,13 @@ def capabilities(db):
                 "symbol": spec.symbol,
                 "asset_type": spec.asset_type,
                 "daily_native_research": daily,
-                "chat_request_enabled": daily and spec.asset_type != "fx",
+                "chat_request_enabled": daily,
                 "scope": spec.analysis_scope,
             }
         )
     total = db.scalar(select(func.count()).select_from(Instrument))
     return {
-        "scope": "Current daily research for supported registered crypto, stocks, ETFs and Forex. Chat can request crypto, stock and ETF runs; Forex daily runs use the analysis screen. Owner authorization, connections, readiness and allowances still apply.",
+        "scope": "Current daily research for supported registered crypto, stocks, ETFs and Forex. Chat can request crypto, stock, ETF and provider-verified Forex daily runs. Forex policy/economic coverage varies by currency; missing sources stay explicit. Owner authorization, connections, readiness and allowances still apply.",
         "forex_policy_currencies": sorted(native_scope.FX_POLICY_CURRENCIES),
         "unsupported_scopes": ["commodities", "weekly", "historical", "intraday", "futures"],
         "registered_instruments": instruments,
@@ -126,11 +132,6 @@ def request(db, owner, body):
     if not native_scope.supported(spec):
         raise HTTPException(
             422, "Current daily native research is not enabled for this instrument."
-        )
-    if spec.asset_type == "fx":
-        raise HTTPException(
-            422,
-            "Forex daily research is available from the analysis screen; chat dispatch is not enabled. Weekly and commodity research are not enabled.",
         )
     if turn and turn.portfolio_id:
         from . import portfolios

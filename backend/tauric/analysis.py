@@ -86,14 +86,13 @@ def enqueue(
     if spec.asset_type == "fx" and any(
         context is not None
         for context in (
-            chat_context,
             autonomous_context,
             portfolio_research_context,
         )
     ):
         raise HTTPException(
             422,
-            "Forex supports owner-requested daily, scanner and exact-strategy research. Automated/chat research is not enabled.",
+            "Forex supports owner-requested daily research through chat or the analysis screen, scanner and exact-strategy research. Automated portfolio research is not enabled.",
         )
     existing = db.scalar(
         select(AnalysisJob).where(

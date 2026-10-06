@@ -261,7 +261,7 @@ def discover(db, provider, query="", offset=0, limit=50):
         limitations=[
             "Provider availability is a catalog observation; prices, historical coverage and research data are checked separately.",
             "The catalog is reused for up to five minutes; adding a symbol rechecks its provider availability.",
-            "Daily Forex AI research currently covers pairs using EUR, USD, GBP and JPY. Other pairs support charts and deterministic screening/replay only."
+            "Daily Forex AI research supports all available currency pairs. Recent closed OANDA prices are required; missing policy and economic sources remain explicit."
             if provider == "oanda"
             else "Choose Stock or ETF when adding a listing. The provider catalog does not establish this classification; ETF research omits company fundamentals.",
         ],

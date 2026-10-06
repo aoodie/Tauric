@@ -41,6 +41,8 @@ assert.equal(posted.session_key,trusted.sessionKey);
 assert.equal(posted.tool_call_id,'trusted-call');
 await research.execute('stock-call',{instrument_id:'alpaca:equity:NVDA'});
 assert.equal(posted.instrument_id,'alpaca:equity:NVDA');
+await research.execute('forex-call',{instrument_id:'oanda:fx:NZD_USD'});
+assert.equal(posted.instrument_id,'oanda:fx:NZD_USD');
 const halted=tools[3]({...trusted,assertInvocationCurrent(){throw Error('Lost invocation');}});
 let effects=0;
 globalThis.fetch=async()=>{effects++;throw Error('Forbidden effect');};

@@ -1167,6 +1167,8 @@ function Workstation({
   );
   const [settings, setSettings] = useState<Setting[]>([]);
   const [chatDraft, setChatDraft] = useState("");
+  const [chatConnection, setChatConnection] =
+    useState<Awaited<ReturnType<typeof api.chatSettings>>>();
   useEffect(() => {
     const url = new URL(location.href);
     if (page === "intelligence") url.searchParams.set("view", "intelligence");
@@ -1264,6 +1266,24 @@ function Workstation({
         })
         .catch(() => {
           if (active) setReady(false);
+        });
+    void check();
+    const timer = setInterval(check, 15_000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, []);
+  useEffect(() => {
+    let active = true;
+    const check = () =>
+      api
+        .chatSettings()
+        .then((state) => {
+          if (active) setChatConnection(state);
+        })
+        .catch(() => {
+          if (active) setChatConnection(undefined);
         });
     void check();
     const timer = setInterval(check, 15_000);
@@ -1971,9 +1991,23 @@ function Workstation({
                 },
                 {
                   label: "OpenClaw",
-                  text: "Independent governance runtime",
-                  state: "Not connected",
-                  ok: false,
+                  text: "Independent governance and chat runtime",
+                  state: !chatConnection
+                    ? "Checking connection"
+                    : chatConnection.gateway_ready &&
+                        chatConnection.worker_ready &&
+                        chatConnection.route_ready
+                      ? "Ready for chat"
+                      : !chatConnection.gateway_ready
+                        ? "Gateway offline"
+                        : !chatConnection.worker_ready
+                          ? "Chat worker offline"
+                          : "AI connection required",
+                  ok: !!(
+                    chatConnection?.gateway_ready &&
+                    chatConnection.worker_ready &&
+                    chatConnection.route_ready
+                  ),
                   icon: ShieldCheck,
                 },
                 {
