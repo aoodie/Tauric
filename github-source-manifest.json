@@ -233,7 +233,7 @@
     "deploy/compose.browser.yml": "8d44d69dfbf70fe76d3dc23fd13d89677af3141f2f0455f804678b845656aa61",
     "deploy/compose.dev.yml": "9d85f2642131c4d4a6cde7b53309ec7c26b3b5c12234a1bb1dc99ff4f0be6a8e",
     "deploy/compose.https.yml": "82393a83667d34fa3be2f7baae86d667da10d9d367ad8103543897d664e87705",
-    "deploy/compose.server.yml": "c64647ef9adbfbae832a30b008e7b61cb3efc83ebf1330a03ce48bdd7b85c9d0",
+    "deploy/compose.server.yml": "b19a7b8189d463f9aa9874273c838d19264e54444dbed92cabc2e9dcd7bddae3",
     "deploy/init-db.sh": "0a69b73adc14440ca0f6eed789fec4fe7198e217d5ec093ce54198c279202eb1",
     "deploy/market-data.example.json": "b58e63304195f07c9521e0678354f47c90430d3e2730975b59da9bfb46bada38",
     "deploy/model-profiles.example.json": "4da5df23c6324f0670431070628382b5dd9afdf147a9ec4950d9b0cd6b2703d5",
