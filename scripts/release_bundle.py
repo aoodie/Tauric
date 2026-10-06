@@ -17,6 +17,8 @@ FILES = (
     "deploy/compose.gateway-recovery.yml",
     "openclaw/start.mjs",
     "openclaw/config.mjs",
+    "backend/tauric/tradingview_connection.py",
+    "backend/tauric/tradingview_mcp.py",
     "deploy/init-db.sh",
     "deploy/start-db.sh",
     "deploy/Caddyfile.https",

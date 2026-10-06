@@ -7,7 +7,7 @@ import time
 
 import httpx
 
-from .tradingview_connection import SERVER
+from .tradingview_connection import READ_TIMEOUT_SECONDS, SERVER
 
 READ_TOOLS = {"get_economic_calendar", "get_economic_symbols", "get_economic_data"}
 
@@ -33,7 +33,9 @@ def result_payload(result):
 class EconomicMCP:
     def __init__(self, token):
         self.token, self.session, self.version, self.tools = token, None, "2025-06-18", {}
-        self.client = httpx.Client(timeout=httpx.Timeout(10, connect=5), follow_redirects=False)
+        self.client = httpx.Client(
+            timeout=httpx.Timeout(READ_TIMEOUT_SECONDS, connect=5), follow_redirects=False
+        )
 
     def __enter__(self):
         try:
@@ -108,7 +110,7 @@ class EconomicMCP:
             streaming = "text/event-stream" in response.headers.get("content-type", "")
             for chunk in response.iter_bytes():
                 buffer += chunk
-                if len(buffer) > 1_000_000 or time.monotonic() - started > 20:
+                if len(buffer) > 1_000_000 or time.monotonic() - started > 30:
                     raise ValueError("MCP response exceeds bounds")
                 if streaming:
                     normalized = buffer.replace(b"\r\n", b"\n")
