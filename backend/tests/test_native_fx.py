@@ -162,12 +162,11 @@ def test_fx_bad_daily_evidence_never_queues_a_model_run(
 @pytest.mark.parametrize(
     "context",
     [
-        "chat_context",
         "autonomous_context",
         "portfolio_research_context",
     ],
 )
-def test_fx_is_manual_daily_research_only(database, context):
+def test_fx_still_rejects_automated_portfolio_research(database, context):
     with Session(database[0]) as db:
         owner = db.scalar(select(Owner))
         body = AnalysisRequest(request_id=uuid4(), instrument_id=FX, profile="cloud")

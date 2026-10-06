@@ -1,6 +1,7 @@
 """Receipt-bound calendar/rate observations from the subscribed official MCP."""
 
 import re
+import time
 from datetime import timedelta
 from decimal import Decimal
 
@@ -10,12 +11,25 @@ from .tradingview_connection import credentials
 from .tradingview_mcp import EconomicMCP
 
 URL = "https://www.tradingview.com/mcp/docs"
-COUNTRIES = {"USD": "US", "EUR": "EU", "GBP": "GB", "JPY": "JP"}
+COUNTRIES = {
+    "USD": "US",
+    "EUR": "EU",
+    "GBP": "GB",
+    "JPY": "JP",
+    "AUD": "AU",
+    "CAD": "CA",
+    "CHF": "CH",
+    "NZD": "NZ",
+}
 COUNTRY_NAMES = {
     "US": {"United States"},
     "EU": {"Euro Area", "European Union"},
     "GB": {"United Kingdom"},
     "JP": {"Japan"},
+    "AU": {"Australia"},
+    "CA": {"Canada"},
+    "CH": {"Switzerland"},
+    "NZ": {"New Zealand"},
 }
 
 
@@ -161,7 +175,7 @@ def rates(data, symbol, name, stamp):
     ]
 
 
-def collect(db, spec):
+def collect(db, spec, *, deadline=None):
     stamp = now()
     sources = [
         {
@@ -178,13 +192,29 @@ def collect(db, spec):
         for kind in ("economic_calendar", "policy_rate")
     ]
     try:
+        if deadline is not None and time.monotonic() >= deadline:
+            for source in sources:
+                source["warning"] = (
+                    "Economic-source check exceeded its time budget; coverage remains unavailable."
+                )
+            return sources
         config, revision = credentials(db)
         if not config.get("access_token"):
             return sources
-        with EconomicMCP(config["access_token"]) as client:
+        transport = (
+            EconomicMCP(config["access_token"], deadline=deadline)
+            if deadline is not None
+            else EconomicMCP(config["access_token"])
+        )
+        with transport as client:
             for source in sources:
-                country = COUNTRIES[source["currency"]]
+                country = COUNTRIES.get(source["currency"])
                 source["connection_revision"] = revision
+                if not country:
+                    source["warning"] = (
+                        f"No verified economic country mapping for {source['currency']}; this coverage is unavailable."
+                    )
+                    continue
                 try:
                     if source["kind"] == "economic_calendar":
                         data = client.call(

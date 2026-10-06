@@ -170,7 +170,9 @@ def test_fx_and_etf_classification_research_scope(signed_in, discovery_transport
     cross = add(signed_in, "oanda", "EUR_GBP", "fx").json()
     assert cross["native_research_ready"] and cross["quote_currency"] == "GBP"
     other = add(signed_in, "oanda", "AUD_CAD", "fx").json()
-    assert not other["native_research_ready"] and "unavailable" in other["analysis_scope"]
+    assert (
+        other["native_research_ready"] and "Source gaps remain explicit" in other["analysis_scope"]
+    )
     etf = add(signed_in, symbol="QQQ", asset_type="etf").json()
     assert etf["asset_type"] == "etf" and "fundamentals are omitted" in etf["analysis_scope"]
     assert add(signed_in, "oanda", "XAU_USD", "fx").status_code == 422

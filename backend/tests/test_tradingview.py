@@ -517,3 +517,55 @@ def test_new_tradingview_binding_preserves_legacy_and_rejects_wrong_host(monkeyp
     broken["checksum"] = forex_macro.digest(broken["data"])
     with pytest.raises(ValueError):
         forex_sources.validate(broken, spec(FX).model_dump())
+
+
+def test_economic_reads_use_one_total_deadline_without_retries(monkeypatch):
+    from types import SimpleNamespace
+
+    original = httpx.Client
+    clock = {"value": 0}
+    calls = []
+    monkeypatch.setattr(mcp, "time", SimpleNamespace(monotonic=lambda: clock["value"]))
+
+    def respond(request):
+        body = json.loads(request.content)
+        calls.append((body["method"], request.extensions["timeout"]["read"]))
+        clock["value"] += 9
+        if body["method"] == "notifications/initialized":
+            return httpx.Response(202)
+        result = (
+            {"protocolVersion": "2025-06-18"}
+            if body["method"] == "initialize"
+            else {"tools": [{"name": name} for name in mcp.READ_TOOLS]}
+        )
+        return httpx.Response(200, json={"jsonrpc": "2.0", "id": body["id"], "result": result})
+
+    monkeypatch.setattr(
+        mcp.httpx,
+        "Client",
+        lambda **kwargs: original(transport=httpx.MockTransport(respond), **kwargs),
+    )
+    with pytest.raises(ValueError, match="bounds"):
+        with mcp.EconomicMCP("fixture-only", deadline=20):
+            raise AssertionError("Expired evidence must not be used")
+    assert calls == [("initialize", 20), ("notifications/initialized", 11), ("tools/list", 2)]
+    before = len(calls)
+    with pytest.raises(ValueError, match="time budget"):
+        with mcp.EconomicMCP("fixture-only", deadline=20):
+            pass
+    assert len(calls) == before
+
+
+def test_expired_supplement_deadline_reports_gaps_without_requests(monkeypatch):
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(
+        sources,
+        "credentials",
+        lambda _: pytest.fail("No external credential refresh after deadline"),
+    )
+    spec = SimpleNamespace(base_currency="NZD", quote_currency="USD")
+    rows = sources.collect(None, spec, deadline=0)
+    assert len(rows) == 4
+    assert all(row["status"] == "unavailable" and row["items"] == [] for row in rows)
+    assert all("time budget" in row["warning"] for row in rows)
