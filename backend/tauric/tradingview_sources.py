@@ -1,6 +1,7 @@
 """Receipt-bound calendar/rate observations from the subscribed official MCP."""
 
 import re
+import time
 from datetime import timedelta
 from decimal import Decimal
 
@@ -174,7 +175,7 @@ def rates(data, symbol, name, stamp):
     ]
 
 
-def collect(db, spec):
+def collect(db, spec, *, deadline=None):
     stamp = now()
     sources = [
         {
@@ -191,10 +192,21 @@ def collect(db, spec):
         for kind in ("economic_calendar", "policy_rate")
     ]
     try:
+        if deadline is not None and time.monotonic() >= deadline:
+            for source in sources:
+                source["warning"] = (
+                    "Economic-source check exceeded its time budget; coverage remains unavailable."
+                )
+            return sources
         config, revision = credentials(db)
         if not config.get("access_token"):
             return sources
-        with EconomicMCP(config["access_token"]) as client:
+        transport = (
+            EconomicMCP(config["access_token"], deadline=deadline)
+            if deadline is not None
+            else EconomicMCP(config["access_token"])
+        )
+        with transport as client:
             for source in sources:
                 country = COUNTRIES.get(source["currency"])
                 source["connection_revision"] = revision

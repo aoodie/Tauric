@@ -176,7 +176,9 @@ def enqueue(
     if spec.asset_type == "fx":
         from .native_fx import prepare
 
-        fx_context = prepare(db, spec)
+        fx_context = (
+            prepare(db, spec, supplemental_budget_seconds=40) if chat_context else prepare(db, spec)
+        )
     job = AnalysisJob(
         id=identifier(),
         owner_id=owner.id,

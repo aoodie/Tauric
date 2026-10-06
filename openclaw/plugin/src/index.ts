@@ -46,7 +46,7 @@ function boundTool(config:{platformUrl:string;platformToken:string},ctx:TrustedC
       const response=await fetch(new URL(endpoint,root),{method:'POST',
         headers:{Authorization:`Bearer ${config.platformToken}`,'Content-Type':'application/json'},
         body:JSON.stringify(body),redirect:'error',
-        signal:AbortSignal.any([AbortSignal.timeout(15000),...(signal?[signal]:[])])});
+        signal:AbortSignal.any([AbortSignal.timeout(90000),...(signal?[signal]:[])])});
       const raw=await response.text();
       if(Buffer.byteLength(raw)>1500000) throw new Error('Context exceeded its limit');
       const data=JSON.parse(raw);
@@ -116,7 +116,7 @@ export default defineToolPlugin({
   }), tool({
     name: "tauric_request_research",
     label: "Request current daily Tauric research",
-    description: "Only when the owner explicitly asks to run research: queue current daily research for supported registered crypto, stocks, ETFs or Forex currency pairs in the unchanged native Tauric graph. Uses the owner's configured chat AI route and daily allowance. Repeated identical daily research reuses the original run, including failed runs. Returns immediately with the real job ID; no orders or governance authority. Read fresh tauric_chat_context for instrument IDs and scope. Forex daily research requires recent closed OANDA prices; missing currency policy/economic sources remain explicit. Commodities, weekly, intraday, historical and futures scopes must not be substituted with daily research.",
+    description: "Only when the owner explicitly asks to run research: queue current daily research for supported registered crypto, stocks, ETFs or Forex currency pairs in the unchanged native Tauric graph. Uses the owner's configured chat AI route and daily allowance. Repeated identical daily research reuses the original run, including failed runs. Returns the real job ID after checking and freezing evidence; no orders or governance authority. Read fresh tauric_chat_context for instrument IDs and scope. Forex daily research requires recent closed OANDA prices; missing currency policy/economic sources remain explicit. Commodities, weekly, intraday, historical and futures scopes must not be substituted with daily research.",
     optional: true,
     parameters: Type.Object({instrument_id: Type.String({minLength:3,maxLength:100})},{additionalProperties:false}),
     factory({config,toolContext}) {
@@ -136,7 +136,7 @@ export default defineToolPlugin({
           toolContext.assertInvocationCurrent!();
           const response=await fetch(new URL('/internal/openclaw/research',root),{
             method:'POST',headers:{Authorization:`Bearer ${config.platformToken}`,'Content-Type':'application/json'},
-            body:JSON.stringify(body),redirect:'error',signal:AbortSignal.any([AbortSignal.timeout(15000),...(signal ? [signal] : [])])});
+            body:JSON.stringify(body),redirect:'error',signal:AbortSignal.any([AbortSignal.timeout(90000),...(signal ? [signal] : [])])});
           const data=await response.json();
           if(!response.ok) return jsonResult({queued:false,error:typeof data.detail === 'string' ? data.detail : 'Research request was rejected.'});
           return jsonResult(data);

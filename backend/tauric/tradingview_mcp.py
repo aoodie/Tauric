@@ -31,8 +31,9 @@ def result_payload(result):
 
 
 class EconomicMCP:
-    def __init__(self, token):
+    def __init__(self, token, *, deadline=None):
         self.token, self.session, self.version, self.tools = token, None, "2025-06-18", {}
+        self.deadline = deadline
         self.client = httpx.Client(
             timeout=httpx.Timeout(READ_TIMEOUT_SECONDS, connect=5), follow_redirects=False
         )
@@ -96,7 +97,13 @@ class EconomicMCP:
         if self.session:
             headers["Mcp-Session-Id"] = self.session
         started, buffer = time.monotonic(), b""
-        with self.client.stream("POST", SERVER, json=body, headers=headers) as response:
+        remaining = self.deadline - started if self.deadline is not None else READ_TIMEOUT_SECONDS
+        if remaining <= 0:
+            raise ValueError("Economic-source check exceeded its time budget")
+        timeout = httpx.Timeout(min(READ_TIMEOUT_SECONDS, remaining), connect=min(5, remaining))
+        with self.client.stream(
+            "POST", SERVER, json=body, headers=headers, timeout=timeout
+        ) as response:
             response.raise_for_status()
             session = response.headers.get("Mcp-Session-Id")
             if session:
@@ -110,7 +117,11 @@ class EconomicMCP:
             streaming = "text/event-stream" in response.headers.get("content-type", "")
             for chunk in response.iter_bytes():
                 buffer += chunk
-                if len(buffer) > 1_000_000 or time.monotonic() - started > 30:
+                if (
+                    len(buffer) > 1_000_000
+                    or time.monotonic() - started > 30
+                    or (self.deadline is not None and time.monotonic() >= self.deadline)
+                ):
                     raise ValueError("MCP response exceeds bounds")
                 if streaming:
                     normalized = buffer.replace(b"\r\n", b"\n")

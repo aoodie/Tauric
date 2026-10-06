@@ -5,6 +5,7 @@ No stock graph, company identity lookup, external tools or execution methods are
 
 import hashlib
 import json
+import time
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
@@ -27,7 +28,7 @@ LIMITATIONS = [
 ]
 
 
-def prepare(db, spec):
+def prepare(db, spec, *, supplemental_budget_seconds=None):
     observation = market.refresh(db, spec.id, "1d", commit=False)
     snapshot = db.get(MarketSnapshot, observation.snapshot_id)
     binding = {
@@ -48,7 +49,14 @@ def prepare(db, spec):
     binding["macro_snapshot"] = forex_macro.collect(spec)
     from .forex_sources import collect
 
-    binding["supplemental_snapshot"] = collect(db, spec)
+    deadline = (
+        time.monotonic() + supplemental_budget_seconds
+        if supplemental_budget_seconds is not None
+        else None
+    )
+    binding["supplemental_snapshot"] = (
+        collect(db, spec, deadline=deadline) if deadline is not None else collect(db, spec)
+    )
     return binding
 
 
