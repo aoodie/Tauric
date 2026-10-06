@@ -106,6 +106,12 @@ class ServerControls(unittest.TestCase):
             "example.com/path",
             "localhost",
             "example.com\nSECRET=value",
+            "127.0.0.1",
+            "10.1.2.3",
+            "192.168.1.4",
+            "999.999.999.999",
+            "217.160.9.196:8081",
+            "::1",
         ):
             with self.assertRaises(ValueError):
                 server.setup(self.root / "state", self.images, domain)
@@ -120,6 +126,18 @@ class ServerControls(unittest.TestCase):
         server.validate_images(
             dict.fromkeys(server.IMAGE_KEYS, "sha256:" + "a" * 64), local=True
         )
+
+    def test_public_ip_uses_trusted_https_origin_and_dedicated_override(self):
+        state = self.root / "state"
+        server.setup(state, self.images, "217.160.9.196")
+        values = server.read_env(state / "server.env")
+        self.assertEqual(values["TAURIC_SECURE_COOKIES"], "true")
+        self.assertEqual(
+            json.loads(values["TAURIC_ALLOWED_ORIGINS"]), ["https://217.160.9.196"]
+        )
+        command = server.command(state, "tauric_test")
+        self.assertIn(str(server.ROOT / "deploy/compose.public-ip.yml"), command)
+        self.assertNotIn(str(server.ROOT / "deploy/compose.https.yml"), command)
 
     def test_config_rejects_public_internal_ports(self):
         state = self.root / "state"

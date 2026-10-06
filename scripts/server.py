@@ -3,6 +3,7 @@
 import argparse
 import base64
 import hashlib
+import ipaddress
 import json
 import os
 import platform
@@ -59,15 +60,29 @@ def validate_images(values, local=False):
             raise ValueError(f"{key} must identify an immutable image digest.")
 
 
+def public_ip_address(host):
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        return False
+    return address.version == 4 and address.is_global
+
+
 def setup(directory, images, domain=None, port=8080, local=False):
     values = read_env(images)
     validate_images(values, local)
-    if domain and not re.fullmatch(
-        r"(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+"
-        r"[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?",
-        domain,
+    if (
+        domain
+        and not public_ip_address(domain)
+        and not re.fullmatch(
+            r"(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+"
+            r"[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?",
+            domain,
+        )
     ):
-        raise ValueError("Supply a DNS hostname without a scheme, path or port.")
+        raise ValueError(
+            "Supply a DNS hostname or public IPv4 address without a scheme, path or port."
+        )
     if not 1024 <= port <= 65535:
         raise ValueError("Private web port must be between 1024 and 65535.")
     if directory.exists():
@@ -134,7 +149,12 @@ def command(directory, project):
         str(ROOT / "deploy/compose.server.yml"),
     ]
     if values.get("TAURIC_DOMAIN"):
-        result += ["-f", str(ROOT / "deploy/compose.https.yml")]
+        override = (
+            "compose.public-ip.yml"
+            if public_ip_address(values["TAURIC_DOMAIN"])
+            else "compose.https.yml"
+        )
+        result += ["-f", str(ROOT / "deploy" / override)]
     return result
 
 

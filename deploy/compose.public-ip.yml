@@ -1,0 +1,22 @@
+services:
+  api:
+    environment:
+      TAURIC_SECURE_COOKIES: "true"
+  web:
+    ports: !override
+      - "80:80"
+      - "443:443"
+    environment:
+      TAURIC_DOMAIN: ${TAURIC_DOMAIN:?Set a public IPv4 address}
+    volumes:
+      - ./Caddyfile.public-ip:/etc/caddy/Caddyfile:ro
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "--spider",
+          "https://${TAURIC_DOMAIN:?Set a public IPv4 address}/health/ready",
+        ]
+      start_period: 120s

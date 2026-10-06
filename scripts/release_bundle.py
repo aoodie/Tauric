@@ -13,9 +13,11 @@ from server import IMAGE_KEYS, ROOT, validate_images
 FILES = (
     "deploy/compose.server.yml",
     "deploy/compose.https.yml",
+    "deploy/compose.public-ip.yml",
     "deploy/init-db.sh",
     "deploy/start-db.sh",
     "deploy/Caddyfile.https",
+    "deploy/Caddyfile.public-ip",
     "deploy/model-profiles.example.json",
     "deploy/market-data.example.json",
     "scripts/server.py",
