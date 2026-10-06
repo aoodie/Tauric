@@ -2,8 +2,18 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import {spawnSync} from 'node:child_process';
-import {buildConfig} from './config.mjs';
+import {spawn, spawnSync} from 'node:child_process';
+import {once} from 'node:events';
+import {buildConfig, gatewayRunning} from './config.mjs';
+const killedGateway = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)']);
+await once(killedGateway, 'spawn');
+assert.equal(gatewayRunning(killedGateway), true);
+killedGateway.kill('SIGKILL');
+await once(killedGateway, 'exit');
+assert.equal(killedGateway.exitCode, null);
+assert.equal(killedGateway.signalCode, 'SIGKILL');
+assert.equal(gatewayRunning(killedGateway), false);
+assert.equal(gatewayRunning(undefined), false);
 const tokens={gateway_token:'fixture-gateway-'+'x'.repeat(48),platform_token:'fixture-platform-'+'x'.repeat(48)};
 const runtime={settings:{timeout_seconds:180,max_output_tokens:2000},routes:{
  cloud:{provider:'openai_compatible',base_url:'http://127.0.0.1:9/v1',model:'fixture-cloud',api_key:'fixture-key'},

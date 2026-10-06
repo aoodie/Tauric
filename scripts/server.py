@@ -155,6 +155,9 @@ def command(directory, project):
             else "compose.https.yml"
         )
         result += ["-f", str(ROOT / "deploy" / override)]
+    recovery = ROOT / "deploy/compose.gateway-recovery.yml"
+    if recovery.is_file():
+        result += ["-f", str(recovery)]
     return result
 
 

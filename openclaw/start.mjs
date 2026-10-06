@@ -1,7 +1,7 @@
 // Independently pinned private Gateway. Settings arrive over a private boundary.
 import fs from "node:fs";
 import { spawn } from "node:child_process";
-import { buildConfig } from "./config.mjs";
+import { buildConfig, gatewayRunning } from "./config.mjs";
 const root = process.env.OPENCLAW_STATE_DIR ?? "/state";
 fs.mkdirSync(root, {recursive:true,mode:0o700});
 if(process.getuid?.() === 0) {
@@ -43,7 +43,7 @@ function launch(runtime) {
 }
 async function retire() {
   const previous=child;
-  if(!previous || previous.exitCode !== null) return;
+  if(!gatewayRunning(previous)) return;
   await new Promise(resolve=>{
     const deadline=setTimeout(()=>previous.kill("SIGKILL"),5000);
     previous.once("exit",()=>{clearTimeout(deadline);resolve();});
@@ -55,14 +55,14 @@ async function sync() {
   syncing=true;
   try {
     const runtime=await platform("runtime-config");
-    if(runtime.fingerprint !== fingerprint || child?.exitCode !== null) {
+    if(runtime.fingerprint !== fingerprint || !gatewayRunning(child)) {
       await retire();
       if(stopping) return;
       launch(runtime);fingerprint=runtime.fingerprint;
       console.log("Private governance configuration applied; no model call started.");
     }
     const health=await fetch("http://127.0.0.1:18789/healthz",{signal:AbortSignal.timeout(2000)});
-    if(health.ok && child?.exitCode === null) await platform("heartbeat",{fingerprint,capabilities:["paper_governance","broker_entry_review"]});
+    if(health.ok && gatewayRunning(child)) await platform("heartbeat",{fingerprint,capabilities:["paper_governance","broker_entry_review"]});
   } catch {
     // A stale heartbeat blocks new jobs. Never reveal credentials or repeat reviews.
   } finally {syncing=false;}

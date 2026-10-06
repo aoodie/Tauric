@@ -1,0 +1,6 @@
+services:
+  openclaw:
+    mem_limit: 1610612736
+    volumes:
+      - ../openclaw/start.mjs:/app/start.mjs:ro
+      - ../openclaw/config.mjs:/app/config.mjs:ro
