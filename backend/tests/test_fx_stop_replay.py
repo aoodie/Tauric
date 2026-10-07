@@ -12,7 +12,7 @@ from tauric.research_contracts import ReplayParameters
 
 
 def diagnostic():
-    source = Path(__file__).resolve().parents[2] / "artifacts/project-audit-fx-replay.json"
+    source = Path(__file__).resolve().parent / "fixtures/fx-stop-replay.json"
     data = json.loads(source.read_text())
     return data["candles"], ReplayParameters.model_validate(data["parameters"])
 

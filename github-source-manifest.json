@@ -207,7 +207,7 @@
     "backend/tests/test_forex_macro.py": "9bebb6e0a44ec4cc7f5e9058b80f94e2cff798b7eb6709536aa4d623c73732f2",
     "backend/tests/test_forward_validation.py": "e0976ba6e88fbcebf48a60cf0e96158f920e7febf0e6eecff03e583c50447aac",
     "backend/tests/test_foundation.py": "209a97f8160003ed2d614f47f21795f634076a0616be057bed7eede742a50a9c",
-    "backend/tests/test_fx_stop_replay.py": "51c634c59e9bf21e0b55b35f93a00d310eb7cae87e387129a51af46046797210",
+    "backend/tests/test_fx_stop_replay.py": "8d915ca25b4b99b83177cbf3765cbece0914c4f5c8100bec88e0358ea50d97d0",
     "backend/tests/test_governance.py": "8967edf7fa434980ae539cfee8d3513bb67e74216e782ed5808fb93c23bbc66b",
     "backend/tests/test_independent_scanner_browser.py": "5d311cd20f9c173934099e5905cce4db27876ccb5653f916479e0c9000102fc6",
     "backend/tests/test_independent_scanners.py": "564ba1e2e88e4cb4679533045d147640d06133a392ee27d9532e580264c18f92",
@@ -486,7 +486,8 @@
     "scripts/strategy_rules_browser_test.py": "c5ac8f1ad89718784eadac143809736819536fae4f419a3070ae7120dd889842",
     "scripts/strategy_schedule_container_test.py": "96df5306058967196711b2a0c370c48937048ec59a17ecf150fbcf2572607944",
     "scripts/tests/test_server.py": "31d8e8138849aa3dc2168a78ea8d4a78fcd03decad1b17c96dad305fcd71ecbc",
-    "scripts/verify_live_upgrade.py": "70dc8beb5d70011ef369d59ce48d556448833ab48ea0c162df2aa559d1c1ae28"
+    "scripts/verify_live_upgrade.py": "70dc8beb5d70011ef369d59ce48d556448833ab48ea0c162df2aa559d1c1ae28",
+    "backend/tests/fixtures/fx-stop-replay.json": "2da083b80eb57ef2744a89dac223ae12e6ecc2f23d3c94c3c47b62048e1e0553"
   },
   "known_private_credentials_checked": true,
   "workstation_data_excluded": true,
