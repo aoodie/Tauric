@@ -1204,6 +1204,14 @@ function Workstation({
   const [chatDraft, setChatDraft] = useState("");
   const [chatConnection, setChatConnection] =
     useState<Awaited<ReturnType<typeof api.chatSettings>>>();
+  const [brokerConnections, setBrokerConnections] =
+    useState<Awaited<ReturnType<typeof api.marketConnections>>>();
+  const [brokerChecks, setBrokerChecks] = useState<
+    Record<string, Awaited<ReturnType<typeof api.checkBroker>>>
+  >({});
+  const [brokerStatusError, setBrokerStatusError] = useState("");
+  const [tradingStatus, setTradingStatus] =
+    useState<Awaited<ReturnType<typeof api.tradingReadiness>>>();
   useEffect(() => {
     const url = new URL(location.href);
     if (page === "workspace") url.searchParams.delete("view");
@@ -1346,6 +1354,60 @@ function Workstation({
       clearInterval(timer);
     };
   }, []);
+  useEffect(() => {
+    if (page !== "system") return;
+    let active = true;
+    let pending = false;
+    const check = async () => {
+      if (document.hidden || pending) return;
+      pending = true;
+      try {
+        const [connections, trading] = await Promise.all([
+          api.marketConnections(),
+          api.tradingReadiness(),
+        ]);
+        const checks = await Promise.all(
+          connections
+            .filter((c) => c.configured)
+            .map(async (connection) => {
+              try {
+                return await api.checkBroker(connection.id);
+              } catch (err) {
+                return {
+                  provider: connection.id,
+                  configured: true,
+                  environment: connection.environment,
+                  demo_environment: connection.environment !== "live",
+                  connection_revision: connection.revision,
+                  positions: [],
+                  error: message(err),
+                };
+              }
+            }),
+        );
+        if (active) {
+          setBrokerConnections(connections);
+          setTradingStatus(trading);
+          setBrokerChecks(
+            Object.fromEntries(checks.map((c) => [c.provider, c])),
+          );
+          setBrokerStatusError("");
+        }
+      } catch (err) {
+        if (active) setBrokerStatusError(message(err));
+      } finally {
+        pending = false;
+      }
+    };
+    void check();
+    const timer = window.setInterval(() => void check(), 60000);
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, [page]);
   useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(""), 5000);
@@ -1593,7 +1655,7 @@ function Workstation({
             <PanelLeftClose size={18} />
             <span>Collapse</span>
           </button>
-          <span>DEVELOPMENT · 0.12.0</span>
+          <span>TAURIC · 0.12.0</span>
         </div>
       </aside>
       <div className="app-main">
@@ -2021,7 +2083,7 @@ function Workstation({
                 <h1>System status</h1>
                 <p>Only verified connections are shown as ready.</p>
               </div>
-              <span className="badge gold">DEVELOPMENT BUILD</span>
+              <span className="badge gold">Production checks pending</span>
             </div>
             <div className="system-list">
               {[
@@ -2082,17 +2144,10 @@ function Workstation({
                   icon: ShieldCheck,
                 },
                 {
-                  label: "Trading",
+                  label: "Paper trading",
                   text: "Owner review, Decimal sizing and attributed simulated fills",
                   state: "Available",
                   ok: true,
-                  icon: Boxes,
-                },
-                {
-                  label: "Broker accounts",
-                  text: "OANDA · IBKR · Binance · Alpaca",
-                  state: "Not connected",
-                  ok: false,
                   icon: Boxes,
                 },
               ].map((item) => (
@@ -2107,16 +2162,73 @@ function Workstation({
                   </span>
                 </article>
               ))}
+              {(["oanda", "alpaca"] as const).map((provider) => {
+                const connection = brokerConnections?.find(
+                  (c) => c.id === provider,
+                );
+                const checked = brokerChecks[provider];
+                const verified = !!(
+                  connection?.configured &&
+                  checked?.connection_revision === connection.revision &&
+                  checked.account &&
+                  !checked.error &&
+                  !brokerStatusError
+                );
+                return (
+                  <article key={provider}>
+                    <Boxes size={21} />
+                    <div>
+                      <h3>
+                        {provider === "oanda"
+                          ? "OANDA account"
+                          : "Alpaca account"}
+                      </h3>
+                      <p>
+                        {brokerStatusError
+                          ? brokerStatusError
+                          : !brokerConnections
+                            ? "Checking saved connection and account access"
+                            : !connection?.configured
+                              ? "Add your account credentials in Market connections. Public chart data is separate from an account connection."
+                              : verified
+                                ? `${connection.environment} account · ${checked.positions?.length ?? 0} positions · checked ${new Date(checked.account!.observed_at).toLocaleTimeString("en-GB", { timeZone: timezone })}`
+                                : (checked?.error ?? "Checking account access")}
+                      </p>
+                    </div>
+                    <span className={`badge ${verified ? "green" : "neutral"}`}>
+                      {brokerStatusError
+                        ? "Status unavailable"
+                        : !brokerConnections
+                          ? "Checking"
+                          : !connection?.configured
+                            ? "Setup needed"
+                            : verified
+                              ? "Account data available"
+                              : checked?.error
+                                ? "Check failed"
+                                : "Checking"}
+                    </span>
+                  </article>
+                );
+              })}
             </div>
             <div className="system-note">
               <RefreshCw size={19} />
               <div>
-                <h3>Keep chart data current</h3>
+                <h3>Automatic chart updates</h3>
                 <p>
-                  This status describes the saved chart snapshot. Refresh it
-                  here, or select Every 30s in the Market chart for automatic
-                  updates while the workstation is open.
+                  {market.auto
+                    ? "The selected chart refreshes every 30 seconds while the workstation is visible, including on this page. It also refreshes when you return."
+                    : "Automatic refresh is paused. Resume it here to keep the selected chart current."}
                 </p>
+                <label className="market-check">
+                  <input
+                    type="checkbox"
+                    checked={market.auto}
+                    onChange={(e) => market.setAuto(e.target.checked)}
+                  />
+                  Update chart automatically
+                </label>
                 <button
                   className="secondary small"
                   disabled={market.loading || !market.instrumentId}
@@ -2167,12 +2279,49 @@ function Workstation({
             <div className="system-note">
               <LockKeyhole size={19} />
               <div>
-                <h3>Trading is not enabled</h3>
+                <h3>Trading modes</h3>
                 <p>
-                  This milestone stores workstation preferences and history.
-                  Public market data and the native analysis connection are
-                  available. Broker accounts, governance and execution remain
-                  disabled.
+                  Paper simulation is available. Broker account checks read data
+                  without placing orders. Broker execution requires a verified
+                  account and an enabled trading policy.
+                </p>
+                <p>
+                  {!tradingStatus || brokerStatusError
+                    ? "Trading policy status is unavailable. Open Trading to check current permissions."
+                    : tradingStatus.brokers.some((b) => b.live_enabled)
+                      ? "Live trading policies are enabled. Each entry still requires native Tauric approval and current protection checks."
+                      : "Real-money trading is off. Review account setup, demo execution and live readiness in Trading."}
+                </p>
+                <button
+                  className="secondary small"
+                  onClick={() => navigate("paper")}
+                >
+                  Open Trading
+                </button>
+                <button
+                  className="text-button"
+                  onClick={() => {
+                    setSettingsSection("market");
+                    navigate("settings");
+                  }}
+                >
+                  Market connections <ArrowRight size={13} />
+                </button>
+              </div>
+            </div>
+            <div className="system-note">
+              <ShieldCheck size={19} />
+              <div>
+                <h3>Production checks pending</h3>
+                <p>
+                  The workstation is deployed. Full production acceptance still
+                  requires a representative 24-hour workload check, a complete
+                  governed demo trade lifecycle, and upgrade recovery
+                  verification.
+                </p>
+                <p>
+                  IBKR and Binance account execution are not available in this
+                  release. Binance charts use public market data.
                 </p>
               </div>
             </div>
