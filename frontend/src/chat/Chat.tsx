@@ -12,6 +12,7 @@ import type { components } from "../api/schema";
 import { PortfolioPanel, PortfolioSelector } from "./Portfolios";
 import "./chat.css";
 import { AssistantControls, AssistantReceiptCard } from "./AssistantControls";
+import { ReportText } from "../research/NativeReport";
 
 type Config = components["schemas"]["ChatConfigView"];
 type Change = components["schemas"]["ChatConfigChange"];
@@ -503,7 +504,7 @@ function ConversationChat({
                 <article className="chat-bubble assistant">
                   <span className="eyebrow">OPENCLAW</span>
                   {turn.assistant_text ? (
-                    <p>{turn.assistant_text}</p>
+                    <ReportText>{turn.assistant_text}</ReportText>
                   ) : turn.error ? (
                     <p role="alert">{turn.error}</p>
                   ) : (

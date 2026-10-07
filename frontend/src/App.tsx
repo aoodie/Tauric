@@ -1645,9 +1645,9 @@ function Workstation({
               className={`status-dot ${market.feed?.state === "fresh" ? "good" : "idle"}`}
             />
             {market.feed?.state === "fresh"
-              ? "Market data received"
+              ? "Chart data received"
               : market.feed?.state === "stale"
-                ? "Market data stale"
+                ? "Chart data needs refresh"
                 : "No market snapshot"}
           </span>
           <span>
@@ -2040,13 +2040,13 @@ function Workstation({
                   icon: Database,
                 },
                 {
-                  label: "Market data",
-                  text: "Binance public spot candles; no account access",
+                  label: "Chart data",
+                  text: `${market.feed?.instrument.symbol ?? "Selected chart"} · ${market.providers.find((provider) => provider.id === market.feed?.instrument.provider)?.label ?? "Saved provider snapshot"}`,
                   state:
                     market.feed?.state === "fresh"
                       ? "Received"
                       : market.feed?.state === "stale"
-                        ? "Stale"
+                        ? "Refresh needed"
                         : "No snapshot",
                   ok: market.feed?.state === "fresh",
                   icon: Waves,
@@ -2107,6 +2107,25 @@ function Workstation({
                   </span>
                 </article>
               ))}
+            </div>
+            <div className="system-note">
+              <RefreshCw size={19} />
+              <div>
+                <h3>Keep chart data current</h3>
+                <p>
+                  This status describes the saved chart snapshot. Refresh it
+                  here, or select Every 30s in the Market chart for automatic
+                  updates while the workstation is open.
+                </p>
+                <button
+                  className="secondary small"
+                  disabled={market.loading || !market.instrumentId}
+                  onClick={() => void market.refresh()}
+                >
+                  {market.loading ? "Refreshing…" : "Refresh chart data"}
+                </button>
+                {market.error && <p role="alert">{market.error}</p>}
+              </div>
             </div>
             <div className="model-profile-grid">
               {market.status?.profiles.map((profile) => (
