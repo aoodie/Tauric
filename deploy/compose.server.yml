@@ -907,6 +907,162 @@
         "start_period": "90s"
       },
       "user": "10001:10001"
+    },
+    "valuation": {
+      "command": [
+        "python",
+        "-m",
+        "tauric.valuation_worker"
+      ],
+      "depends_on": {
+        "migrate": {
+          "condition": "service_completed_successfully",
+          "required": true
+        }
+      },
+      "entrypoint": null,
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "python",
+          "-c",
+          "from sqlalchemy import text; from tauric.database import engine; c=engine().connect(); assert c.scalar(text(\"SELECT heartbeat_at <= now() AND heartbeat_at > now() - (:max_age * interval '1 second') FROM worker_status WHERE id = :worker\"), {'worker': 'valuation', 'max_age': 60}) is True"
+        ],
+        "timeout": "10s",
+        "interval": "15s",
+        "retries": 6,
+        "start_period": "60s"
+      },
+      "mem_limit": "201326592",
+      "networks": {
+        "default": null
+      },
+      "restart": "unless-stopped",
+      "init": true,
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      },
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "image": "${TAURIC_API_IMAGE:?Set a digest-pinned API image}",
+      "environment": {
+        "TAURIC_DB_PASSWORD_FILE": "/run/secrets/database-app",
+        "TAURIC_DB_USER": "tauric_app"
+      },
+      "secrets": [
+        "database-app",
+        {
+          "source": "market",
+          "target": "/run/tauric/market-data.json"
+        },
+        {
+          "source": "models",
+          "target": "/run/tauric/model-profiles.json"
+        },
+        {
+          "source": "model-key",
+          "target": "/run/tauric/model-key"
+        },
+        {
+          "source": "openclaw-tokens",
+          "target": "/run/tauric/openclaw-private.json"
+        }
+      ],
+      "read_only": true,
+      "tmpfs": [
+        "/tmp:mode=1777,size=128m"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "profiles": [
+        "execution"
+      ],
+      "stop_grace_period": "60s",
+      "user": "10001:10001"
+    },
+    "forward_validation": {
+      "command": [
+        "python",
+        "-m",
+        "tauric.forward_worker"
+      ],
+      "depends_on": {
+        "migrate": {
+          "condition": "service_completed_successfully",
+          "required": true
+        }
+      },
+      "entrypoint": null,
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "python",
+          "-c",
+          "from sqlalchemy import text; from tauric.database import engine; c=engine().connect(); assert c.scalar(text(\"SELECT heartbeat_at <= now() AND heartbeat_at > now() - (:max_age * interval '1 second') FROM worker_status WHERE id = :worker\"), {'worker': 'forward_validation', 'max_age': 60}) is True"
+        ],
+        "timeout": "10s",
+        "interval": "15s",
+        "retries": 6,
+        "start_period": "60s"
+      },
+      "mem_limit": "201326592",
+      "networks": {
+        "default": null
+      },
+      "restart": "unless-stopped",
+      "init": true,
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      },
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "image": "${TAURIC_API_IMAGE:?Set a digest-pinned API image}",
+      "environment": {
+        "TAURIC_DB_PASSWORD_FILE": "/run/secrets/database-app",
+        "TAURIC_DB_USER": "tauric_app"
+      },
+      "secrets": [
+        "database-app",
+        {
+          "source": "market",
+          "target": "/run/tauric/market-data.json"
+        },
+        {
+          "source": "models",
+          "target": "/run/tauric/model-profiles.json"
+        },
+        {
+          "source": "model-key",
+          "target": "/run/tauric/model-key"
+        },
+        {
+          "source": "openclaw-tokens",
+          "target": "/run/tauric/openclaw-private.json"
+        }
+      ],
+      "read_only": true,
+      "tmpfs": [
+        "/tmp:mode=1777,size=128m"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "profiles": [
+        "execution"
+      ],
+      "stop_grace_period": "60s",
+      "user": "10001:10001"
     }
   },
   "secrets": {

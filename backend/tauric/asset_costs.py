@@ -8,16 +8,26 @@ from .market_calendars import NY
 D = Decimal
 
 
+def stop_trigger_price(bar, field, costs):
+    """A long FX stop triggers on bid, before slippage; other assets use reference OHLC."""
+    observed = D(bar[field])
+    if costs and costs.asset_type == "fx":
+        if bar.get("bid") and bar.get("ask"):
+            return D(bar["bid"][field])
+        return observed * (1 - D(costs.spread_bps) / 20000)
+    return observed
+
+
 def execution_price(observed, side, bar, field, costs, slip):
     spread = D(costs.spread_bps) / 20000 if costs else D(0)
     price = observed
-    if costs and costs.asset_type == "fx" and bar and bar.get("bid") and bar.get("ask"):
+    if costs and costs.asset_type == "fx" and field == "stop":
+        # The saved stop is an executable bid/ask threshold. Applying the spread
+        # again would move the fill below the actual trigger for a long stop.
+        spread = D(0)
+    elif costs and costs.asset_type == "fx" and bar and bar.get("bid") and bar.get("ask"):
         name = "ask" if side == "buy" else "bid"
-        price = (
-            observed * D(bar[name]["open"]) / D(bar["open"])
-            if field == "stop"
-            else D(bar[name][field])
-        )
+        price = D(bar[name][field])
         spread = D(0)
     return (
         price

@@ -1,8 +1,10 @@
 import {
   ScannerProvider,
-  ScannerSettings,
   ScannerPanel,
+  ScannerWorkspace,
 } from "./scanner/Scanner";
+import { StrategiesPage } from "./trading/StrategySettings";
+import { BrokerModeBadge } from "./trading/LiveTrading";
 import {
   PaperProvider,
   TradingSettings,
@@ -23,6 +25,7 @@ import {
 import { ChatConnections, OpenClawChat } from "./chat/Chat";
 import { PortfolioSettings } from "./chat/PortfolioSettings";
 import { ResearchPage } from "./research/Research";
+import { KnowledgePage } from "./knowledge/Knowledge";
 import { MarketIntelligence } from "./intelligence/MarketIntelligence";
 import { NativeReportReader } from "./research/NativeReport";
 import {
@@ -658,6 +661,8 @@ function SettingsPage({
   section,
   selectSection,
   passwordChanged,
+  scanners,
+  strategies,
 }: {
   settings: Setting[];
   changed: () => Promise<void>;
@@ -665,6 +670,8 @@ function SettingsPage({
   section: string;
   selectSection: (section: string) => void;
   passwordChanged: () => void;
+  scanners: () => void;
+  strategies: () => void;
   open: (type: string, id: string) => void;
 }) {
   return (
@@ -766,10 +773,21 @@ function SettingsPage({
         ) : section === "trading" ? (
           <>
             <PortfolioSettings open={open} />
-            <TradingSettings />
+            <TradingSettings strategies={strategies} />
           </>
         ) : section === "scanners" ? (
-          <ScannerSettings />
+          <div className="paper-intro">
+            <div>
+              <h2>Scanner setup</h2>
+              <p>
+                Manage your saved scans and opportunities from the Scanners
+                page.
+              </p>
+              <button className="secondary" onClick={scanners}>
+                Open scanners
+              </button>
+            </div>
+          </div>
         ) : section === "chat" ? (
           <ChatConnections />
         ) : section === "security" ? (
@@ -1143,6 +1161,26 @@ function Clock({ timezone }: { timezone: string }) {
   );
 }
 
+function pageFromUrl() {
+  const view = new URLSearchParams(location.search).get("view");
+  return view &&
+    [
+      "workspace",
+      "intelligence",
+      "scanners",
+      "strategies",
+      "paper",
+      "research",
+      "knowledge",
+      "chat",
+      "audit",
+      "settings",
+      "system",
+    ].includes(view)
+    ? view
+    : "workspace";
+}
+
 function Workstation({
   session,
   signedOut,
@@ -1155,10 +1193,7 @@ function Workstation({
   const [page, setPage] = useState(() =>
     new URLSearchParams(window.location.search).has("tradingview")
       ? "settings"
-      : new URLSearchParams(window.location.search).get("view") ===
-          "intelligence"
-        ? "intelligence"
-        : "workspace",
+      : pageFromUrl(),
   );
   const [settingsSection, setSettingsSection] = useState(() =>
     new URLSearchParams(window.location.search).has("tradingview")
@@ -1171,11 +1206,30 @@ function Workstation({
     useState<Awaited<ReturnType<typeof api.chatSettings>>>();
   useEffect(() => {
     const url = new URL(location.href);
-    if (page === "intelligence") url.searchParams.set("view", "intelligence");
-    else if (url.searchParams.get("view") === "intelligence")
-      url.searchParams.delete("view");
+    if (page === "workspace") url.searchParams.delete("view");
+    else url.searchParams.set("view", page);
     history.replaceState(null, "", url);
   }, [page]);
+  useEffect(() => {
+    const readPage = () => setPage(pageFromUrl());
+    window.addEventListener("popstate", readPage);
+    return () => window.removeEventListener("popstate", readPage);
+  }, []);
+  function navigate(next: string) {
+    if (next === page) return;
+    const url = new URL(location.href);
+    if (next === "workspace") url.searchParams.delete("view");
+    else url.searchParams.set("view", next);
+    history.pushState(null, "", url);
+    setPage(next);
+  }
+  function askOpenClaw(draft: string) {
+    const url = new URL(location.href);
+    url.searchParams.delete("portfolio");
+    history.replaceState(null, "", url);
+    setChatDraft(draft);
+    navigate("chat");
+  }
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [model, setModel] = useState<Model | null>(null);
@@ -1432,8 +1486,7 @@ function Workstation({
         <ScannerPanel
           open={open}
           setup={() => {
-            setSettingsSection("scanners");
-            setPage("settings");
+            navigate("scanners");
           }}
           chart={() => openPanel("chart")}
         />
@@ -1488,9 +1541,12 @@ function Workstation({
   const nav = [
     { id: "workspace", label: "Workspace", icon: LayoutDashboard },
     { id: "intelligence", label: "Market intelligence", icon: Waves },
-    { id: "paper", label: "Paper trading", icon: Boxes },
+    { id: "scanners", label: "Scanners", icon: Radar },
+    { id: "strategies", label: "Strategies", icon: Sparkles },
+    { id: "paper", label: "Trading", icon: Boxes },
     { id: "research", label: "Research & analytics", icon: BookOpen },
-    { id: "chat", label: "OpenClaw chat", icon: MessageSquare },
+    { id: "knowledge", label: "Knowledge", icon: Database },
+    { id: "chat", label: "OpenClaw", icon: MessageSquare },
     { id: "audit", label: "Activity", icon: History },
     { id: "settings", label: "Settings", icon: Settings2 },
     { id: "system", label: "System", icon: Activity },
@@ -1509,7 +1565,7 @@ function Workstation({
               key={item.id}
               title={item.label}
               className={page === item.id ? "active" : ""}
-              onClick={() => setPage(item.id)}
+              onClick={() => navigate(item.id)}
             >
               <item.icon size={18} />
               <span>{item.label}</span>
@@ -1518,15 +1574,14 @@ function Workstation({
           ))}
         </nav>
         <div className="sidebar-context">
-          <span className="eyebrow">LIVE EXECUTION</span>
+          <span className="eyebrow">REAL-MONEY TRADING</span>
           <div>
             <span className="status-dot idle" />
-            Disabled
+            Off
           </div>
           <p>
-            Paper simulation available.
-            <br />
-            Broker trading disabled.
+            Paper simulation, broker validation and governed live execution are
+            available.
           </p>
         </div>
         <div className="sidebar-bottom">
@@ -1538,7 +1593,7 @@ function Workstation({
             <PanelLeftClose size={18} />
             <span>Collapse</span>
           </button>
-          <span>DEVELOPMENT · 0.11.0</span>
+          <span>DEVELOPMENT · 0.12.0</span>
         </div>
       </aside>
       <div className="app-main">
@@ -1605,11 +1660,11 @@ function Workstation({
           </span>
           <span>
             <span className="status-dot idle" />
-            OpenClaw · chat & paper review
+            OpenClaw · assistant &amp; approvals
           </span>
           <span className="status-execution">
             <LockKeyhole size={12} />
-            Live trading disabled
+            <BrokerModeBadge />
           </span>
         </div>
         {error && (
@@ -1859,10 +1914,7 @@ function Workstation({
               setSettingsSection("market");
               setPage("settings");
             }}
-            ask={(draft) => {
-              setChatDraft(draft);
-              setPage("chat");
-            }}
+            ask={askOpenClaw}
           />
         )}
         {page === "paper" && (
@@ -1872,6 +1924,20 @@ function Workstation({
               setSettingsSection("trading");
               setPage("settings");
             }}
+          />
+        )}
+        {page === "scanners" && (
+          <ScannerWorkspace
+            open={open}
+            chart={() => openPanel("chart")}
+            ask={askOpenClaw}
+          />
+        )}
+        {page === "strategies" && (
+          <StrategiesPage
+            ask={askOpenClaw}
+            trading={() => navigate("paper")}
+            research={() => navigate("research")}
           />
         )}
         {page === "chat" && (
@@ -1887,6 +1953,9 @@ function Workstation({
         {page === "research" && (
           <ResearchPage open={(resource) => open(resource.type, resource.id)} />
         )}
+        {page === "knowledge" && (
+          <KnowledgePage navigate={navigate} ask={askOpenClaw} />
+        )}
         {page === "settings" && (
           <SettingsPage
             open={open}
@@ -1898,6 +1967,8 @@ function Workstation({
             passwordChanged={() =>
               signedOut("Password changed. Sign in with your new password.")
             }
+            scanners={() => navigate("scanners")}
+            strategies={() => navigate("strategies")}
           />
         )}
         {page === "audit" && (
@@ -2011,7 +2082,7 @@ function Workstation({
                   icon: ShieldCheck,
                 },
                 {
-                  label: "Paper trading",
+                  label: "Trading",
                   text: "Owner review, Decimal sizing and attributed simulated fills",
                   state: "Available",
                   ok: true,
@@ -2094,7 +2165,7 @@ function Workstation({
             Owner session active
           </span>
           <span>Private workstation · Paper simulation</span>
-          <span>TAURIC 0.11.0</span>
+          <span>TAURIC 0.12.0</span>
         </footer>
       </div>
       {notice && (

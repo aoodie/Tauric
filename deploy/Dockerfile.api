@@ -4,6 +4,14 @@ WORKDIR /app
 COPY backend/requirements.lock ./requirements.lock
 RUN pip install --no-cache-dir -r requirements.lock && useradd --create-home --uid 10001 tauric
 COPY backend/ ./
+COPY backend/tauric /app/project-source/backend/tauric
+COPY backend/tests /app/project-source/backend/tests
+COPY frontend/src /app/project-source/frontend/src
+COPY frontend/package.json /app/project-source/frontend/package.json
+COPY openclaw/plugin/src /app/project-source/openclaw/plugin/src
+COPY openclaw/config.mjs openclaw/package.json /app/project-source/openclaw/
+COPY docs /app/project-source/docs
+COPY README.md /app/project-source/README.md
 ENTRYPOINT ["python", "-m", "tauric.container_start"]
 EXPOSE 8000
 CMD ["uvicorn", "tauric.app:app", "--host", "0.0.0.0", "--port", "8000", "--no-proxy-headers"]

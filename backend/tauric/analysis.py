@@ -65,6 +65,7 @@ def enqueue(
     portfolio_research_context=None,
     qualification_context=None,
     broker_context=None,
+    prepared_fx_context=None,
 ):
     if broker_context is not None and any(
         context is not None
@@ -176,9 +177,13 @@ def enqueue(
     if spec.asset_type == "fx":
         from .native_fx import prepare
 
-        fx_context = (
-            prepare(db, spec, supplemental_budget_seconds=40) if chat_context else prepare(db, spec)
-        )
+        if prepared_fx_context is None:
+            fx_context = prepare(db, spec, supplemental_budget_seconds=40)
+        else:
+            from .native_fx import evidence
+
+            evidence(db, spec.model_dump(), prepared_fx_context)
+            fx_context = prepared_fx_context
     job = AnalysisJob(
         id=identifier(),
         owner_id=owner.id,

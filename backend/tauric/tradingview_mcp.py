@@ -47,7 +47,7 @@ class EconomicMCP:
                     "capabilities": {},
                     "clientInfo": {
                         "name": "Tauric read-only economic research",
-                        "version": "0.11.0",
+                        "version": "0.12.0",
                     },
                 },
             )

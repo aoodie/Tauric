@@ -155,13 +155,13 @@ export function BrokerSetupReview({
       : ["equity", "etf"].includes(item.asset_type),
   );
   return (
-    <section className="paper-card" aria-label="Demo setup reviews">
-      <h3>Review a demo trade setup</h3>
+    <section className="paper-card" aria-label="Broker setup reviews">
+      <h3>Review a broker trade setup</h3>
       <p>
         Check a saved strategy’s current long-entry signal and broker quote,
         then request a separate Tauric review of the exact quantity. Original
         daily research stays available. This review does not place an order; a
-        separate OpenClaw approval can authorize one exact demo entry.
+        separate OpenClaw approval can authorize one exact broker entry.
       </p>
       {error && <p role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
@@ -320,7 +320,7 @@ export function BrokerSetupReview({
       >
         Refresh setup reviews
       </button>
-      {!reviews.length && <p>No demo setup reviews recorded.</p>}
+      {!reviews.length && <p>No broker setup reviews recorded.</p>}
       {reviews.map((result) => (
         <article
           className="paper-card"

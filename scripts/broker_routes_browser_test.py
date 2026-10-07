@@ -1,4 +1,4 @@
-"""Test automatic demo route controls only on the disposable fixture server."""
+"""Test automatic route controls only on the disposable fixture server."""
 
 import json
 import sys
@@ -23,23 +23,23 @@ with sync_playwright() as p:
     expect(page.locator(".app")).to_be_visible()
 
     def section():
-        page.get_by_role("button", name="Paper trading", exact=True).click()
-        page.get_by_text("Broker-connected demo trading", exact=True).click()
-        page.get_by_label("Demo broker", exact=True).select_option("alpaca")
+        page.get_by_role("button", name="Trading", exact=True).click()
+        page.get_by_text("Broker trading and position protection", exact=True).click()
+        page.get_by_label("Broker", exact=True).select_option("alpaca")
         return page.get_by_role(
-            "region", name="Automatic demo strategy routes", exact=True
+            "region", name="Automatic strategy routes", exact=True
         )
 
     region = section()
     expect(
-        region.get_by_role("button", name="Save automatic demo route")
+        region.get_by_role("button", name="Save automatic route")
     ).to_be_enabled()
-    expect(region.get_by_label("Enable automatic demo entries")).not_to_be_checked()
+    expect(region.get_by_label("Enable automatic entries")).not_to_be_checked()
     expect(region.get_by_label("Automatic risk percentage")).to_have_value("1")
     region.get_by_label("Automatic route reason").fill(
-        "Offline automatic demo route browser verification"
+        "Offline automatic route browser verification"
     )
-    region.get_by_label("Enable automatic demo entries").check()
+    region.get_by_label("Enable automatic entries").check()
     lost = []
 
     def lose(route):
@@ -52,13 +52,13 @@ with sync_playwright() as p:
             route.continue_()
 
     page.route("**/api/v1/brokers/routes/*", lose)
-    region.get_by_role("button", name="Save automatic demo route", exact=True).click()
+    region.get_by_role("button", name="Save automatic route", exact=True).click()
     recover = region.get_by_role(
         "button", name="Recover this same automatic route", exact=True
     )
     expect(recover).to_be_visible()
     recover.click()
-    saved = region.get_by_role("article", name="Saved automatic demo route", exact=True)
+    saved = region.get_by_role("article", name="Saved automatic route", exact=True)
     expect(saved).to_have_count(1)
     expect(saved.get_by_text("Broker entry", exact=False)).to_be_visible(timeout=20000)
     expect(saved.get_by_text("calculated quantity 33", exact=False)).to_be_visible()
@@ -98,7 +98,7 @@ with sync_playwright() as p:
     expect(page.locator(".app")).to_be_visible()
     region = section()
     expect(
-        region.get_by_role("article", name="Saved automatic demo route", exact=True)
+        region.get_by_role("article", name="Saved automatic route", exact=True)
     ).to_have_count(1)
     expect(
         region.get_by_role("button", name="Resume automatic route", exact=True)

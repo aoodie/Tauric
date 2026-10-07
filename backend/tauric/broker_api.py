@@ -105,6 +105,11 @@ def reconcile_close(close_id: str, db: Db, owner: CurrentOwner):
     return broker_positions.process_close(db, owner, close_id)
 
 
+@router.post("/closes/{close_id}/repair-protection", response_model=BrokerCloseView)
+def repair_protection(close_id: UUID, body: BrokerReviewedEntrySubmit, db: Db, owner: CurrentOwner):
+    return broker_positions.repair_protection(db, owner, str(close_id), body)
+
+
 @router.post("/setup-preview", response_model=BrokerSetupPreview)
 def setup_preview(body: BrokerSetupRequest, db: Db, owner: CurrentOwner):
     result = broker_setup.capture(db, owner, body)

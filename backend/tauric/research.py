@@ -358,7 +358,7 @@ def asset_assumptions(spec, context):
         f"Long-only unlevered {spec.asset_type} experiment; one position; cash, fees, financing and P&L are in {spec.quote_currency}. No currency conversion or margin model.",
         "Closed-bar SMA signals and next-open full-liquidity fills; session closures delay fills to the next available trading bar. Calendar gaps are rejected.",
         "Historical FX bid/ask opens/closes take precedence over synthetic spread. Other fills use the explicit full spread divided by two on each side, then adverse slippage.",
-        "FX intrabar stops approximate the bid price with that bar's opening bid/midpoint ratio; spread changes inside the bar are unknown. Stop triggers use reference OHLC.",
+        "Long FX SMA stops trigger on historical bid open/low (or the declared synthetic bid when sides are absent). Gap fills use the bid open; intrabar fills use the executable stop threshold plus adverse slippage. OHLC cannot recover the trigger time, path, or liquidity; intrabar exits are stamped at bar close. Breakout rules retain their separately declared closed-bar/next-open execution model.",
         "Fees are the maximum of per-unit plus notional commission and minimum commission, with an additional sell-side tax. Sizing reserves conservative minimum commissions.",
         "FX financing is an owner-supplied constant daily debit (negative is a credit), at 17:00 New York, with a configured triple weekday. The preceding observed mark is used, without future-bar prices. Broker holiday multipliers and historical rates are not verified.",
         ASSUMPTIONS[3],

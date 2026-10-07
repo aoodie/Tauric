@@ -21,7 +21,7 @@ with sync_playwright() as p:
     page.get_by_label("Username", exact=True).fill("test-owner")
     page.get_by_label("Password", exact=True).fill("Test-only-password-2026")
     page.get_by_role("button", name="Sign in", exact=True).click()
-    page.get_by_role("button", name="OpenClaw chat", exact=True).click()
+    page.get_by_role("button", name="OpenClaw", exact=True).click()
     page.get_by_label("Conversation context", exact=True).select_option(first)
     page.get_by_text("Daily opportunity and strategy research", exact=True).click()
     panel = page.locator(".portfolio-research")
@@ -67,7 +67,7 @@ with sync_playwright() as p:
     checks.append(
         "Both tracks with real saved replays and deferred FX/stocks; no native admission"
     )
-    page.get_by_role("button", name="OpenClaw chat", exact=True).click()
+    page.get_by_role("button", name="OpenClaw", exact=True).click()
     page.get_by_label("Conversation context", exact=True).select_option(second)
     page.get_by_text("Daily opportunity and strategy research", exact=True).click()
     expect(page.locator(".portfolio-research")).to_contain_text("revision 0")

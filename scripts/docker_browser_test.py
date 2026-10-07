@@ -86,7 +86,7 @@ try:
         expect(
             page.get_by_role("button", name="Resume paper entries", exact=True)
         ).to_be_visible()
-        page.get_by_role("button", name="Paper trading", exact=True).click()
+        page.get_by_role("button", name="Trading", exact=True).click()
         expect(page.get_by_text("No open paper positions.", exact=True)).to_be_visible()
         expect(
             page.get_by_text("PAPER DECISIONS & TRADES", exact=False)

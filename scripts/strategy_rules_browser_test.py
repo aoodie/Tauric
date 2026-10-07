@@ -34,25 +34,27 @@ with sync_playwright() as p:
     }""")
     page.get_by_role("button", name="Settings", exact=True).click()
     page.get_by_role("tab", name="Trading", exact=True).click()
-    page.get_by_role("button", name="Add strategy version", exact=True).click()
+    page.get_by_role("button", name="Strategies", exact=True).click()
+    page.get_by_role("button", name="New strategy", exact=True).click()
     form = page.get_by_role("form", name="New strategy version", exact=True)
     for label, value in {
-        "Registered strategy name": "Browser executable",
-        "Version label": "v1",
-        "Version quantity step": "0.0001",
-        "Version capital limit (account currency)": "5000",
-        "Version risk per trade (%)": "1",
+        "Strategy name": "Browser executable",
+        "Version name": "v1",
+        "Order size increment": "0.0001",
+        "Capital ceiling (account currency)": "5000",
+        "Risk per trade (%)": "1",
         "Strategy notes": "Synthetic closed candle browser workflow.",
-        "Version reason": "Save executable browser rules",
+        "Why save this version?": "Save executable browser rules",
     }.items():
         form.get_by_label(label, exact=True).fill(value)
     form.get_by_label("Entry and exit rules", exact=True).select_option(
         "closed_bar_breakout_v1"
     )
+    form.get_by_text("Breakout rules and exits", exact=False).click()
     form.get_by_label("Entry lookback (closed candles)", exact=True).fill("3")
     form.get_by_label("Exit lookback (closed candles)", exact=True).fill("2")
     form.get_by_label("Minimum volume ratio", exact=True).fill("2")
-    form.get_by_role("button", name="Save strategy version", exact=True).click()
+    form.get_by_role("button", name="Save strategy", exact=True).click()
     card = page.get_by_role("article", name="Browser executable versions", exact=True)
     expect(card.get_by_text("Revision 1", exact=True)).to_be_visible()
     card.get_by_role("button", name="Deploy saved version", exact=True).click()
@@ -69,12 +71,12 @@ with sync_playwright() as p:
         "Deploy synthetic browser strategy"
     )
     form.get_by_role("button", name="Deploy version", exact=True).click()
-    expect(page.get_by_text("Browser executable · v1", exact=True)).to_be_visible()
+    expect(page.get_by_text("1 paper routes use this strategy.", exact=True)).to_be_visible()
     results.append("Saved executable rule fields and deployed the pinned version")
     dep = page.evaluate(
         "async()=>{const s=await(await fetch('/api/v1/paper')).json();return s.deployments.find(d=>d.strategy==='Browser executable');}"
     )
-    page.get_by_role("button", name="Paper trading", exact=True).click()
+    page.get_by_role("button", name="Trading", exact=True).click()
     form = page.get_by_role("form", name="Paper proposal", exact=True)
     form.get_by_label("Paper strategy", exact=True).select_option(dep["id"])
     expect(
@@ -128,7 +130,7 @@ with sync_playwright() as p:
     page.reload()
     # The authenticated workstation polls continuously; wait for its rendered shell.
     expect(page.locator(".app")).to_be_visible()
-    page.get_by_role("button", name="Paper trading", exact=True).click()
+    page.get_by_role("button", name="Trading", exact=True).click()
     form = page.get_by_role("form", name="Paper proposal", exact=True)
     form.get_by_label("Paper strategy", exact=True).select_option(dep["id"])
     monitor = page.get_by_role("article", name="Paper strategy monitoring", exact=True)

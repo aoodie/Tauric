@@ -4,6 +4,7 @@ from uuid import UUID
 
 from pydantic import Field, field_validator
 
+from .assistant_contracts import AssistantReceipt
 from .market_contracts import AnalysisView
 from .portfolio_contracts import PortfolioReceipt
 from .schemas import Contract
@@ -96,6 +97,7 @@ class ChatTurnView(Contract):
     usage: dict[str, int]
     research_jobs: list[AnalysisView] = Field(default_factory=list)
     action_receipts: list[PortfolioReceipt] = Field(default_factory=list)
+    project_receipts: list[AssistantReceipt] = Field(default_factory=list)
 
 
 class ResearchInvocation(Contract):

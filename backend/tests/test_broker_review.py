@@ -515,7 +515,7 @@ def fx_ready(signed_in, database, configured, monkeypatch, tmp_path):
     )
     monkeypatch.setattr(forex_macro, "collect", test_native_fx.policy_fixture)
     monkeypatch.setattr(
-        forex_sources, "collect", lambda db, spec: forex_supplement_fixture.fixture(spec)
+        forex_sources, "collect", lambda db, spec, **kwargs: forex_supplement_fixture.fixture(spec)
     )
     secret = tmp_path / "private-fx.json"
     tokens = {key: secrets.token_urlsafe(48) for key in ("platform_token", "gateway_token")}

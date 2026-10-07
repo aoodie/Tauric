@@ -16,7 +16,7 @@ BrokerProvider = Literal["oanda", "alpaca"]
 
 class BrokerAccountView(Contract):
     provider: BrokerProvider
-    environment: Literal["practice", "paper"]
+    environment: Literal["practice", "paper", "live"]
     account_fingerprint: str
     currency: str
     cash: str
@@ -26,6 +26,10 @@ class BrokerAccountView(Contract):
     open_positions: int | None = None
     pending_orders: int | None = None
     observed_at: datetime
+
+    realized_pnl_home: str | None = None
+    fees_home: str | None = None
+    financing_home: str | None = None
 
 
 class BrokerInstrumentView(Contract):
@@ -156,6 +160,8 @@ class BrokerPolicyChange(Contract):
     expected_revision: int = Field(ge=0, strict=True)
     enabled: bool = Field(strict=True)
     no_owner_limits: Literal[True] = True
+    live_acknowledged: bool = Field(default=False, strict=True)
+    forward_report_id: UUID | None = None
     reason: str = Field(min_length=3, max_length=500)
 
 
@@ -225,6 +231,7 @@ class BrokerProtectionView(Contract):
     status: str
     filled_quantity: str
     price: str | None = None
+    remaining_quantity: str | None = None
 
 
 class BrokerExecutionFill(Contract):
@@ -293,6 +300,9 @@ class BrokerLifecycleView(Contract):
     entry_fills: list[BrokerExecutionFill] = Field(default_factory=list)
     exit_fills: list[BrokerExecutionFill] = Field(default_factory=list)
     trade_ids: list[str] = Field(default_factory=list)
+    protection_status: Literal["covered", "unprotected", "incomplete", "not_required"] = (
+        "incomplete"
+    )
     observed_at: datetime
     detail: str
 
@@ -424,6 +434,13 @@ class BrokerReviewResult(Contract):
     quantity: Money
     outcome: Literal["allow", "reject", "defer"]
     reason: str = Field(min_length=3, max_length=500, pattern=r".*\S.*")
+    risk_scale: Money = "1"
+
+    @model_validator(mode="after")
+    def bounded_risk(self):
+        if Decimal(self.risk_scale) > 1:
+            raise ValueError("OpenClaw may reduce Tauric's approved ceiling, never increase it.")
+        return self
 
 
 class BrokerReviewedEntrySubmit(Contract):
@@ -435,8 +452,9 @@ class BrokerReviewDecisionView(Contract):
     id: str
     outcome: Literal["allow", "reject", "defer"]
     reason: str
-    authority: Literal["demo_broker_entry"]
+    authority: Literal["demo_broker_entry", "live_broker_entry"]
     approved_order: BrokerOrderRequest
+    risk_scale: Money = "1"
     expires_at: datetime
     created_at: datetime
 

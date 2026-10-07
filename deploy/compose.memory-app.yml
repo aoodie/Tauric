@@ -1,0 +1,37 @@
+# Optional local memory extension for compose.dev.yml. No trading permission changes.
+services:
+  api:
+    networks: [default, memory_private]
+    environment:
+      TAURIC_KNOWLEDGE_VAULT_DISPLAY: ${KNOWLEDGE_VAULT_DISPLAY:-/Users/aoodie/Documents/Codex/Tauric/.env.knowledge/Obsidian}
+    volumes:
+      - ../.env.memory-private.json:/run/setup-memory-private.json:ro
+      - ../.env.knowledge/Obsidian:/data/knowledge:ro
+  chat_worker:
+    networks: [default, memory_private]
+    volumes:
+      - ../.env.memory-private.json:/run/setup-memory-private.json:ro
+  knowledge_worker:
+    profiles: [knowledge]
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    # Exported files remain editable by the owner of the host vault.
+    user: ${KNOWLEDGE_HOST_UID:-501}:10001
+    networks: [default, memory_private]
+    environment:
+      TAURIC_DATABASE_URL: postgresql+psycopg://tauric_app:${TAURIC_DB_PASSWORD}@db:5432/tauric
+      TAURIC_KNOWLEDGE_VAULT_DISPLAY: ${KNOWLEDGE_VAULT_DISPLAY:-/Users/aoodie/Documents/Codex/Tauric/.env.knowledge/Obsidian}
+    volumes:
+      - ../.env.memory-private.json:/run/tauric/memory-private.json:ro
+      - ../.env.model-key:/run/tauric/model-key:ro
+      - ../.env.knowledge/Obsidian:/data/knowledge
+    command: ["python", "-m", "tauric.knowledge_worker"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    mem_limit: 192m
+    restart: unless-stopped
+networks:
+  memory_private:
+    external: true
+    name: tauric_memory_memory_private

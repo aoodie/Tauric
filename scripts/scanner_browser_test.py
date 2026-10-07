@@ -21,42 +21,45 @@ with sync_playwright() as p:
     expect(page.locator(".app")).to_be_visible()
     page.get_by_role("button", name="Settings", exact=True).click()
     page.get_by_role("tab", name="Trading", exact=True).click()
-    page.get_by_role("button", name="Add strategy version", exact=True).click()
+    page.get_by_role("button", name="Strategies", exact=True).click()
+    page.get_by_role("button", name="New strategy", exact=True).click()
     f = page.get_by_role("form", name="New strategy version", exact=True)
     for name, value in {
-        "Registered strategy name": "Scanner browser fixture",
-        "Version label": "v1",
-        "Version quantity step": "0.00001",
-        "Version capital limit (USDT)": "5000",
-        "Version risk per trade (%)": "1",
+        "Strategy name": "Scanner browser fixture",
+        "Version name": "v1",
+        "Order size increment": "0.00001",
+        "Capital ceiling (account currency)": "5000",
+        "Risk per trade (%)": "1",
         "Strategy notes": "Disposable scanner test version. Synthetic data; no trading.",
-        "Version reason": "Create disposable scanner browser version",
+        "Why save this version?": "Create disposable scanner browser version",
     }.items():
         f.get_by_label(name, exact=True).fill(value)
-    f.get_by_role("button", name="Save strategy version", exact=True).click()
+    f.get_by_role("button", name="Save strategy", exact=True).click()
     expect(
         page.get_by_role("article", name="Scanner browser fixture versions")
     ).to_be_visible()
-    page.get_by_role("tab", name="Scanners", exact=True).click()
-    page.get_by_role("button", name="Add scanner profile", exact=True).click()
+    page.get_by_role("button", name="Scanners", exact=True).click()
+    page.get_by_role("tab", name="My scans", exact=False).click()
+    page.get_by_role("button", name="New scanner", exact=True).click()
     form = page.get_by_role("form", name="Scanner profile form", exact=True)
     form.get_by_label("Scanner name", exact=True).fill("Scanner browser fixture")
     form.get_by_label("Scanner strategy version", exact=True).select_option(
         label="Scanner browser fixture · v1 · revision 1"
     )
-    form.get_by_label("Candle interval", exact=True).select_option("15m")
+    form.get_by_label("Timeframe", exact=True).select_option("15m")
+    form.get_by_text("Advanced settings", exact=False).click()
     for name, value in {
-        "Prior closed candles": "3",
-        "Minimum activity ratio": "2",
-        "Candidate lifetime (seconds)": "600",
-        "New research runs per UTC day": "1",
-        "Scanner change reason": "Save explicitly synthetic scanner profile",
+        "Look back (closed candles)": "3",
+        "Minimum activity (× average)": "2",
+        "Opportunity valid for (seconds)": "600",
+        "Tauric research runs per day": "1",
+        "Why save this change?": "Save explicitly synthetic scanner profile",
     }.items():
         form.get_by_label(name, exact=True).fill(value)
     form.get_by_label("Research AI connection", exact=True).select_option("local")
     form.get_by_label("BTC/USDT", exact=True).check()
-    form.get_by_label("Enable screening", exact=True).check()
-    form.get_by_role("button", name="Save scanner profile", exact=True).click()
+    form.get_by_label("Enable this scanner", exact=True).check()
+    form.get_by_role("button", name="Save scanner", exact=True).click()
     profile = page.get_by_role(
         "article", name="Scanner browser fixture scanner profile"
     )
@@ -87,13 +90,13 @@ with sync_playwright() as p:
     expect(panel.get_by_role("tab", name="Crypto", exact=True)).to_be_visible()
     expect(panel.get_by_role("tab", name="Forex", exact=True)).to_be_enabled()
     row = panel.get_by_role("article", name="binance:spot:BTCUSDT candidate")
-    row.get_by_text("Setup evidence and actions", exact=True).click()
-    row.get_by_label("Candidate action reason", exact=True).fill(
+    row.get_by_text("Review setup", exact=True).click()
+    row.get_by_label("Why take this action?", exact=True).fill(
         "Watch disposable synthetic breakout"
     )
-    row.get_by_role("button", name="Watch", exact=True).click()
+    row.get_by_role("button", name="Watch setup", exact=True).click()
     expect(row.get_by_text("WATCH", exact=True)).to_be_visible()
-    row.get_by_role("button", name="Request daily research", exact=True).click()
+    row.get_by_role("button", name="Ask Tauric for research", exact=True).click()
     expect(panel.get_by_role("alert")).to_contain_text("Configure this AI connection")
     assert (
         page.evaluate(
@@ -101,10 +104,10 @@ with sync_playwright() as p:
         )
         == 0
     )
-    row.get_by_role("button", name="Ignore", exact=True).click()
+    row.get_by_role("button", name="Dismiss setup", exact=True).click()
     expect(row.get_by_text("IGNORED", exact=True)).to_be_visible()
     expect(
-        row.get_by_role("button", name="Request daily research", exact=True)
+        row.get_by_role("button", name="Ask Tauric for research", exact=True)
     ).to_be_disabled()
     results.append(
         "Watch/ignore history and unavailable-model guard; no accidental analysis"
@@ -123,14 +126,15 @@ with sync_playwright() as p:
         "Candidate original-evidence drawer and symbol/timeframe chart linking"
     )
     page.get_by_role("button", name="Settings", exact=True).click()
-    page.get_by_role("tab", name="Scanners", exact=True).click()
-    profile.get_by_role("button", name="Edit scanner profile", exact=True).click()
+    page.get_by_role("button", name="Scanners", exact=True).click()
+    page.get_by_role("tab", name="My scans", exact=False).click()
+    profile.get_by_role("button", name="Edit scanner", exact=True).click()
     form = profile.get_by_role("form", name="Scanner profile form")
-    form.get_by_label("Enable screening", exact=True).uncheck()
-    form.get_by_label("Scanner change reason", exact=True).fill(
+    form.get_by_label("Enable this scanner", exact=True).uncheck()
+    form.get_by_label("Why save this change?", exact=True).fill(
         "Pause disposable screening after verification"
     )
-    form.get_by_role("button", name="Save scanner profile", exact=True).click()
+    form.get_by_role("button", name="Save scanner", exact=True).click()
     expect(profile.get_by_role("button", name="Scan now", exact=True)).to_be_disabled()
     profile.get_by_role("button", name="Profile history", exact=True).click()
     expect(
@@ -141,7 +145,8 @@ with sync_playwright() as p:
     ).to_be_visible()
     page.reload()
     page.get_by_role("button", name="Settings", exact=True).click()
-    page.get_by_role("tab", name="Scanners", exact=True).click()
+    page.get_by_role("button", name="Scanners", exact=True).click()
+    page.get_by_role("tab", name="My scans", exact=False).click()
     expect(profile.get_by_text("DISABLED", exact=True)).to_be_visible()
     results.append(
         "Profile edits and disable persist without modifying strategy version or evidence"

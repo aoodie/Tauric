@@ -8,6 +8,7 @@ import "@fontsource/ibm-plex-sans/600.css";
 import "@fontsource/ibm-plex-mono/400.css";
 import "flexlayout-react/style/dark.css";
 import "./styles.css";
+import "./ui/workflow.css";
 import "./market/market.css";
 import { App } from "./App";
 

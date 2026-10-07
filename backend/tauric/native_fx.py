@@ -28,7 +28,7 @@ LIMITATIONS = [
 ]
 
 
-def prepare(db, spec, *, supplemental_budget_seconds=None):
+def prepare(db, spec, *, supplemental_budget_seconds=40):
     observation = market.refresh(db, spec.id, "1d", commit=False)
     snapshot = db.get(MarketSnapshot, observation.snapshot_id)
     binding = {

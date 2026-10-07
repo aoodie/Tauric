@@ -45,12 +45,16 @@ export type BrokerSetupPreview = components["schemas"]["BrokerSetupPreview"];
 export type BrokerReview = components["schemas"]["BrokerReviewView"];
 export type BrokerSetup = components["schemas"]["BrokerSetupView"];
 export type BrokerRoutes = components["schemas"]["BrokerRoutesState"];
+export type TradingReadiness = components["schemas"]["TradingReadinessView"];
+export type ReadinessRecord = components["schemas"]["ReadinessRecordView"];
 export type BrokerRoute = components["schemas"]["BrokerRouteView"];
 export type PaperState = components["schemas"]["PaperState"];
 export type PaperAccount = components["schemas"]["PaperAccountView"];
 export type TradingRecord = components["schemas"]["TradingRecordView"];
 export type PaperPolicy = components["schemas"]["PaperPolicy"];
 export type GovernanceStatus = components["schemas"]["GovernanceStatusView"];
+export type KnowledgeDocument = components["schemas"]["KnowledgeView"];
+export type MemoryState = components["schemas"]["MemoryState"];
 
 let csrfToken = "";
 export const client = createClient<paths>({
@@ -107,6 +111,76 @@ export function unwrap<T>(result: {
 }
 
 export const api = {
+  tradingReadiness: async () =>
+    unwrap(await client.GET("/api/v1/trading-readiness")),
+  captureValuation: async (body: components["schemas"]["ReadinessAction"]) =>
+    unwrap(await client.POST("/api/v1/trading-readiness/valuation", { body })),
+  registerForward: async (body: components["schemas"]["ForwardRegister"]) =>
+    unwrap(await client.POST("/api/v1/trading-readiness/forward", { body })),
+  evaluateForward: async (
+    protocol_id: string,
+    body: components["schemas"]["ReadinessAction"],
+  ) =>
+    unwrap(
+      await client.POST(
+        "/api/v1/trading-readiness/forward/{protocol_id}/evaluate",
+        {
+          params: { path: { protocol_id } },
+          body,
+        },
+      ),
+    ),
+  repairBrokerProtection: async (
+    close_id: string,
+    body: components["schemas"]["BrokerReviewedEntrySubmit"],
+  ) =>
+    unwrap(
+      await client.POST("/api/v1/brokers/closes/{close_id}/repair-protection", {
+        params: { path: { close_id } },
+        body,
+      }),
+    ),
+  knowledgeSettings: async () =>
+    unwrap(await client.GET("/api/v1/knowledge/settings")),
+  saveKnowledgeSettings: async (
+    body: components["schemas"]["MemorySettingsChange"],
+  ) => unwrap(await client.PUT("/api/v1/knowledge/settings", { body })),
+  knowledge: async (query: {
+    query?: string;
+    kind?: KnowledgeDocument["kind"];
+    include_hidden?: boolean;
+    offset?: number;
+  }) => unwrap(await client.GET("/api/v1/knowledge", { params: { query } })),
+  collectKnowledge: async () =>
+    unwrap(await client.POST("/api/v1/knowledge/collect")),
+  knowledgeDocument: async (document_id: string) =>
+    unwrap(
+      await client.GET("/api/v1/knowledge/{document_id}", {
+        params: { path: { document_id } },
+      }),
+    ),
+  saveKnowledgeNote: async (
+    body: components["schemas"]["KnowledgeNote"],
+    document_id?: string,
+  ) =>
+    document_id
+      ? unwrap(
+          await client.PUT("/api/v1/knowledge/{document_id}", {
+            params: { path: { document_id } },
+            body,
+          }),
+        )
+      : unwrap(await client.POST("/api/v1/knowledge/notes", { body })),
+  knowledgeVisibility: async (
+    document_id: string,
+    body: components["schemas"]["KnowledgeVisibility"],
+  ) =>
+    unwrap(
+      await client.PUT("/api/v1/knowledge/{document_id}/visibility", {
+        params: { path: { document_id } },
+        body,
+      }),
+    ),
   refreshIntelligenceCatalogs: async () =>
     unwrap(await client.POST("/api/v1/intelligence/catalogs/refresh")),
   registerIntelligenceSymbol: async (
@@ -298,6 +372,7 @@ export const api = {
       }),
     ),
   chatSettings: async () => unwrap(await client.GET("/api/v1/chat/settings")),
+  assistant: async () => unwrap(await client.GET("/api/v1/assistant")),
   saveChatSettings: async (body: components["schemas"]["ChatConfigChange"]) =>
     unwrap(await client.PUT("/api/v1/chat/settings", { body })),
   portfolioResearch: async (portfolio_id: string) =>

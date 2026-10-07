@@ -11,6 +11,7 @@ import { api, type Resource } from "../api/client";
 import type { components } from "../api/schema";
 import { PortfolioPanel, PortfolioSelector } from "./Portfolios";
 import "./chat.css";
+import { AssistantControls, AssistantReceiptCard } from "./AssistantControls";
 
 type Config = components["schemas"]["ChatConfigView"];
 type Change = components["schemas"]["ChatConfigChange"];
@@ -408,14 +409,18 @@ function ConversationChat({
       <div className="page-heading">
         <div>
           <span className="eyebrow">YOUR TAURIC ASSISTANT</span>
-          <h1>Chat with OpenClaw</h1>
-          <p>Ask about your workstation or request daily research.</p>
+          <h1>OpenClaw</h1>
+          <p>
+            Manage scans, develop strategies, and prepare project upgrades for
+            review.
+          </p>
         </div>
         <button className="secondary" onClick={setup}>
           <Settings2 size={15} /> Chat connections
         </button>
       </div>
       {picker}
+      {!portfolioId && <AssistantControls draft={setText} />}
       <div className="chat-workspace">
         <aside className="chat-history">
           <button
@@ -458,7 +463,7 @@ function ConversationChat({
             <span className="muted">
               {portfolioId
                 ? "Portfolio conversation · permitted paper controls"
-                : "General research assistant"}{" "}
+                : "Project manager & research assistant"}{" "}
               · live trading disabled
             </span>
           </div>
@@ -466,10 +471,11 @@ function ConversationChat({
             {!turns.length && (
               <div className="chat-empty">
                 <MessageSquare size={32} />
-                <h2>What would you like to explore?</h2>
+                <h2>What would you like to improve?</h2>
                 <p className="muted">
-                  Try “Run daily BTC research” or “Explain my latest native
-                  report.”
+                  {portfolioId
+                    ? "Ask about this portfolio or request its research."
+                    : "Try “Simplify my scanners”, “Test a strategy idea”, or “Prepare a code upgrade for review”."}
                 </p>
               </div>
             )}
@@ -490,6 +496,9 @@ function ConversationChat({
                     </p>
                     <pre>{JSON.stringify(receipt.result, null, 2)}</pre>
                   </details>
+                ))}
+                {(turn.project_receipts ?? []).map((receipt) => (
+                  <AssistantReceiptCard key={receipt.id} receipt={receipt} />
                 ))}
                 <article className="chat-bubble assistant">
                   <span className="eyebrow">OPENCLAW</span>

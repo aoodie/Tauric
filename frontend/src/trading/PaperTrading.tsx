@@ -20,10 +20,11 @@ import {
 } from "../api/client";
 import { useMarket } from "../market/MarketContext";
 import { ArrowRight, RefreshCw, ShieldCheck } from "lucide-react";
-import { StrategySettings, DeploymentControls } from "./StrategySettings";
+import { DeploymentControls } from "./StrategySettings";
 import { CapitalSettings, allocationPath } from "./CapitalSettings";
 import { StrategyRunner } from "./StrategyRunner";
 import { BrokerExecution } from "./BrokerExecution";
+import { LiveTrading } from "./LiveTrading";
 import { AutonomousPaper } from "./AutonomousPaper";
 import { StrategySchedule } from "./StrategySchedule";
 import "./paper.css";
@@ -291,7 +292,7 @@ function AccountPolicy({ account }: { account: PaperAccount }) {
     </article>
   );
 }
-export function TradingSettings() {
+export function TradingSettings({ strategies }: { strategies: () => void }) {
   const { state, pending, act } = usePaper();
   const market = useMarket();
   const [creating, setCreating] = useState(false);
@@ -450,7 +451,18 @@ export function TradingSettings() {
         </form>
       )}
       <CapitalSettings />
-      <StrategySettings />
+      <div className="paper-intro">
+        <div>
+          <h2>Strategy library</h2>
+          <p>
+            Develop strategy rules and manage their saved versions from the
+            Strategies page.
+          </p>
+          <button className="secondary small" onClick={strategies}>
+            Open strategy library
+          </button>
+        </div>
+      </div>
       {deploying && (
         <form
           className="paper-card"
@@ -798,8 +810,11 @@ export function PaperWorkbench({
       <div className="page-heading">
         <div>
           <span className="eyebrow">GOVERNANCE → PLAN → LEDGER</span>
-          <h1>Paper trading</h1>
-          <p>Test the full decision and sizing path with simulated money.</p>
+          <h1>Trading</h1>
+          <p>
+            Monitor portfolios, validate strategies and manage automatic broker
+            trading.
+          </p>
         </div>
         <div className="paper-actions">
           <button className="secondary small" onClick={setup}>
@@ -812,10 +827,11 @@ export function PaperWorkbench({
           >
             <RefreshCw size={17} />
           </button>
-          <span className="badge cyan">PAPER ONLY</span>
+          <span className="badge cyan">TAURIC GOVERNED</span>
         </div>
       </div>
       <Status />
+      <LiveTrading />
       <BrokerExecution />
       <div className="paper-warning">
         Stops are sizing references. Executable strategies can monitor closed
