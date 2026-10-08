@@ -113,6 +113,8 @@ export function unwrap<T>(result: {
 export const api = {
   tradingReadiness: async () =>
     unwrap(await client.GET("/api/v1/trading-readiness")),
+  tradingOperations: async () =>
+    unwrap(await client.GET("/api/v1/trading-readiness/operations")),
   captureValuation: async (body: components["schemas"]["ReadinessAction"]) =>
     unwrap(await client.POST("/api/v1/trading-readiness/valuation", { body })),
   registerForward: async (body: components["schemas"]["ForwardRegister"]) =>

@@ -48,6 +48,11 @@ def signature():
         "broker_worker.py",
         "live_trading.py",
         "valuation.py",
+        "valuation_worker.py",
+        "forward_worker.py",
+        "operations.py",
+        "operations_models.py",
+        "live_contracts.py",
     )
     return {
         "execution_model": "broker_protected_long_v2",

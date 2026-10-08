@@ -363,6 +363,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/trading-readiness/operations": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Operating State */
+    get: operations["operating_state_api_v1_trading_readiness_operations_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/trading-readiness/valuation": {
     parameters: {
       query?: never;
@@ -4883,6 +4900,59 @@ export interface components {
       /** Excluded */
       excluded: boolean;
     };
+    /** LaneProgressView */
+    LaneProgressView: {
+      /** Worker */
+      worker: string;
+      /** Lane */
+      lane: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "unobserved" | "stale" | "failing" | "running" | "healthy";
+      /**
+       * Attempts
+       * @default 0
+       */
+      attempts: number;
+      /**
+       * Successes
+       * @default 0
+       */
+      successes: number;
+      /**
+       * Failures
+       * @default 0
+       */
+      failures: number;
+      /**
+       * Work Completed
+       * @default 0
+       */
+      work_completed: number;
+      /**
+       * Consecutive Failures
+       * @default 0
+       */
+      consecutive_failures: number;
+      /** Invocation Id */
+      invocation_id?: string | null;
+      /** Started At */
+      started_at?: string | null;
+      /** Finished At */
+      finished_at?: string | null;
+      /** Last Success At */
+      last_success_at?: string | null;
+      /** Last Work At */
+      last_work_at?: string | null;
+      /** Last Failure At */
+      last_failure_at?: string | null;
+      /** Error Category */
+      error_category?: string | null;
+      /** Duration Ms */
+      duration_ms?: number | null;
+    };
     /** LayoutChange */
     LayoutChange: {
       /** Layout */
@@ -5349,6 +5419,22 @@ export interface components {
       execution_authority: false;
       /** Model Invocations */
       model_invocations: number;
+    };
+    /** OperatingStateView */
+    OperatingStateView: {
+      /**
+       * Generated At
+       * Format: date-time
+       */
+      generated_at: string;
+      /** Lanes */
+      lanes: components["schemas"]["LaneProgressView"][];
+      native_queue: components["schemas"]["QueueProgressView"];
+      review_queue: components["schemas"]["QueueProgressView"];
+      unresolved_entries: components["schemas"]["QueueProgressView"];
+      unresolved_closes: components["schemas"]["QueueProgressView"];
+      /** Scope */
+      scope: string;
     };
     /** OutcomeMetrics */
     OutcomeMetrics: {
@@ -6116,6 +6202,13 @@ export interface components {
        * @constant
        */
       execution_authority: false;
+    };
+    /** QueueProgressView */
+    QueueProgressView: {
+      /** Count */
+      count: number;
+      /** Oldest Age Seconds */
+      oldest_age_seconds: number | null;
     };
     /** ReadinessAction */
     ReadinessAction: {
@@ -7733,6 +7826,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["TradingReadinessView"];
+        };
+      };
+    };
+  };
+  operating_state_api_v1_trading_readiness_operations_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OperatingStateView"];
         };
       };
     };

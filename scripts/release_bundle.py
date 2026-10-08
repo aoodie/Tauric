@@ -27,6 +27,8 @@ FILES = (
     "deploy/market-data.example.json",
     "scripts/server.py",
     "scripts/server_soak.py",
+    "scripts/acceptance_research.py",
+    "docs/ACCEPTANCE_PLAN.md",
     "docs/GITHUB_DEPLOYMENT.md",
     "docs/SERVER_READINESS.md",
     "docs/SERVER_DEPLOYMENT_VERIFICATION.md",

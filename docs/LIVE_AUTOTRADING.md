@@ -1,5 +1,7 @@
 # Governed automatic trading
 
+The [8 October acceptance plan](ACCEPTANCE_PLAN.md) records the pinned deployment baseline, first frozen EUR/USD trial and the sequence for operational monitoring and prospective registration. Research evidence, prospective results and connected lifecycle acceptance remain distinct gates.
+
 Tauric supports OANDA Forex and Alpaca stock/ETF execution through separate demo and live adapters. Live credentials alone never enable entries. Every live entry requires an enabled policy bound to passing prospective evidence, the exact saved strategy and instrument, an affirmative native Tauric setup assessment, an immutable OpenClaw allow, current account/quote checks and a protective stop.
 
 Tauric is the mandatory risk authority. It assesses the proposed quantity, all broker holdings and the current marked portfolio. OpenClaw may veto, defer or reduce an approved quantity using a decimal `risk_scale` in `(0,1]`. The platform rounds reductions down to broker increments. Neither model has an order tool. Changing strategy, instrument, protection, account or increasing risk requires fresh native evidence and applicable validation. Unknown submissions are reconciled by their existing identifiers and never repeated.

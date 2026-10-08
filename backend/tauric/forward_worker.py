@@ -5,7 +5,7 @@ import time
 
 from sqlalchemy.orm import Session
 
-from . import live_trading
+from . import live_trading, operations
 from .database import engine
 from .models import WorkerStatus, now
 
@@ -31,8 +31,7 @@ def main():
                         WorkerStatus(id="forward_validation", heartbeat_at=now(), version="0.12.0")
                     )
                 db.commit()
-            with Session(engine()) as db:
-                live_trading.process_one(db)
+            operations.run_lane("forward_validation", "evaluation", live_trading.process_one)
         except Exception:
             print(
                 "Forward evidence is unavailable; inspect its saved report. No entry was authorized.",

@@ -2,6 +2,8 @@
 
 The supplied brief and owner decisions define the full target. This table distinguishes working foundation behavior from unimplemented trading features. Section numbers refer to the master brief.
 
+**8 October status:** the table below retains early foundation coverage. Current implementation also includes local Knowledge/Honcho, automatic OANDA/Alpaca routes, separate governed live adapters, marked valuations, replacement protection, prospective promotion gates, market-intelligence foundations and bounded conversational research controls. Hosted images and IONOS deployment are verified. These updates supersede corresponding "pending" descriptions below; deeper platform scope and actual strategy/connected/operational acceptance remain open. See [current acceptance plan](ACCEPTANCE_PLAN.md), [live trading](LIVE_AUTOTRADING.md), [market intelligence](MARKET_INTELLIGENCE.md) and [Knowledge](KNOWLEDGE_AND_MEMORY.md). Post-launch status applies only to the specifically agreed interface list.
+
 | Capability | Brief sections | Current coverage | Next milestone |
 |---|---|---|---|
 | Preserve native Tauric output and separate governance | 2–3, 38–39 | Pinned native graph and immutable original-report artifacts implemented; offline compatibility and one real daily BTC run with nine original reports pass; broader instrument/time contexts pending; separate model-backed governance records and original-evidence validation added | 2–3 |
