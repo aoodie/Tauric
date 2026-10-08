@@ -71,7 +71,7 @@ function boundTool(config:{platformUrl:string;platformToken:string},ctx:TrustedC
 export default defineToolPlugin({
   id: "tauric-governance-tools",
   name: "Tauric governance and chat tools",
-  description: "Serve owner requests with fresh market data, research, backtest-first governed paper workflows and audited code workspaces. Tauric controls evidence, policy, approval and release checks; no broker order or direct live-source authority.",
+  description: "Serve owner requests with fresh market data, research, governed paper and broker workflows, adjustable account policies and audited code workspaces. Tauric broker services enforce evidence, account bindings, policy, approval and release checks; direct live-source changes are unavailable.",
   configSchema: Type.Object({
     platformUrl: Type.String(),
     platformToken: Type.String(),
