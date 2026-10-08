@@ -36,6 +36,21 @@ Operation = Literal[
     "plan_paper_entry",
     "execute_paper_plan",
     "close_paper_position",
+    "capture_broker_valuation",
+    "register_broker_forward",
+    "evaluate_broker_forward",
+    "check_broker_account",
+    "save_broker_policy",
+    "save_broker_route",
+    "assess_broker_setup",
+    "request_broker_review",
+    "submit_broker_entry",
+    "close_broker_position",
+    "reconcile_broker_order",
+    "cancel_broker_order",
+    "refresh_broker_position",
+    "reconcile_broker_close",
+    "repair_broker_protection",
 ]
 
 
@@ -145,6 +160,12 @@ class AssistantRead(ChatIdentity):
         "paper_review",
         "research_lab",
         "lab_record",
+        "broker_readiness",
+        "broker_state",
+        "broker_routes",
+        "broker_journal",
+        "broker_reviews",
+        "broker_setups",
     ] = "overview"
     operation: Operation | None = None
     resource_id: UUID | None = None
@@ -176,6 +197,10 @@ class AssistantState(Contract):
 
 
 # Re-exported here so schema discovery always describes the actual service contracts.
-RESEARCH_CONTRACTS = {"capture_dataset": DatasetCapture, "run_backtest": ReplayCreate,
-                      "retrieve_history": HistoricalDatasetCreate, "session_research": SessionReportCreate,
-                      "quant_experiment": ExperimentCreate}
+RESEARCH_CONTRACTS = {
+    "capture_dataset": DatasetCapture,
+    "run_backtest": ReplayCreate,
+    "retrieve_history": HistoricalDatasetCreate,
+    "session_research": SessionReportCreate,
+    "quant_experiment": ExperimentCreate,
+}

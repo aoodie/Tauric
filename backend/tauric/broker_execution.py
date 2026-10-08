@@ -134,7 +134,9 @@ def save_policy(db, owner, provider, body):
     snapshot = {
         "request": payload,
         "enabled": body.enabled,
-        "no_owner_limits": True,
+        "no_owner_limits": body.no_owner_limits,
+        "maximum_risk_percent": body.maximum_risk_percent,
+        "maximum_drawdown_percent": body.maximum_drawdown_percent,
         "connection_revision": revision,
         "account_fingerprint": account.account_fingerprint if account else None,
         "environment": account.environment if account else None,
@@ -163,7 +165,7 @@ def save_policy(db, owner, provider, body):
             "provider": provider,
             "revision": row.revision,
             "enabled": body.enabled,
-            "no_owner_limits": True,
+            "no_owner_limits": body.no_owner_limits,
         },
     )
     db.commit()
