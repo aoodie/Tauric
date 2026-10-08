@@ -5,7 +5,7 @@ import time
 
 from sqlalchemy.orm import Session
 
-from . import valuation
+from . import operations, valuation
 from .database import engine
 from .models import WorkerStatus, now
 
@@ -29,8 +29,7 @@ def main():
                 else:
                     db.add(WorkerStatus(id="valuation", heartbeat_at=now(), version="0.12.0"))
                 db.commit()
-            with Session(engine()) as db:
-                valuation.sample_one(db)
+            operations.run_lane("valuation", "observation", valuation.sample_one)
         except Exception:
             # Never print response bodies, credentials, SQL or connection URLs.
             print(

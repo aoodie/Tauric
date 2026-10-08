@@ -1,5 +1,9 @@
 # Server deployment package verification
 
+**Current status — 8 October 2026:** source `0e30a3bdfb6206544cb6bff242c8e0ac5b223eaf` is published and deployed on IONOS. The [7 October hosted release](https://github.com/aoodie/Tauric/actions/runs/37677136199) passed checks, four multi-architecture image publications and native installation/full restoration. Saved server evidence records trusted public HTTPS, reboot recovery and encrypted off-host backups; a fresh SSH check found all 15 services healthy. Representative 24-hour workload, connected governed demo lifecycle and failed migrated-upgrade recovery remain open, alongside strategy/prospective qualification. See [acceptance plan](ACCEPTANCE_PLAN.md).
+
+The sections below preserve the dated 5 October rehearsal. Their pending hosted-publication and target-installation statements are historical and superseded by the current status above.
+
 Recorded 5 October 2026. **The server package passed an isolated Linux arm64 container installation and full database/runtime restore rehearsal. It is a deployment candidate, not a production-certified release.**
 
 ## Implemented package

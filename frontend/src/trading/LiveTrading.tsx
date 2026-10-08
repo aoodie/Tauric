@@ -6,6 +6,7 @@ import {
   type StrategyVersion,
 } from "../api/client";
 import { useMarket } from "../market/MarketContext";
+import { TradingOperations } from "./TradingOperations";
 
 type Provider = "oanda" | "alpaca";
 type AccountMark = {
@@ -258,6 +259,7 @@ export function LiveTrading() {
           {notice}
         </p>
       )}
+      <TradingOperations />
       <div className="paper-actions">
         <button
           disabled={pending}

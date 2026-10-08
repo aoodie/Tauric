@@ -929,6 +929,27 @@
         }
       }
     },
+    "/api/v1/trading-readiness/operations": {
+      "get": {
+        "tags": [
+          "trading readiness"
+        ],
+        "summary": "Operating State",
+        "operationId": "operating_state_api_v1_trading_readiness_operations_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatingStateView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/trading-readiness/valuation": {
       "post": {
         "tags": [
@@ -12747,6 +12768,155 @@
         ],
         "title": "KnowledgeVisibility"
       },
+      "LaneProgressView": {
+        "properties": {
+          "worker": {
+            "type": "string",
+            "title": "Worker"
+          },
+          "lane": {
+            "type": "string",
+            "title": "Lane"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "unobserved",
+              "stale",
+              "failing",
+              "running",
+              "healthy"
+            ],
+            "title": "Status"
+          },
+          "attempts": {
+            "type": "integer",
+            "title": "Attempts",
+            "default": 0
+          },
+          "successes": {
+            "type": "integer",
+            "title": "Successes",
+            "default": 0
+          },
+          "failures": {
+            "type": "integer",
+            "title": "Failures",
+            "default": 0
+          },
+          "work_completed": {
+            "type": "integer",
+            "title": "Work Completed",
+            "default": 0
+          },
+          "consecutive_failures": {
+            "type": "integer",
+            "title": "Consecutive Failures",
+            "default": 0
+          },
+          "invocation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invocation Id"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "last_success_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Success At"
+          },
+          "last_work_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Work At"
+          },
+          "last_failure_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Failure At"
+          },
+          "error_category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Category"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "worker",
+          "lane",
+          "status"
+        ],
+        "title": "LaneProgressView"
+      },
       "LayoutChange": {
         "properties": {
           "layout": {
@@ -13730,6 +13900,50 @@
           "model_invocations"
         ],
         "title": "NativeBrokerSetupAssessment"
+      },
+      "OperatingStateView": {
+        "properties": {
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "lanes": {
+            "items": {
+              "$ref": "#/components/schemas/LaneProgressView"
+            },
+            "type": "array",
+            "title": "Lanes"
+          },
+          "native_queue": {
+            "$ref": "#/components/schemas/QueueProgressView"
+          },
+          "review_queue": {
+            "$ref": "#/components/schemas/QueueProgressView"
+          },
+          "unresolved_entries": {
+            "$ref": "#/components/schemas/QueueProgressView"
+          },
+          "unresolved_closes": {
+            "$ref": "#/components/schemas/QueueProgressView"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "generated_at",
+          "lanes",
+          "native_queue",
+          "review_queue",
+          "unresolved_entries",
+          "unresolved_closes",
+          "scope"
+        ],
+        "title": "OperatingStateView"
       },
       "OutcomeMetrics": {
         "properties": {
@@ -15605,6 +15819,32 @@
           "reports"
         ],
         "title": "QualificationView"
+      },
+      "QueueProgressView": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "oldest_age_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oldest Age Seconds"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "count",
+          "oldest_age_seconds"
+        ],
+        "title": "QueueProgressView"
       },
       "ReadinessAction": {
         "properties": {

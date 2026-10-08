@@ -2,7 +2,7 @@ name: Publish deployment candidate
 on:
   push:
     tags: ["v*"]
-    branches: [codex/deployment-candidate]
+    branches: [codex/deployment-candidate, codex/trading-acceptance-monitoring]
   workflow_dispatch:
 permissions:
   contents: read

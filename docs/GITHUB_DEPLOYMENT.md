@@ -1,5 +1,7 @@
 # GitHub deployment candidates
 
+**8 October status:** hosted publication and native amd64 installation/restore passed for deployed source `0e30a3b`. The IONOS candidate serves trusted public-IP HTTPS and has reboot/backup evidence. Current acceptance work is described in [the acceptance plan](ACCEPTANCE_PLAN.md); earlier pending-publication statements below are historical.
+
 The repository now contains a GitHub Actions delivery path and a server-only Compose package. It remains a **deployment candidate** until the target Linux host, connected automatic trading cycle and soak/recovery gates pass. GitHub stores source, runs checks and publishes images; the application runs on a Linux server. GitHub Pages cannot host its database, API or background workers.
 
 ## Publish from a dedicated repository

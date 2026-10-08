@@ -4,7 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter
 
-from . import live_trading, valuation
+from . import live_trading, operations, valuation
 from .auth import CurrentOwner, Db
 from .live_contracts import (
     ForwardRegister,
@@ -12,6 +12,7 @@ from .live_contracts import (
     ReadinessRecordView,
     TradingReadinessView,
 )
+from .operations_contracts import OperatingStateView
 
 router = APIRouter(prefix="/api/v1/trading-readiness", tags=["trading readiness"])
 
@@ -19,6 +20,11 @@ router = APIRouter(prefix="/api/v1/trading-readiness", tags=["trading readiness"
 @router.get("", response_model=TradingReadinessView)
 def state(db: Db, owner: CurrentOwner):
     return live_trading.state(db, owner)
+
+
+@router.get("/operations", response_model=OperatingStateView)
+def operating_state(db: Db, owner: CurrentOwner):
+    return operations.state(db, owner)
 
 
 @router.post("/valuation", response_model=ReadinessRecordView)
