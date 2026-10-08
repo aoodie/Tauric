@@ -2548,7 +2548,22 @@ export interface components {
         | "request_paper_review"
         | "plan_paper_entry"
         | "execute_paper_plan"
-        | "close_paper_position";
+        | "close_paper_position"
+        | "capture_broker_valuation"
+        | "register_broker_forward"
+        | "evaluate_broker_forward"
+        | "check_broker_account"
+        | "save_broker_policy"
+        | "save_broker_route"
+        | "assess_broker_setup"
+        | "request_broker_review"
+        | "submit_broker_entry"
+        | "close_broker_position"
+        | "reconcile_broker_order"
+        | "cancel_broker_order"
+        | "refresh_broker_position"
+        | "reconcile_broker_close"
+        | "repair_broker_protection";
       /** Title */
       title: string;
       /**
@@ -3177,9 +3192,12 @@ export interface components {
       /**
        * No Owner Limits
        * @default true
-       * @constant
        */
-      no_owner_limits: true;
+      no_owner_limits: boolean;
+      /** Maximum Risk Percent */
+      maximum_risk_percent?: string | null;
+      /** Maximum Drawdown Percent */
+      maximum_drawdown_percent?: string | null;
       /**
        * Live Acknowledged
        * @default false

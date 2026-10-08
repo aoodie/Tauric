@@ -106,17 +106,28 @@ def capture(db, owner, body, *, route_context=None, risk_percent=None, intent_id
                                 account, instrument, quote, stop, risk_percent
                             )
                             body = body.model_copy(update={"quantity": quantity})
-                        elif live_report:
+                        elif live_report or policy.payload.get("maximum_risk_percent"):
+                            ceilings = [
+                                value
+                                for value in (
+                                    live_report.payload["maximum_risk_percent"]
+                                    if live_report
+                                    else None,
+                                    policy.payload.get("maximum_risk_percent"),
+                                )
+                                if value is not None
+                            ]
+                            ceiling = str(min(map(Decimal, ceilings)))
                             maximum, sizing = broker_risk.calculate(
                                 account,
                                 instrument,
                                 quote,
                                 stop,
-                                live_report.payload["maximum_risk_percent"],
+                                ceiling,
                             )
                             if Decimal(body.quantity) > Decimal(maximum):
                                 raise BrokerError(
-                                    "Requested live quantity exceeds the forward-validated risk ceiling; obtain new Tauric evidence before increasing risk."
+                                    "Requested quantity exceeds the account or forward-validated risk ceiling; obtain fresh Tauric evidence before increasing risk."
                                 )
                             sizing["quantity"] = body.quantity
                         planned = BrokerOrderRequest(

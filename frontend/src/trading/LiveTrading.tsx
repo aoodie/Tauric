@@ -7,6 +7,7 @@ import {
 } from "../api/client";
 import { useMarket } from "../market/MarketContext";
 import { TradingOperations } from "./TradingOperations";
+import { brokerPolicyLimits } from "./brokerPolicyLimits";
 
 type Provider = "oanda" | "alpaca";
 type AccountMark = {
@@ -211,7 +212,9 @@ export function LiveTrading() {
         brokers.policies.find((p) => p.provider === selectedProvider)
           ?.revision ?? 0,
       enabled: true,
-      no_owner_limits: true,
+      ...brokerPolicyLimits(
+        brokers.policies.find((p) => p.provider === selectedProvider)?.settings,
+      ),
       live_acknowledged: true,
       forward_report_id: reportId,
       reason:
@@ -608,7 +611,10 @@ export function LiveTrading() {
                         brokers.policies.find((p) => p.provider === provider)
                           ?.revision ?? 0,
                       enabled: false,
-                      no_owner_limits: true,
+                      ...brokerPolicyLimits(
+                        brokers.policies.find((p) => p.provider === provider)
+                          ?.settings,
+                      ),
                       live_acknowledged: false,
                       reason: "Owner paused new automatic broker entries",
                     });

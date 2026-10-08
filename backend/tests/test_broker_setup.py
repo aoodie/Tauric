@@ -340,3 +340,33 @@ def test_wrong_result_binding_is_rejected(signed_in, setup, database, changes):
     finish(database, job, **changes)
     assert signed_in.get(f"/api/v1/brokers/setup-assessments/{job['id']}").status_code == 409
     assert broker.submissions == []
+
+
+def test_raw_setup_quantity_cannot_bypass_account_risk_cap(signed_in, setup):
+    body, broker, _, _ = setup
+    old = next(
+        p for p in signed_in.get("/api/v1/brokers").json()["policies"] if p["provider"] == "alpaca"
+    )
+    saved = signed_in.put(
+        "/api/v1/brokers/alpaca/policy",
+        json={
+            "request_id": str(uuid4()),
+            "expected_revision": old["revision"],
+            "enabled": True,
+            "no_owner_limits": False,
+            "maximum_risk_percent": "5",
+            "maximum_drawdown_percent": "15",
+            "reason": "Owner set account limits",
+        },
+    )
+    assert saved.status_code == 200, saved.text
+    rejected = signed_in.post("/api/v1/brokers/setup-preview", json=body)
+    assert rejected.status_code == 200, rejected.text
+    assert not rejected.json()["entry_evidence_ready"]
+    assert "risk ceiling" in " ".join(rejected.json()["reasons"])
+    accepted = signed_in.post(
+        "/api/v1/brokers/setup-preview",
+        json={**body, "request_id": str(uuid4()), "quantity": "100"},
+    )
+    assert accepted.status_code == 200 and accepted.json()["entry_evidence_ready"], accepted.text
+    assert broker.submissions == []
