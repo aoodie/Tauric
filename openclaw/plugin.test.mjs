@@ -3,11 +3,11 @@ import { getToolPluginMetadata } from 'openclaw/plugin-sdk/tool-plugin';
 import entry from './plugin/dist/index.js';
 const metadata=getToolPluginMetadata(entry);
 assert.equal(metadata.id,'tauric-governance-tools');
-assert.deepEqual(metadata.tools.map(t=>t.name),['tauric_paper_context','tauric_review_context','tauric_chat_context','tauric_request_research','tauric_research_status','tauric_portfolio_action','tauric_request_portfolio_research','tauric_broker_review_context','tauric_project_read','tauric_project_action']);
+assert.deepEqual(metadata.tools.map(t=>t.name),['tauric_paper_context','tauric_review_context','tauric_chat_context','tauric_request_research','tauric_research_status','tauric_portfolio_action','tauric_request_portfolio_research','tauric_broker_review_context','tauric_project_read','tauric_project_action','tauric_market_data']);
 assert.equal(metadata.tools[0].optional,true);
 const tools=[];
 entry.register({pluginConfig:{platformUrl:'http://api:8000/',platformToken:'offline-test-token'},registerTool:t=>tools.push(t)});
-assert.equal(tools.length,10);
+assert.equal(tools.length,11);
 const fakeContext={authority:'read_only_paper_context',native_original:{payload:{native_rating:'BUY',governance:null}}};
 const originalFetch=globalThis.fetch;
 let calls=0;
@@ -101,7 +101,7 @@ entry.register({pluginConfig:{platformUrl:'https://attacker.example/',platformTo
 globalThis.fetch=async()=>{throw Error('Forbidden external endpoint');};
 await assert.rejects(()=>badTools[7].execute('wrong-root',{job_id:reviewId}),/Unsupported private/);
 globalThis.fetch=originalFetch;
-for(const [index,endpoint,params] of [[8,'project-read',{resource:'source',path:'frontend/src/scanner/Scanner.tsx'}],
+for(const [index,endpoint,params] of [[10,'market-observations',{symbol:'XAU/USD',intervals:['15m','1h']}],[8,'project-read',{resource:'source',path:'frontend/src/scanner/Scanner.tsx'}],
   [9,'project-action',{operation:'save_research_note',parameters:{title:'Fixture idea'},reason:'Owner asked'}]]) {
   const factory=tools[index];
   assert.equal(typeof factory,'function');

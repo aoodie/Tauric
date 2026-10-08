@@ -464,7 +464,7 @@ function ConversationChat({
             <span className="muted">
               {portfolioId
                 ? "Portfolio conversation · permitted paper controls"
-                : "Project manager & research assistant"}{" "}
+                : "Your assistant · Tauric-controlled actions"}{" "}
               · live trading disabled
             </span>
           </div>
@@ -589,8 +589,10 @@ function ConversationChat({
             </button>
           </form>
           <p className="chat-footnote muted">
-            Daily research uses the allowance in Chat connections. Chat cannot
-            place orders. Do not put passwords or API keys in messages.
+            Daily research uses the allowance in Chat connections. Paper
+            workflow requests use Tauric’s evidence and approval checks. Broker
+            orders require the Trading workflow. Do not put passwords or API
+            keys in messages.
           </p>
         </section>
       </div>

@@ -44,6 +44,7 @@ def capabilities(db):
         "scope": "Current daily research for supported registered crypto, stocks, ETFs and Forex. Chat can request crypto, stock, ETF and provider-verified Forex daily runs. Forex policy/economic coverage varies by currency; missing sources stay explicit. Owner authorization, connections, readiness and allowances still apply.",
         "forex_policy_currencies": sorted(native_scope.FX_POLICY_CURRENCIES),
         "unsupported_scopes": ["commodities", "weekly", "historical", "intraday", "futures"],
+        "market_information": "Fresh candles and chat interpretation are separate from native research. Use tauric_market_data for registered assets or account-verified XAU/USD gold; default intervals are 15m and 1h. No native report, strategy qualification or execution approval is created by an observation.",
         "registered_instruments": instruments,
         "registered_count": total,
         "registry_truncated": total > len(instruments),

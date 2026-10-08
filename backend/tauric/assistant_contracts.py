@@ -6,11 +6,13 @@ from uuid import UUID
 
 from pydantic import Field, model_validator
 
+from .governance_contracts import GovernanceEnqueue
 from .portfolio_contracts import ChatIdentity
 from .research_contracts import DatasetCapture, ReplayCreate
 from .scanner_contracts import CandidateAction, CandidateEscalate
 from .schemas import Contract
-from .strategy_contracts import StrategyRevise
+from .strategy_contracts import StrategyRevise, StrategyRunRequest
+from .trading_contracts import PaperAction, ProposalCreate
 
 Operation = Literal[
     "save_scanner",
@@ -23,6 +25,13 @@ Operation = Literal[
     "run_backtest",
     "save_research_note",
     "prepare_upgrade",
+    "stage_upgrade",
+    "evaluate_paper_strategy",
+    "propose_paper_strategy",
+    "request_paper_review",
+    "plan_paper_entry",
+    "execute_paper_plan",
+    "close_paper_position",
 ]
 
 
@@ -36,6 +45,34 @@ class CandidateResearch(CandidateEscalate):
 
 class StrategyRevision(StrategyRevise):
     strategy_id: UUID
+
+
+class PaperStrategyEvaluation(StrategyRunRequest):
+    backtest_id: UUID
+
+
+class PaperStrategyProposal(ProposalCreate):
+    backtest_id: UUID
+    native_artifact_id: UUID
+    strategy_run_id: UUID
+
+
+class PaperReviewRequest(GovernanceEnqueue):
+    backtest_id: UUID
+
+
+class PaperPlanRequest(PaperAction):
+    decision_id: UUID
+    backtest_id: UUID
+
+
+class PaperExecutionRequest(PaperAction):
+    plan_id: UUID
+    backtest_id: UUID
+
+
+class PaperCloseRequest(PaperAction):
+    position_id: UUID
 
 
 class SourceReference(Contract):
@@ -98,6 +135,10 @@ class AssistantRead(ChatIdentity):
         "receipt",
         "knowledge",
         "user_memory",
+        "paper_deployment",
+        "paper_state",
+        "paper_record",
+        "paper_review",
     ] = "overview"
     operation: Operation | None = None
     resource_id: UUID | None = None
@@ -120,9 +161,7 @@ class AssistantReceipt(Contract):
 
 
 class AssistantState(Contract):
-    authority: Literal["manage_research_and_prepare_upgrades"] = (
-        "manage_research_and_prepare_upgrades"
-    )
+    authority: Literal["orchestrate_tauric_workflows"] = "orchestrate_tauric_workflows"
     tauric_authority: Literal["native_evidence_and_execution_gates"] = (
         "native_evidence_and_execution_gates"
     )

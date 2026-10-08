@@ -6591,7 +6591,14 @@
               "capture_dataset",
               "run_backtest",
               "save_research_note",
-              "prepare_upgrade"
+              "prepare_upgrade",
+              "stage_upgrade",
+              "evaluate_paper_strategy",
+              "propose_paper_strategy",
+              "request_paper_review",
+              "plan_paper_entry",
+              "execute_paper_plan",
+              "close_paper_position"
             ],
             "title": "Operation"
           },
@@ -6640,9 +6647,9 @@
         "properties": {
           "authority": {
             "type": "string",
-            "const": "manage_research_and_prepare_upgrades",
+            "const": "orchestrate_tauric_workflows",
             "title": "Authority",
-            "default": "manage_research_and_prepare_upgrades"
+            "default": "orchestrate_tauric_workflows"
           },
           "tauric_authority": {
             "type": "string",

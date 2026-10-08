@@ -7,7 +7,8 @@ const strings = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((v) => typeof v === "string") : [];
 
 export function AssistantReceiptCard({ receipt }: { receipt: Receipt }) {
-  const proposal = receipt.operation === "prepare_upgrade";
+  const staged = receipt.operation === "stage_upgrade";
+  const proposal = receipt.operation === "prepare_upgrade" || staged;
   const note = proposal || receipt.operation === "save_research_note";
   const result = receipt.result;
   const patch = typeof result.patch === "string" ? result.patch : "";
@@ -50,8 +51,9 @@ export function AssistantReceiptCard({ receipt }: { receipt: Receipt }) {
       {proposal && (
         <>
           <p className="workflow-authority">
-            Draft for your review. Code has not been applied and planned tests
-            have not been run.
+            {staged
+              ? "Changes are applied to an isolated workspace. Tauric verified the source and patch; Python syntax checks are recorded below. Release tests and deployment checks are still required."
+              : "Draft for your review. Code has not been applied and planned tests have not been run."}
           </p>
           <ul className="proposal-files">
             {(Array.isArray(result.files) ? result.files : []).map((v, i) => (
@@ -83,6 +85,27 @@ export function AssistantReceiptCard({ receipt }: { receipt: Receipt }) {
                 Copy patch
               </button>
               {copyNotice && <p role="status">{copyNotice}</p>}
+            </details>
+          )}
+          {staged && (
+            <details>
+              <summary>Changed files and completed checks</summary>
+              {Object.entries(
+                (result.workspace_files ?? {}) as Record<
+                  string,
+                  { content: string; syntax_validation: string }
+                >,
+              ).map(([path, file]) => (
+                <section key={path}>
+                  <strong>{path}</strong>
+                  <p>
+                    {file.syntax_validation === "python_syntax_passed"
+                      ? "Source, patch and Python syntax verified"
+                      : "Source and patch verified; release validation required"}
+                  </p>
+                  <pre>{file.content}</pre>
+                </section>
+              ))}
             </details>
           )}
         </>
@@ -148,7 +171,9 @@ export function AssistantControls({
     <details className="assistant-controls" ref={panel}>
       <summary>Project controls &amp; action history</summary>
       <div className="assistant-control-heading">
-        <strong>OpenClaw manages research. Tauric controls approvals.</strong>
+        <strong>
+          OpenClaw handles your requests. Tauric checks and records actions.
+        </strong>
         <button
           className="secondary small"
           disabled={pending}
@@ -158,8 +183,10 @@ export function AssistantControls({
         </button>
       </div>
       <p className="muted">
-        Ask OpenClaw to manage scans, save strategy versions, run backtests, or
-        prepare a code upgrade for review.
+        Ask for current market information, scanner and strategy work, a
+        backtest followed by governed paper simulation, or a code audit and
+        source-checked changes. Trading approvals and release checks stay with
+        Tauric.
       </p>
       <div className="assistant-actions">
         <button

@@ -32,16 +32,27 @@ from .assistant_contracts import (
     AssistantState,
     CandidateManagement,
     CandidateResearch,
+    PaperCloseRequest,
+    PaperExecutionRequest,
+    PaperPlanRequest,
+    PaperReviewRequest,
+    PaperStrategyEvaluation,
+    PaperStrategyProposal,
     ResearchNote,
     StrategyRevision,
     UpgradeProposal,
 )
 from .models import (
+    AnalysisArtifact,
+    AnalysisJob,
     AssistantRecord,
+    GovernanceJob,
     MarketSnapshot,
+    PaperDeployment,
     ScannerCandidate,
     ScannerProfileVersion,
     StrategyVersion,
+    TradingRecord,
     now,
 )
 from .scanner_contracts import CandidateAction, CandidateEscalate, ScannerRunRequest, ScannerSave
@@ -57,6 +68,13 @@ CONTRACTS = {
     **RESEARCH_CONTRACTS,
     "save_research_note": ResearchNote,
     "prepare_upgrade": UpgradeProposal,
+    "stage_upgrade": UpgradeProposal,
+    "evaluate_paper_strategy": PaperStrategyEvaluation,
+    "propose_paper_strategy": PaperStrategyProposal,
+    "request_paper_review": PaperReviewRequest,
+    "plan_paper_entry": PaperPlanRequest,
+    "execute_paper_plan": PaperExecutionRequest,
+    "close_paper_position": PaperCloseRequest,
 }
 TITLES = {
     "save_scanner": "Scanner saved",
@@ -69,6 +87,13 @@ TITLES = {
     "run_backtest": "Backtest completed",
     "save_research_note": "Research note saved",
     "prepare_upgrade": "Upgrade ready for review",
+    "stage_upgrade": "Code changes staged and source-checked",
+    "evaluate_paper_strategy": "Backtested paper strategy evaluated",
+    "propose_paper_strategy": "Backtested paper proposal requested",
+    "request_paper_review": "Tauric paper governance review requested",
+    "plan_paper_entry": "Governed paper plan calculated",
+    "execute_paper_plan": "Approved simulated paper fill requested",
+    "close_paper_position": "Paper position close requested",
 }
 SOURCE_PREFIXES = (
     "frontend/src/",
@@ -105,7 +130,9 @@ def receipt(row):
         turn_id=row.turn_id,
         operation=row.operation,
         title=row.title,
-        status="review_required" if row.operation == "prepare_upgrade" else "saved",
+        status="review_required"
+        if row.operation in {"prepare_upgrade", "stage_upgrade"}
+        else "saved",
         result=row.payload["result"],
         checksum=row.checksum,
         created_at=row.created_at,
@@ -182,6 +209,10 @@ def source_index():
 
 
 def summary_result(value):
+    if isinstance(value, TradingRecord):
+        from .trading_contracts import TradingRecordView
+
+        value = TradingRecordView.model_validate(value)
     data = value.model_dump(mode="json")
     if "result" in data and "trades" in data["result"]:
         # Full replay history stays accessible through the owned research resource.
@@ -191,6 +222,74 @@ def summary_result(value):
             if k not in {"equity", "trades", "fills", "signals", "financing_events"}
         }
     return data
+
+
+def matching_backtest(db, owner, dep, backtest_id):
+    from . import strategy_execution
+
+    backtest = research.owned(db, owner, str(backtest_id), "run")
+    dataset = research.owned(db, owner, backtest.parent_id, "dataset")
+    version, rules = strategy_execution.rules_for(db, owner, dep)
+    tested = backtest.payload.get("strategy_version", {})
+    if (
+        tested.get("id") != version.id
+        or tested.get("checksum") != version.checksum
+        or dataset.payload["instrument_id"] != dep.instrument_id
+        or dataset.payload["interval"] != rules.interval
+    ):
+        raise HTTPException(
+            422,
+            "Backtest the exact deployed strategy version, instrument and interval before a paper evaluation.",
+        )
+    return backtest
+
+
+def native_paper_evidence(db, owner, dep, artifact_id):
+    from . import analysis, autonomous
+
+    artifact = db.get(AnalysisArtifact, str(artifact_id))
+    job = db.get(AnalysisJob, artifact.job_id) if artifact else None
+    if (
+        not artifact
+        or artifact.owner_id != owner.id
+        or not job
+        or job.owner_id != owner.id
+        or job.instrument_id != dep.instrument_id
+        or job.status != "succeeded"
+        or job.request.get("mode") != "current_daily_research"
+        or job.request.get("trade_date") != now().date().isoformat()
+        or job.request.get("upstream_revision") != analysis.UPSTREAM_REVISION
+        or not job.finished_at
+        or not 0 <= (now() - job.finished_at).total_seconds() <= 86400
+        or artifact.payload.get("request") != job.request
+        or not isinstance(artifact.payload.get("native_rating"), str)
+        or artifact.payload.get("native_rating", "").strip().upper() != "BUY"
+        or artifact.payload.get("execution_authority") is not False
+        or artifact.payload.get("governance") is not None
+        or hashlib.sha256(
+            json.dumps(artifact.payload, sort_keys=True, allow_nan=False).encode()
+        ).hexdigest()
+        != artifact.checksum
+        or any(
+            not isinstance(artifact.payload.get("reports", {}).get(k), str)
+            or not artifact.payload["reports"][k].strip()
+            for k in autonomous.REPORTS
+        )
+    ):
+        raise HTTPException(
+            409,
+            "Current complete original native BUY evidence is required for chat-requested paper entries; interpretation, HOLD/SELL/REVIEW and qualification reports cannot substitute.",
+        )
+    current = autonomous.settings_snapshot(db, owner, job.profile)
+    if (
+        job.request.get("profile_fingerprint") != current["profile_fingerprint"]
+        or job.request.get("settings") != current["analysis_settings"]
+    ):
+        raise HTTPException(
+            409,
+            "The native evidence uses a changed AI configuration. Request current evidence before a paper entry.",
+        )
+    return artifact
 
 
 def read(db, owner, body):
@@ -272,6 +371,33 @@ def read(db, owner, body):
         if not row or row.owner_id != owner.id or row.stage != "completed":
             raise HTTPException(404, "Assistant receipt not found.")
         return receipt(row).model_dump(mode="json")
+    if body.resource == "paper_deployment":
+        if not body.resource_id:
+            raise HTTPException(422, "Choose an existing paper deployment.")
+        dep = paper.deployment(db, owner, body.resource_id)
+        return paper.deployment_view(dep, db).model_dump(mode="json")
+    if body.resource == "paper_state":
+        return paper.state(db, owner).model_dump(mode="json")
+    if body.resource == "paper_record":
+        row = db.get(TradingRecord, str(body.resource_id))
+        if not row or row.owner_id != owner.id:
+            raise HTTPException(404, "This paper record does not exist.")
+        paper.record(db, owner, row.id, row.kind)
+        return {
+            "id": row.id,
+            "kind": row.kind,
+            "deployment_id": row.deployment_id,
+            "payload": row.payload,
+            "checksum": row.checksum,
+            "created_at": row.created_at.isoformat(),
+        }
+    if body.resource == "paper_review":
+        from . import governance
+
+        row = db.get(GovernanceJob, str(body.resource_id))
+        if not row or row.owner_id != owner.id:
+            raise HTTPException(404, "This paper review does not exist.")
+        return governance.view(row).model_dump(mode="json")
     if body.resource in {"scanner", "strategy", "candidate"}:
         if not body.resource_id:
             raise HTTPException(422, "Choose a saved project resource.")
@@ -344,6 +470,15 @@ def read(db, owner, body):
         "detail_reading": "Read the individual scanner/strategy/candidate resource before making changes; overview values may be truncated.",
         "datasets": [d.model_dump(mode="json") for d in saved.datasets],
         "backtests": [summary_result(r) for r in saved.runs],
+        "paper_deployments": [
+            paper.deployment_view(dep, db).model_dump(mode="json")
+            for dep in db.scalars(
+                select(PaperDeployment)
+                .where(PaperDeployment.owner_id == owner.id)
+                .order_by(PaperDeployment.created_at.desc())
+                .limit(25)
+            )
+        ],
         "market_snapshots": [
             {
                 "id": s.id,
@@ -364,6 +499,8 @@ def read(db, owner, body):
         ],
         "source_reading_available": bool(source_index()),
         "execution_authority": False,
+        "strategy_request_default": "matching_backtest_then_paper_evaluation; entries and fills require Tauric governance",
+        "code_change_scope": "isolated_source_checked_workspace; release checks govern runtime deployment",
         "native_reports_writable": False,
         "rl_status": "research_only: execution realism, independent validation and forward evidence are prerequisites",
     }
@@ -489,6 +626,80 @@ def execute(db, owner, body):
         result = summary_result(research.capture(db, owner, params))
     elif operation == "run_backtest":
         result = summary_result(research.run(db, owner, params))
+    elif operation == "evaluate_paper_strategy":
+        from . import strategy_execution
+        from .strategy_contracts import StrategyRunRequest
+
+        dep = paper.deployment(db, owner, params.deployment_id)
+        backtest = matching_backtest(db, owner, dep, params.backtest_id)
+        evaluated = strategy_execution.run(
+            db, owner, StrategyRunRequest(**params.model_dump(exclude={"backtest_id"}))
+        )
+        result = {
+            **summary_result(evaluated),
+            "mode": "paper",
+            "backtest_id": backtest.id,
+            "orders_submitted": False,
+            "native_approval_bypassed": False,
+            "next_step": "This evaluates paper rules. Entry proposals and simulated fills remain subject to Tauric evidence, account policy and governance checks; no trade was placed.",
+        }
+    elif operation == "propose_paper_strategy":
+        from .trading_contracts import ProposalCreate
+
+        dep = paper.deployment(db, owner, params.deployment_id)
+        matching_backtest(db, owner, dep, params.backtest_id)
+        native_paper_evidence(db, owner, dep, params.native_artifact_id)
+        result = summary_result(
+            paper.propose(db, owner, ProposalCreate(**params.model_dump(exclude={"backtest_id"})))
+        )
+    elif operation == "request_paper_review":
+        from . import governance
+        from .governance_contracts import GovernanceEnqueue
+
+        proposal = paper.record(db, owner, params.proposal_id, "proposal")
+        dep = paper.deployment(db, owner, proposal.deployment_id)
+        matching_backtest(db, owner, dep, params.backtest_id)
+        native_paper_evidence(db, owner, dep, proposal.payload.get("native_artifact_id"))
+        result = summary_result(
+            governance.enqueue(
+                db, owner, GovernanceEnqueue(**params.model_dump(exclude={"backtest_id"}))
+            )
+        )
+    elif operation in {"plan_paper_entry", "execute_paper_plan"}:
+        from .trading_contracts import PaperAction
+
+        identifier = params.decision_id if operation == "plan_paper_entry" else params.plan_id
+        record = paper.record(
+            db, owner, identifier, "governance" if operation == "plan_paper_entry" else "plan"
+        )
+        dep = paper.deployment(db, owner, record.deployment_id)
+        matching_backtest(db, owner, dep, params.backtest_id)
+        proposal = paper.record(db, owner, record.payload["proposal_id"], "proposal")
+        native_paper_evidence(db, owner, dep, proposal.payload.get("native_artifact_id"))
+        action = PaperAction(request_id=params.request_id, reason=params.reason)
+        result = summary_result(
+            paper.plan(db, owner, identifier, action)
+            if operation == "plan_paper_entry"
+            else paper.execute(db, owner, identifier, action)
+        )
+    elif operation == "close_paper_position":
+        from .trading_contracts import PaperAction
+
+        result = summary_result(
+            paper.close(
+                db,
+                owner,
+                params.position_id,
+                PaperAction(request_id=params.request_id, reason=params.reason),
+            )
+        )
+    elif operation == "stage_upgrade":
+        from . import code_workspace
+
+        result = {
+            **params.model_dump(mode="json", exclude={"request_id", "reason"}),
+            **code_workspace.stage(params),
+        }
     else:
         result = params.model_dump(mode="json", exclude={"request_id", "reason"})
         if operation == "prepare_upgrade":

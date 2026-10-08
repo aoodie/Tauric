@@ -2419,7 +2419,14 @@ export interface components {
         | "capture_dataset"
         | "run_backtest"
         | "save_research_note"
-        | "prepare_upgrade";
+        | "prepare_upgrade"
+        | "stage_upgrade"
+        | "evaluate_paper_strategy"
+        | "propose_paper_strategy"
+        | "request_paper_review"
+        | "plan_paper_entry"
+        | "execute_paper_plan"
+        | "close_paper_position";
       /** Title */
       title: string;
       /**
@@ -2443,10 +2450,10 @@ export interface components {
     AssistantState: {
       /**
        * Authority
-       * @default manage_research_and_prepare_upgrades
+       * @default orchestrate_tauric_workflows
        * @constant
        */
-      authority: "manage_research_and_prepare_upgrades";
+      authority: "orchestrate_tauric_workflows";
       /**
        * Tauric Authority
        * @default native_evidence_and_execution_gates

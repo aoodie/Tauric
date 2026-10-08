@@ -26,9 +26,9 @@ const actionParameters=Type.Object({
   reason:Type.String({minLength:3,maxLength:500}),
 },{additionalProperties:false});
 const managerOperation=Type.Union(['save_scanner','run_scanner','candidate_action','research_candidate',
-  'create_strategy','revise_strategy','capture_dataset','run_backtest','save_research_note','prepare_upgrade'].map(v=>Type.Literal(v)));
+  'create_strategy','revise_strategy','capture_dataset','run_backtest','save_research_note','prepare_upgrade','stage_upgrade','evaluate_paper_strategy','propose_paper_strategy','request_paper_review','plan_paper_entry','execute_paper_plan','close_paper_position'].map(v=>Type.Literal(v)));
 const projectReadParameters=Type.Object({
-  resource:Type.Optional(Type.Union(['overview','performance','schemas','scanner','strategy','candidate','dataset','backtest','source','receipt','knowledge','user_memory'].map(v=>Type.Literal(v)))),
+  resource:Type.Optional(Type.Union(['overview','performance','schemas','scanner','strategy','candidate','dataset','backtest','source','receipt','knowledge','user_memory','paper_deployment','paper_state','paper_record','paper_review'].map(v=>Type.Literal(v)))),
   operation:Type.Optional(managerOperation),resource_id:Type.Optional(Type.String({format:'uuid'})),
   query:Type.Optional(Type.String({maxLength:300})),kind:Type.Optional(Type.Union(['strategy','chat','research','preference','wiki'].map(v=>Type.Literal(v)))),
   path:Type.Optional(Type.String({minLength:3,maxLength:240})),
@@ -71,7 +71,7 @@ function boundTool(config:{platformUrl:string;platformToken:string},ctx:TrustedC
 export default defineToolPlugin({
   id: "tauric-governance-tools",
   name: "Tauric governance and chat tools",
-  description: "Manage owner research, scanners and strategy versions; prepare code upgrades for review. Cannot place orders, change source or rewrite native reports.",
+  description: "Serve owner requests with fresh market data, research, backtest-first governed paper workflows and audited code workspaces. Tauric controls evidence, policy, approval and release checks; no broker order or direct live-source authority.",
   configSchema: Type.Object({
     platformUrl: Type.String(),
     platformToken: Type.String(),
@@ -209,12 +209,21 @@ export default defineToolPlugin({
         projectReadParameters,'/internal/openclaw/project-read',['resource','operation','resource_id','path','start_line','line_count','query','kind']);
     },
   }), tool({
-    name:'tauric_project_action',label:'Manage project and prepare upgrades',optional:true,
-    description:'Carry out owner-requested scanner, candidate, strategy-version and retrospective research management using the exact schemas from tauric_project_read. Save research notes with hypotheses, evidence, counter-evidence and test plans. Prepare upgrade proposals with source checksums and an optional patch for owner review. Tauric assigns idempotent request identities. No deployment, order, native-report edit, governance bypass, permission change, shell or automatic code application exists. Enabling automatic research or increasing allowances requires an explicit owner request. Strategy versions never alter existing deployments.',
+    name:'tauric_project_action',label:'Manage Tauric workflows and code workspaces',optional:true,
+    description:'Carry out owner-requested scanner, candidate, strategy-version and retrospective research management using the exact schemas from tauric_project_read. Save research notes with hypotheses, evidence, counter-evidence and test plans. Audit source and prepare upgrade proposals. Use stage_upgrade with an exact-context unified patch and current source checksums to create a real immutable code-change workspace; Tauric validates Python syntax and records its release requirements. Evaluate an existing paper strategy only after a matching version/instrument/interval backtest using evaluate_paper_strategy. After a matching backtest, use propose_paper_strategy with original native research and a real rule signal, request_paper_review, then plan_paper_entry and execute_paper_plan only when Tauric approves. All simulated fills go through Tauric ledger, evidence, policy and freshness checks. close_paper_position uses its attributed exit service. No broker order authority exists. Tauric assigns idempotent request identities. No broker orders, native-report edits, governance bypass, permission changes, shell or automatic live code application exist. Paper proposals, reviews, plans and fills use Tauric services and immutable receipts. Enabling automatic research or increasing allowances requires an explicit owner request. Strategy versions never alter existing deployments.',
     parameters:projectActionParameters,
     factory({config,toolContext}) {
       return boundTool(config,toolContext,'tauric_project_action','Apply owner management through Tauric checks or save an upgrade draft for review.',
         projectActionParameters,'/internal/openclaw/project-action',['operation','parameters','reason']);
+    },
+  }), tool({
+    name:'tauric_market_data',label:'Read fresh market candles',optional:true,
+    description:'Read fresh provider-verified candles for a registered instrument or XAU/USD gold from the saved OANDA account. Use symbol and up to two intervals; defaults are 15m and 1h. Returns receipt timestamps, closed bars, freshness and warnings. An information/setup request authorizes this read. This is market evidence for your interpretation, not a native Tauric research report, strategy qualification or order approval. Never ask for screenshots before trying the available data tool.',
+    parameters:Type.Object({symbol:Type.String({minLength:1,maxLength:120}),intervals:Type.Optional(Type.Array(Type.Union(['1m','5m','15m','1h','4h','1d'].map(v=>Type.Literal(v))),{minItems:1,maxItems:2}))},{additionalProperties:false}),
+    factory({config,toolContext}) {
+      return boundTool(config,toolContext,'tauric_market_data','Read timestamped observations through Tauric market-data checks.',
+        Type.Object({symbol:Type.String({minLength:1,maxLength:120}),intervals:Type.Optional(Type.Array(Type.Union(['1m','5m','15m','1h','4h','1d'].map(v=>Type.Literal(v))),{minItems:1,maxItems:2}))},{additionalProperties:false}),
+        '/internal/openclaw/market-observations',['symbol','intervals']);
     },
   })],
 });

@@ -11,6 +11,7 @@ from . import governance, paper
 from .assistant_contracts import AssistantInvocation, AssistantRead
 from .auth import Db
 from .chat_contracts import ResearchInvocation
+from .chat_market import MarketObservationRequest
 from .config import runtime_config
 from .governance_contracts import GatewayHeartbeat
 from .models import (
@@ -27,6 +28,13 @@ from .models import (
 from .portfolio_contracts import ChatContextRead, PortfolioChatAction, PortfolioResearchInvocation
 
 router = APIRouter(prefix="/internal/openclaw", include_in_schema=False)
+
+
+@router.post("/market-observations")
+def market_observations(body: MarketObservationRequest, request: Request, db: Db):
+    from . import chat_market
+
+    return chat_market.observations(db, service_owner(request, db), body)
 
 
 @router.post("/project-read")
@@ -281,6 +289,9 @@ def chat_context(request: Request, db: Db, report_id: str | None = None):
             "crypto, Forex, stock and ETF scanners",
             "scanner and candidate management",
             "strategy version management and retrospective backtests",
+            "fresh registered-asset and account-verified XAU/USD market observations",
+            "backtest-first paper workflow through native evidence and Tauric governance",
+            "source audits and exact-context isolated code change workspaces",
             "saved quant research notes",
             "code upgrade proposals for owner review",
             "native daily research",
