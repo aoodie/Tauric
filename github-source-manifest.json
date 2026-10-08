@@ -345,7 +345,7 @@
     "frontend/public/licenses/tradingagents.txt": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
     "frontend/src/App.tsx": "3cb513c8230b8e8e358d2b9ca2a305ea3c0551449854dc5dbd96b578fe347e51",
     "frontend/src/api/client.ts": "f27df65f1b6c5852b764f64e7ccfb1ff2cab6b3eaaec316cb29c6de0cf7c93aa",
-    "frontend/src/api/schema.d.ts": "26c57b2c9187c3f5a2b2a86463a8b22139d8287fc97f285a3e918d50976b35df",
+    "frontend/src/api/schema.d.ts": "b589ec2d0c7018e2618d7905b243dd661f765b9b2a4ab64a0daf41bd2a0703d0",
     "frontend/src/chat/AssistantControls.tsx": "b7f2286d76de17f687b65859f272d5e3cf41c886e4d6184e6d4987d9c3327cf7",
     "frontend/src/chat/Chat.tsx": "850ec42ba3e9cacc96d2613556e1627a0e74e869c6e61b0c8ed9ff8a1743860c",
     "frontend/src/chat/PortfolioResearch.tsx": "8a96de104e2c64eeaf7bbf538adc6ff9ac9295f911c8612e8d71598c1f790c76",
