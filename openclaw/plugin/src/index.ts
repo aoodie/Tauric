@@ -26,9 +26,9 @@ const actionParameters=Type.Object({
   reason:Type.String({minLength:3,maxLength:500}),
 },{additionalProperties:false});
 const managerOperation=Type.Union(['save_scanner','run_scanner','candidate_action','research_candidate',
-  'create_strategy','revise_strategy','capture_dataset','run_backtest','save_research_note','prepare_upgrade','stage_upgrade','evaluate_paper_strategy','propose_paper_strategy','request_paper_review','plan_paper_entry','execute_paper_plan','close_paper_position'].map(v=>Type.Literal(v)));
+  'create_strategy','revise_strategy','capture_dataset','run_backtest','retrieve_history','session_research','quant_experiment','save_research_note','prepare_upgrade','stage_upgrade','evaluate_paper_strategy','propose_paper_strategy','request_paper_review','plan_paper_entry','execute_paper_plan','close_paper_position'].map(v=>Type.Literal(v)));
 const projectReadParameters=Type.Object({
-  resource:Type.Optional(Type.Union(['overview','performance','schemas','scanner','strategy','candidate','dataset','backtest','source','receipt','knowledge','user_memory','paper_deployment','paper_state','paper_record','paper_review'].map(v=>Type.Literal(v)))),
+  resource:Type.Optional(Type.Union(['overview','performance','schemas','scanner','strategy','candidate','dataset','backtest','source','receipt','knowledge','user_memory','paper_deployment','paper_state','paper_record','paper_review','research_lab','lab_record'].map(v=>Type.Literal(v)))),
   operation:Type.Optional(managerOperation),resource_id:Type.Optional(Type.String({format:'uuid'})),
   query:Type.Optional(Type.String({maxLength:300})),kind:Type.Optional(Type.Union(['strategy','chat','research','preference','wiki'].map(v=>Type.Literal(v)))),
   path:Type.Optional(Type.String({minLength:3,maxLength:240})),

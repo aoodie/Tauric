@@ -28,6 +28,7 @@ from .owner_settings import router as owner_settings_router
 from .portfolio_api import router as portfolio_router
 from .portfolio_research_api import router as portfolio_research_router
 from .qualification_api import router as qualification_router
+from .quant_api import router as quant_router
 from .research_api import resource as research_resource
 from .research_api import router as research_router
 from .scanner_api import resource as scanner_resource
@@ -65,6 +66,7 @@ app.include_router(knowledge_router)
 app.include_router(portfolio_router)
 app.include_router(portfolio_research_router)
 app.include_router(qualification_router)
+app.include_router(quant_router)
 app.include_router(market_connections_router)
 
 app.include_router(forex_connection_router)

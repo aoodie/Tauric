@@ -964,6 +964,108 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/research/lab/datasets/history": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** History */
+    post: operations["history_api_v1_research_lab_datasets_history_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/research/lab": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** State */
+    get: operations["state_api_v1_research_lab_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/research/lab/reports": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Report */
+    post: operations["report_api_v1_research_lab_reports_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/research/lab/experiments": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Experiment */
+    post: operations["experiment_api_v1_research_lab_experiments_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/research/lab/records/{record_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Record */
+    get: operations["record_api_v1_research_lab_records__record_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/research/lab/experiments/{record_id}/cancel": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Cancel */
+    post: operations["cancel_api_v1_research_lab_experiments__record_id__cancel_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/market-connections/{provider}/test": {
     parameters: {
       query?: never;
@@ -2435,6 +2537,9 @@ export interface components {
         | "revise_strategy"
         | "capture_dataset"
         | "run_backtest"
+        | "retrieve_history"
+        | "session_research"
+        | "quant_experiment"
         | "save_research_note"
         | "prepare_upgrade"
         | "stage_upgrade"
@@ -4243,6 +4348,108 @@ export interface components {
       /** Drawdown Percent */
       drawdown_percent: string;
     };
+    /** EvidenceNote */
+    EvidenceNote: {
+      /** Title */
+      title: string;
+      /** Source */
+      source: string;
+      /** Content */
+      content: string;
+      /**
+       * Published At
+       * Format: date-time
+       */
+      published_at: string;
+      /**
+       * Available At
+       * Format: date-time
+       */
+      available_at: string;
+    };
+    /** ExperimentCreate */
+    ExperimentCreate: {
+      /**
+       * Request Id
+       * Format: uuid
+       */
+      request_id: string;
+      /**
+       * Dataset Id
+       * Format: uuid
+       */
+      dataset_id: string;
+      /** Name */
+      name: string;
+      /** Hypothesis */
+      hypothesis: string;
+      /** Reason */
+      reason: string;
+      /**
+       * Engine
+       * @enum {string}
+       */
+      engine: "lean" | "qlib";
+      session?: components["schemas"]["SessionWindow"];
+      /**
+       * Train End
+       * Format: date-time
+       */
+      train_end: string;
+      /**
+       * Validation End
+       * Format: date-time
+       */
+      validation_end: string;
+      /**
+       * Test End
+       * Format: date-time
+       */
+      test_end: string;
+      /**
+       * Horizon Bars
+       * @default 4
+       */
+      horizon_bars: number;
+      /**
+       * Lookback Bars
+       * @default 12
+       */
+      lookback_bars: number;
+      /**
+       * Fast Window
+       * @default 5
+       */
+      fast_window: number;
+      /**
+       * Slow Window
+       * @default 20
+       */
+      slow_window: number;
+      /**
+       * Starting Balance
+       * @default 10000
+       */
+      starting_balance: string;
+      /**
+       * Allocation Percent
+       * @default 25
+       */
+      allocation_percent: string;
+      /**
+       * Fee Bps
+       * @default 0
+       */
+      fee_bps: string;
+      /**
+       * Slippage Bps
+       * @default 5
+       */
+      slippage_bps: string;
+      asset_costs: components["schemas"]["AssetCosts"];
+      /** Model Run Id */
+      model_run_id?: string | null;
+    };
     /** ExperimentPlan */
     ExperimentPlan: {
       /**
@@ -4454,6 +4661,35 @@ export interface components {
        * @enum {string}
        */
       status: "ok" | "unavailable";
+    };
+    /** HistoricalDatasetCreate */
+    HistoricalDatasetCreate: {
+      /**
+       * Request Id
+       * Format: uuid
+       */
+      request_id: string;
+      /** Name */
+      name: string;
+      /** Instrument Id */
+      instrument_id: string;
+      /**
+       * Interval
+       * @enum {string}
+       */
+      interval: "1m" | "5m" | "15m" | "1h" | "4h" | "1d";
+      /**
+       * Start
+       * Format: date-time
+       */
+      start: string;
+      /**
+       * End
+       * Format: date-time
+       */
+      end: string;
+      /** Reason */
+      reason: string;
     };
     /** InstrumentAdd */
     InstrumentAdd: {
@@ -4899,6 +5135,43 @@ export interface components {
       expected_revision: number;
       /** Excluded */
       excluded: boolean;
+    };
+    /** LabRecordView */
+    LabRecordView: {
+      /** Id */
+      id: string;
+      /** Kind */
+      kind: string;
+      /** Name */
+      name: string;
+      /** Checksum */
+      checksum: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Payload */
+      payload: {
+        [key: string]: unknown;
+      };
+    };
+    /** LabState */
+    LabState: {
+      /** Engines */
+      engines: {
+        [key: string]: unknown;
+      }[];
+      /** Sessions */
+      sessions: components["schemas"]["SessionWindow"][];
+      /** Records */
+      records: components["schemas"]["LabRecordView"][];
+      /**
+       * Authority
+       * @default research_only
+       * @constant
+       */
+      authority: "research_only";
     };
     /** LaneProgressView */
     LaneProgressView: {
@@ -6687,6 +6960,49 @@ export interface components {
        */
       model_calls_during_scan: 0;
     };
+    /** SessionReportCreate */
+    SessionReportCreate: {
+      /**
+       * Request Id
+       * Format: uuid
+       */
+      request_id: string;
+      /**
+       * Dataset Id
+       * Format: uuid
+       */
+      dataset_id: string;
+      /** Name */
+      name: string;
+      /** Hypothesis */
+      hypothesis: string;
+      /** Reason */
+      reason: string;
+      /**
+       * Mode
+       * @default current
+       * @enum {string}
+       */
+      mode: "historical" | "current" | "forecast";
+      /**
+       * Start
+       * Format: date-time
+       */
+      start: string;
+      /**
+       * As Of
+       * Format: date-time
+       */
+      as_of: string;
+      session?: components["schemas"]["SessionWindow"];
+      /**
+       * Forecast Bars
+       * @default 4
+       */
+      forecast_bars: number;
+      /** Evidence */
+      evidence?: components["schemas"]["EvidenceNote"][];
+    };
     /** SessionView */
     SessionView: {
       /** Username */
@@ -6698,6 +7014,31 @@ export interface components {
        * Format: date-time
        */
       expires_at: string;
+    };
+    /** SessionWindow */
+    SessionWindow: {
+      /**
+       * Name
+       * @default All trading hours
+       */
+      name: string;
+      /**
+       * Timezone
+       * @default UTC
+       */
+      timezone: string;
+      /**
+       * Opening
+       * @default 00:00
+       */
+      opening: string;
+      /**
+       * Closing
+       * @default 00:00
+       */
+      closing: string;
+      /** Weekdays */
+      weekdays?: number[];
     };
     /** SettingChange */
     SettingChange: {
@@ -9073,6 +9414,187 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["QualificationView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  history_api_v1_research_lab_datasets_history_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["HistoricalDatasetCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DatasetView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  state_api_v1_research_lab_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LabState"];
+        };
+      };
+    };
+  };
+  report_api_v1_research_lab_reports_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SessionReportCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LabRecordView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  experiment_api_v1_research_lab_experiments_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ExperimentCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LabRecordView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  record_api_v1_research_lab_records__record_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        record_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LabRecordView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  cancel_api_v1_research_lab_experiments__record_id__cancel_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        record_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LabRecordView"];
         };
       };
       /** @description Validation Error */

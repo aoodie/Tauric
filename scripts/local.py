@@ -49,6 +49,8 @@ commands = {
     ],
     "create-owner": [python, "-m", "tauric.cli", "create-owner", *sys.argv[2:]],
     "test": [python, "-m", "pytest", *sys.argv[2:]],
+    "quant-lean": [python, "-m", "tauric.quant_worker", "--engine", "lean", *sys.argv[2:]],
+    "quant-qlib": [python, "-m", "tauric.quant_worker", "--engine", "qlib", "--python", str(root / ".qlib-venv/bin/python"), *sys.argv[2:]],
 }
 if command not in commands:
     raise SystemExit(

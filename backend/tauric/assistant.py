@@ -21,6 +21,7 @@ from . import (
     chat_research,
     knowledge,
     paper,
+    quant_research,
     research,
     scanner,
     services,
@@ -85,6 +86,9 @@ TITLES = {
     "revise_strategy": "Strategy version saved",
     "capture_dataset": "Dataset saved",
     "run_backtest": "Backtest completed",
+    "retrieve_history": "Historical dataset saved",
+    "session_research": "Session research saved",
+    "quant_experiment": "Research experiment queued",
     "save_research_note": "Research note saved",
     "prepare_upgrade": "Upgrade ready for review",
     "stage_upgrade": "Code changes staged and source-checked",
@@ -98,6 +102,7 @@ TITLES = {
 SOURCE_PREFIXES = (
     "frontend/src/",
     "backend/tauric/",
+    "backend/runners/",
     "backend/tests/",
     "docs/",
     "openclaw/plugin/src/",
@@ -353,6 +358,28 @@ def read(db, owner, body):
             "lines": lines[body.start_line - 1 : body.start_line - 1 + body.line_count],
             "authority": "read_only",
         }
+    if body.resource == "research_lab":
+        value = quant_research.state(db, owner).model_dump(mode="json")
+        value["records"] = [{k: r[k] for k in ("id", "kind", "name", "checksum", "created_at")} | {
+            "engine": r["payload"].get("engine"), "status": r["payload"].get("status"),
+            "dataset_id": r["payload"]["request"]["dataset_id"]} for r in value["records"]]
+        return value
+    if body.resource == "lab_record":
+        from .quant_models import QuantRecord
+        row = db.get(QuantRecord, str(body.resource_id))
+        kind = row.kind if row and row.kind in quant_research.KINDS else "session_report"
+        value = quant_research.view(quant_research.owned(db, owner, body.resource_id, kind)).model_dump(mode="json")
+        value["payload"].pop("features", None)
+        value["payload"].pop("model_predictions", None)
+        result = value["payload"].get("result")
+        if result:
+            result = dict(result)
+            for key in ("predictions", "equity_curve", "fills"):
+                if key in result:
+                    result[key + "_count"] = len(result[key])
+                    result[key] = result[key][:30]
+            value["payload"]["result"] = result
+        return value
     if body.resource in {"dataset", "backtest"}:
         if not body.resource_id:
             raise HTTPException(422, "Choose a saved research resource.")
@@ -626,6 +653,14 @@ def execute(db, owner, body):
         result = summary_result(research.capture(db, owner, params))
     elif operation == "run_backtest":
         result = summary_result(research.run(db, owner, params))
+    elif operation == "retrieve_history":
+        result = summary_result(quant_research.historical_dataset(db, owner, params))
+    elif operation == "session_research":
+        result = summary_result(quant_research.report(db, owner, params))
+    elif operation == "quant_experiment":
+        record = quant_research.enqueue(db, owner, params)
+        result = {"id": record.id, "engine": record.payload["engine"], "status": "queued",
+                  "checksum": record.checksum, "authority": "research_only"}
     elif operation == "evaluate_paper_strategy":
         from . import strategy_execution
         from .strategy_contracts import StrategyRunRequest
