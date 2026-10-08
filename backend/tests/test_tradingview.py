@@ -4,7 +4,10 @@ import base64
 import copy
 import hashlib
 import json
+import threading
+import time
 from datetime import UTC, datetime, timedelta
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
 
 import httpx
@@ -24,6 +27,61 @@ from tauric.config import runtime_config
 from tauric.models import Owner, TradingViewOAuthFlow
 
 STAMP = datetime(2026, 10, 4, 12, tzinfo=UTC)
+
+
+@pytest.mark.parametrize("transport", ["oauth", "mcp"])
+def test_slow_provider_acknowledgements_complete_without_retry(monkeypatch, transport):
+    requests = []
+
+    class Provider(BaseHTTPRequestHandler):
+        def log_message(self, *_):
+            pass
+
+        def do_POST(self):
+            body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
+            value = json.loads(body) if self.path == "/mcp" else {}
+            method = value.get("method", "oauth")
+            requests.append(method)
+            if method in {"oauth", "notifications/initialized"}:
+                time.sleep(11)
+            if method == "notifications/initialized":
+                self.send_response(202)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+            result = (
+                {"protocolVersion": "2025-06-18"}
+                if method == "initialize"
+                else {"tools": [{"name": name} for name in sorted(mcp.READ_TOOLS)]}
+            )
+            payload = json.dumps(
+                grant()
+                if method == "oauth"
+                else {"jsonrpc": "2.0", "id": value["id"], "result": result}
+            ).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+
+    provider = ThreadingHTTPServer(("127.0.0.1", 0), Provider)
+    thread = threading.Thread(target=provider.serve_forever, daemon=True)
+    thread.start()
+    try:
+        address = f"http://127.0.0.1:{provider.server_port}"
+        if transport == "oauth":
+            assert conn.request_json("POST", address + "/oauth", data={}) == grant()
+            assert requests == ["oauth"]
+        else:
+            monkeypatch.setattr(mcp, "SERVER", address + "/mcp")
+            with mcp.EconomicMCP("private-access-fixture") as client:
+                assert set(client.tools) == mcp.READ_TOOLS
+            assert requests == ["initialize", "notifications/initialized", "tools/list"]
+    finally:
+        provider.shutdown()
+        provider.server_close()
+        thread.join(timeout=2)
 
 
 def grant(**changes):
@@ -459,3 +517,55 @@ def test_new_tradingview_binding_preserves_legacy_and_rejects_wrong_host(monkeyp
     broken["checksum"] = forex_macro.digest(broken["data"])
     with pytest.raises(ValueError):
         forex_sources.validate(broken, spec(FX).model_dump())
+
+
+def test_economic_reads_use_one_total_deadline_without_retries(monkeypatch):
+    from types import SimpleNamespace
+
+    original = httpx.Client
+    clock = {"value": 0}
+    calls = []
+    monkeypatch.setattr(mcp, "time", SimpleNamespace(monotonic=lambda: clock["value"]))
+
+    def respond(request):
+        body = json.loads(request.content)
+        calls.append((body["method"], request.extensions["timeout"]["read"]))
+        clock["value"] += 9
+        if body["method"] == "notifications/initialized":
+            return httpx.Response(202)
+        result = (
+            {"protocolVersion": "2025-06-18"}
+            if body["method"] == "initialize"
+            else {"tools": [{"name": name} for name in mcp.READ_TOOLS]}
+        )
+        return httpx.Response(200, json={"jsonrpc": "2.0", "id": body["id"], "result": result})
+
+    monkeypatch.setattr(
+        mcp.httpx,
+        "Client",
+        lambda **kwargs: original(transport=httpx.MockTransport(respond), **kwargs),
+    )
+    with pytest.raises(ValueError, match="bounds"):
+        with mcp.EconomicMCP("fixture-only", deadline=20):
+            raise AssertionError("Expired evidence must not be used")
+    assert calls == [("initialize", 20), ("notifications/initialized", 11), ("tools/list", 2)]
+    before = len(calls)
+    with pytest.raises(ValueError, match="time budget"):
+        with mcp.EconomicMCP("fixture-only", deadline=20):
+            pass
+    assert len(calls) == before
+
+
+def test_expired_supplement_deadline_reports_gaps_without_requests(monkeypatch):
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(
+        sources,
+        "credentials",
+        lambda _: pytest.fail("No external credential refresh after deadline"),
+    )
+    spec = SimpleNamespace(base_currency="NZD", quote_currency="USD")
+    rows = sources.collect(None, spec, deadline=0)
+    assert len(rows) == 4
+    assert all(row["status"] == "unavailable" and row["items"] == [] for row in rows)
+    assert all("time budget" in row["warning"] for row in rows)

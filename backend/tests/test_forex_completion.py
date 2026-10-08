@@ -349,7 +349,9 @@ def test_fx_breakout_weekend_replay_has_real_bidask_costs():
     assert Decimal(buy["price"]) > Decimal(buy["observed_price"])
 
 
-def test_fx_qualification_frozen_context_explicit_costs_and_holdout(ready, portfolios_ready):
+def test_fx_qualification_frozen_context_explicit_costs_and_holdout(
+    ready, portfolios_ready, database, monkeypatch
+):
     body = prepare(ready, portfolios_ready[0])
     context = default_context(spec(FX))
     stamp = datetime(2026, 9, 1, tzinfo=UTC)
@@ -387,6 +389,32 @@ def test_fx_qualification_frozen_context_explicit_costs_and_holdout(ready, portf
     assert evaluated.status_code == 201, evaluated.text
     assert evaluated.json()["frozen"]["dataset_context"]["quote_currency"] == "USD"
     assert evaluated.json()["frozen"]["execution_authority"] is False
+    from tauric import analysis, native_fx
+    from tauric.models import Owner
+
+    collected = []
+
+    def collect_before_admission(db, instrument):
+        # An external data read cannot own the account admission/queue locks.
+        with Session(database[0]) as other:
+            assert other.scalar(select(Owner).with_for_update(nowait=True)) is not None
+            from sqlalchemy import func
+
+            assert other.scalar(select(func.pg_try_advisory_xact_lock(analysis.QUEUE_LOCK)))
+        binding = {"fixture": "collected before admission", "instrument_id": instrument.id}
+        collected.append(binding)
+        return binding
+
+    monkeypatch.setattr(native_fx, "prepare", collect_before_admission)
+    monkeypatch.setattr(native_fx, "evidence", lambda *_: {})
+    with Session(database[0]) as db:
+        analysis.heartbeat(db, "0.5.2")
+    url = f"/api/v1/qualification/protocols/{freeze.json()['id']}/assessment"
+    request = {**action(), "profile": "local"}
+    native = ready.post(url, json=request)
+    assert native.status_code == 202, native.text
+    assert native.json()["assessment_jobs"][0]["job"]["request"]["forex_context"] == collected[0]
+    assert ready.post(url, json=request).status_code == 202 and len(collected) == 1
 
 
 @pytest.mark.parametrize("charge", ["2", "-2"])

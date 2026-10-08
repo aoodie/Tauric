@@ -285,26 +285,36 @@ def digest(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, allow_nan=False).encode()).hexdigest()
 
 
+def valid_currencies(currencies):
+    return (
+        bool(currencies)
+        and len(set(currencies)) == len(currencies)
+        and all(isinstance(c, str) and re.fullmatch(r"[A-Z]{3}", c) for c in currencies)
+    )
+
+
 def collect(spec):
     currencies = [spec.base_currency, spec.quote_currency]
-    if len(set(currencies)) != 2 or any(c not in SOURCES for c in currencies):
+    if not valid_currencies(currencies):
         raise ValueError("Unsupported policy currency")
     return collect_currencies(currencies)
 
 
 def collect_currencies(currencies):
     """Share each primary source once across the intelligence research universe."""
-    if (
-        not currencies
-        or len(set(currencies)) != len(currencies)
-        or any(c not in SOURCES for c in currencies)
-    ):
+    if not valid_currencies(currencies):
         raise ValueError("Unsupported policy currencies")
     stamp = now()
 
     def read(task):
         currency, kind = task
-        label, timezone, news_url, calendar_url = SOURCES[currency]
+        configured = SOURCES.get(currency)
+        label, timezone, news_url, calendar_url = configured or (
+            currency + " policy source",
+            None,
+            None,
+            None,
+        )
         url = news_url if kind == "news" else calendar_url
         result = {
             "currency": currency,
@@ -316,6 +326,11 @@ def collect_currencies(currencies):
             "items": [],
             "warning": "The primary source could not be fetched or parsed; coverage is unavailable.",
         }
+        if not configured:
+            result["warning"] = (
+                f"No verified official {kind} source adapter for {currency}; this coverage is unavailable."
+            )
+            return result
         try:
             with httpx.Client(
                 timeout=httpx.Timeout(6, connect=4),
@@ -379,7 +394,12 @@ def validate(snapshot, spec):
     if [(row["currency"], row["kind"]) for row in data["sources"]] != expected:
         raise ValueError("Incomplete policy source declaration")
     for row in data["sources"]:
-        url = SOURCES[row["currency"]][2 if row["kind"] == "news" else 3]
-        if row["url"] != url or row["status"] not in {"available", "stale", "unavailable"}:
+        configured = SOURCES.get(row["currency"])
+        url = configured[2 if row["kind"] == "news" else 3] if configured else None
+        if (
+            row["url"] != url
+            or row["status"] not in {"available", "stale", "unavailable"}
+            or (not configured and (row["status"] != "unavailable" or row["items"]))
+        ):
             raise ValueError("Invalid policy source declaration")
     return data

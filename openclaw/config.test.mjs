@@ -2,8 +2,18 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import {spawnSync} from 'node:child_process';
-import {buildConfig} from './config.mjs';
+import {spawn, spawnSync} from 'node:child_process';
+import {once} from 'node:events';
+import {buildConfig, gatewayRunning} from './config.mjs';
+const killedGateway = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)']);
+await once(killedGateway, 'spawn');
+assert.equal(gatewayRunning(killedGateway), true);
+killedGateway.kill('SIGKILL');
+await once(killedGateway, 'exit');
+assert.equal(killedGateway.exitCode, null);
+assert.equal(killedGateway.signalCode, 'SIGKILL');
+assert.equal(gatewayRunning(killedGateway), false);
+assert.equal(gatewayRunning(undefined), false);
 const tokens={gateway_token:'fixture-gateway-'+'x'.repeat(48),platform_token:'fixture-platform-'+'x'.repeat(48)};
 const runtime={settings:{timeout_seconds:180,max_output_tokens:2000},routes:{
  cloud:{provider:'openai_compatible',base_url:'http://127.0.0.1:9/v1',model:'fixture-cloud',api_key:'fixture-key'},
@@ -12,7 +22,7 @@ const runtime={settings:{timeout_seconds:180,max_output_tokens:2000},routes:{
 const config=buildConfig('/state',tokens,runtime);
 runtime.chat={profile:'local',telegram:{enabled:true,owner_id:'12345678',token:'fixture-telegram-token'},discord:{enabled:true,owner_id:'123456789012345678',token:'fixture-discord-token'}};
 const chatConfig=buildConfig('/state',tokens,runtime);
-assert.deepEqual(chatConfig.agents.entries['tauric-chat'].tools.allow,['tauric_chat_context','tauric_request_research','tauric_research_status','tauric_portfolio_action','tauric_request_portfolio_research']);
+assert.deepEqual(chatConfig.agents.entries['tauric-chat'].tools.allow,['tauric_chat_context','tauric_request_research','tauric_research_status','tauric_portfolio_action','tauric_request_portfolio_research','tauric_project_read','tauric_project_action','tauric_market_data']);
 assert.deepEqual(chatConfig.commands.ownerAllowFrom,['telegram:12345678','discord:123456789012345678']);
 assert.deepEqual(chatConfig.agents.entries['governor-local'].tools.allow,['tauric_review_context']);
 assert.equal(chatConfig.channels.telegram.dmPolicy,'allowlist');

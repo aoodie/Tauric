@@ -38,6 +38,7 @@ TOKEN = ISSUER + "/mcp/oauth/token"
 REGISTER = ISSUER + "/mcp/oauth/register"
 LOCK = 913570091
 SCOPE = "mcp:read"
+READ_TIMEOUT_SECONDS = 20
 OAUTH_COOKIE = "tauric_tradingview_oauth"
 CALLBACK_PATH = "/api/v1/tradingview/callback"
 
@@ -62,7 +63,9 @@ class TradingViewAuthorization(Contract):
 
 def request_json(method, url, **kwargs):
     # Endpoints come from fixed constants, never from a user/token response.
-    with httpx.Client(timeout=httpx.Timeout(10, connect=5), follow_redirects=False) as client:
+    with httpx.Client(
+        timeout=httpx.Timeout(READ_TIMEOUT_SECONDS, connect=5), follow_redirects=False
+    ) as client:
         with client.stream(method, url, **kwargs) as response:
             response.raise_for_status()
             length, chunks = 0, []

@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from tauric import intelligence, intelligence_sources, market
 from tauric.data_providers import AlpacaConnection, Connections
-from tauric.intelligence_models import IntelligenceReceipt, IntelligenceWatchlist
+from tauric.intelligence_models import IntelligenceReceipt
 from tauric.intelligence_sources import parse_news
 from tauric.market_calendars import default_context, periods
 from tauric.market_contracts import InstrumentView
@@ -236,7 +236,14 @@ def test_watchlist_conflicts_persistence_filters_and_idempotence(database, signe
     value = signed_in.get("/api/v1/intelligence?watched=true").json()
     assert value["total"] == 1 and value["moves"][0]["instrument"]["id"] == STOCK
     with Session(database[0]) as db:
-        assert db.scalar(select(func.count()).select_from(IntelligenceWatchlist)) == 1
+        assert (
+            db.scalar(
+                select(func.count())
+                .select_from(IntelligenceReceipt)
+                .where(IntelligenceReceipt.source_key == "market_watchlist")
+            )
+            == 1
+        )
 
 
 def test_filter_pagination_and_bounds(signed_in):

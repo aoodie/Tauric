@@ -8,7 +8,7 @@ COPY openclaw/workflows ./workflows
 COPY openclaw/start.mjs openclaw/config.mjs ./
 COPY backend/tauric/chat_instructions.txt ./chat_instructions.txt
 RUN npm run plugin:build && npm run plugin:validate \
-    && mkdir -p /state && chown -R node:node /app /state
+    && mkdir -p /state && chown -R node:node /app/plugin /state
 ENV OPENCLAW_STATE_DIR=/state NODE_ENV=production
 HEALTHCHECK --interval=15s --timeout=5s --start-period=60s --retries=6 CMD node -e "fetch('http://127.0.0.1:18789/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 CMD ["node", "start.mjs"]

@@ -15,11 +15,17 @@ from test_broker_positions import LifecycleBroker
 
 from tauric import broker_execution, market
 from tauric.app import app
+from tauric.broker_contracts import BrokerQuote
 from tauric.config import runtime_config
 from tauric.models import now
 
 
 class BrowserBroker(LifecycleBroker):
+    def quote(self, symbol):
+        return BrokerQuote(
+            symbol=symbol, bid="150", ask="150.01", observed_at=now(), tradable=True, feed="iex"
+        )
+
     def submit(self, order):
         value = super().submit(order)
         if order.position_effect == "open":

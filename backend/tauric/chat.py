@@ -133,7 +133,7 @@ def save_config(db, owner, body):
 
 
 def view(db, turn):
-    from . import analysis, portfolios
+    from . import analysis, assistant, portfolios
     from .models import PortfolioActionReceipt
 
     value = ChatTurnView.model_validate(turn, from_attributes=True)
@@ -156,6 +156,7 @@ def view(db, turn):
             .order_by(PortfolioActionReceipt.created_at)
         )
     ]
+    value.project_receipts = assistant.history(db, turn.owner_id, turn.id)
     return value
 
 

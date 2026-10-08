@@ -1,0 +1,96 @@
+# Runtime services have no internet route. The download profile sees only model weights.
+name: tauric_memory
+x-honcho: &honcho
+  image: tauric-honcho:3.2.2-local
+  build:
+    context: ../.runtime-honcho
+    dockerfile: ../deploy/Dockerfile.honcho
+  env_file: ../.env.honcho
+  environment:
+    DB_CONNECTION_URI: postgresql+psycopg://honcho:${HONCHO_DB_PASSWORD:?Run scripts/memory_setup.py first}@memory-db:5432/honcho
+    CACHE_ENABLED: "true"
+    CACHE_URL: redis://memory-cache:6379/0
+  volumes:
+    - ./honcho-local.toml:/app/config.toml:ro
+  networks: [memory_private]
+  restart: unless-stopped
+  mem_limit: 512m
+services:
+  memory-db:
+    image: pgvector/pgvector:0.8.2-pg17@sha256:feb68f4f15446397d8cac7f4fe48fe4586de83160d1fc48b46283312d1a33966
+    environment:
+      POSTGRES_DB: honcho
+      POSTGRES_USER: honcho
+      POSTGRES_PASSWORD: ${HONCHO_DB_PASSWORD:?Run scripts/memory_setup.py first}
+    volumes:
+      - memory_database:/var/lib/postgresql/data
+      - ./honcho-init.sql:/docker-entrypoint-initdb.d/10-vector.sql:ro
+    networks: [memory_private]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U honcho -d honcho"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 384m
+    restart: unless-stopped
+  memory-cache:
+    image: redis:8.2@sha256:47670742d7924adbcdb404d1288b6327815b23141969c0939b8e5d61f78c2634
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
+    networks: [memory_private]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 96m
+    restart: unless-stopped
+  memory-model:
+    image: ollama/ollama@sha256:1bef639749741b375e9a1eb2c1346fb57ce52f5432de1f74846e44ccc18e1687
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+      OLLAMA_NUM_PARALLEL: "1"
+      OLLAMA_MAX_LOADED_MODELS: "2"
+      OLLAMA_CONTEXT_LENGTH: "8192"
+      OLLAMA_KEEP_ALIVE: 5m
+    volumes:
+      - memory_models:/root/.ollama
+      - ./Memory.Modelfile:/setup/Memory.Modelfile:ro
+    networks: [memory_private]
+    mem_limit: 5g
+    cpus: 3
+    restart: unless-stopped
+  honcho:
+    <<: *honcho
+    entrypoint: ["sh", "-c", "python scripts/provision_db.py && python scripts/configure_embeddings.py --yes && exec fastapi run --host 0.0.0.0 --workers 1 src/main.py"]
+    depends_on:
+      memory-db: {condition: service_healthy}
+      memory-cache: {condition: service_healthy}
+      memory-model: {condition: service_started}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+  memory-deriver:
+    <<: *honcho
+    entrypoint: ["python", "-m", "src.deriver"]
+    depends_on:
+      honcho: {condition: service_healthy}
+    mem_limit: 640m
+  model-download:
+    profiles: [download]
+    image: ollama/ollama@sha256:1bef639749741b375e9a1eb2c1346fb57ce52f5432de1f74846e44ccc18e1687
+    entrypoint: ["sh", "/setup/download.sh"]
+    volumes:
+      - memory_models:/root/.ollama
+      - ./memory-model-download.sh:/setup/download.sh:ro
+      - ./Memory.Modelfile:/setup/Memory.Modelfile:ro
+    networks: [downloads]
+    mem_limit: 512m
+networks:
+  memory_private: {internal: true}
+  downloads: {}
+volumes:
+  memory_database:
+  memory_models:

@@ -1,0 +1,241 @@
+.workflow-page {
+  max-width: 1180px;
+  margin: 0 auto;
+  width: 100%;
+}
+.workflow-tabs {
+  display: flex;
+  gap: 26px;
+  border-bottom: 1px solid var(--border);
+  margin: 8px 0 24px;
+}
+.workflow-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 14px 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+}
+.workflow-tabs button[aria-selected="true"] {
+  color: var(--cyan);
+  border-color: var(--cyan);
+}
+.workflow-tabs button span {
+  font:
+    11px "IBM Plex Mono",
+    monospace;
+  padding: 2px 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+.workflow-page .scanner-panel {
+  height: auto;
+  padding: 0;
+  overflow: visible;
+}
+.workflow-authority {
+  border-left: 2px solid var(--cyan);
+  padding: 10px 14px;
+  margin-top: 28px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.workflow-advanced {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 12px 14px;
+  margin: 10px 0;
+}
+.workflow-advanced > summary {
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+}
+.workflow-advanced > summary span {
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: 12px;
+}
+.workflow-advanced[open] > summary {
+  margin-bottom: 18px;
+}
+.workflow-library-tools,
+.workflow-route-intro,
+.workflow-next-step {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+.workflow-library-tools > label {
+  max-width: 340px;
+  flex: 1;
+}
+.workflow-next-step {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--muted);
+}
+.strategy-description {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.scanner-market-picker {
+  padding: 14px !important;
+  border: 1px solid var(--border) !important;
+}
+.scanner-market-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+  gap: 10px;
+  max-height: 260px;
+  overflow: auto;
+}
+.scanner-market-options .checkbox {
+  padding: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+.scanner-market-options small {
+  font-size: 10px;
+  color: var(--muted);
+  margin-left: auto;
+}
+.scanner-market-picker legend,
+.scanner-universe legend,
+.scanner-automation legend {
+  font-size: 13px;
+  color: var(--text);
+  padding: 0 6px;
+}
+.scanner-automation {
+  border-left: 2px solid var(--border) !important;
+  padding-left: 14px !important;
+}
+.scanner-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 220px);
+  gap: 14px;
+  margin: 18px 0;
+}
+.scanner-filters label,
+.workflow-library-tools label {
+  font-size: 12px;
+  color: var(--muted);
+  display: grid;
+  gap: 7px;
+}
+.scanner-filters input,
+.scanner-filters select,
+.workflow-library-tools input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg);
+  color: var(--text);
+  padding: 10px;
+}
+.scanner-families button[aria-pressed="true"] {
+  color: var(--cyan);
+  border-bottom-color: var(--cyan);
+}
+.scanner-candidate:has(.badge.cyan) {
+  border-left: 2px solid var(--cyan);
+  padding-left: 14px;
+}
+.assistant-controls {
+  margin: 16px 0;
+  border: 1px solid var(--border);
+  padding: 14px 18px;
+  border-radius: 4px;
+}
+.assistant-controls > summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+}
+.assistant-controls[open] {
+  max-height: min(430px, 55dvh);
+  overflow: auto;
+}
+.assistant-controls .assistant-control-heading {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 16px 0;
+}
+.assistant-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0;
+}
+.assistant-receipt {
+  border-top: 1px solid var(--border);
+  padding: 14px 0;
+  font-size: 13px;
+}
+.assistant-receipt header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.assistant-receipt p {
+  line-height: 1.6;
+}
+.assistant-receipt .planned-tests,
+.assistant-receipt .proposal-files {
+  padding-left: 20px;
+  line-height: 1.8;
+}
+.assistant-receipt pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--bg);
+  padding: 12px;
+  max-height: 350px;
+  overflow: auto;
+  font-size: 11px;
+}
+.assistant-receipt code {
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 650px) {
+  .workflow-tabs {
+    gap: 20px;
+  }
+  .workflow-tabs button {
+    font-size: 13px;
+  }
+  .workflow-advanced > summary span {
+    display: block;
+    margin: 6px 0 0 16px;
+  }
+  .scanner-filters {
+    grid-template-columns: 1fr;
+  }
+  .workflow-library-tools {
+    align-items: stretch;
+  }
+  .workflow-library-tools > label {
+    flex-basis: 100%;
+    max-width: none;
+  }
+  .scanner-market-options {
+    grid-template-columns: 1fr;
+  }
+}

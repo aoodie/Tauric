@@ -2,7 +2,7 @@
 
 import json
 from datetime import datetime, timedelta
-from decimal import Decimal
+from decimal import ROUND_FLOOR, Decimal, localcontext
 from uuid import NAMESPACE_URL, uuid5
 
 from fastapi import HTTPException
@@ -64,10 +64,31 @@ def decision(db, owner, decision_id):
         or row.native_artifact_id != job.context["native_original"]["id"]
         or row.policy_version_id != job.context["setup_evidence"]["policy_id"]
         or row.payload.get("context_checksum") != job.checksum
-        or row.payload.get("approved_order") != job.context["approved_order"]
+        or row.payload.get("approved_order")
+        != effective_order(job, row.payload.get("risk_scale", "1"))
     ):
         fail("Broker permission lineage cannot be verified.")
     return row, job
+
+
+def effective_order(job, scale):
+    """Only reduce the native-approved quantity, preserving every other order field."""
+    with localcontext() as precision:
+        precision.prec = 120
+        scale = Decimal(scale)
+        if not scale.is_finite() or not 0 < scale <= 1:
+            fail("The governance risk scale must be positive and at most one.")
+        order = dict(job.context["approved_order"])
+        spec = job.context["setup_evidence"]["broker_instrument"]
+        step = Decimal(spec["quantity_step"])
+        quantity = (Decimal(order["quantity"]) * scale / step).to_integral_value(
+            rounding=ROUND_FLOOR
+        ) * step
+        if quantity < Decimal(spec["minimum_quantity"]):
+            fail("Reduced risk cannot support the broker minimum quantity; defer this entry.")
+        if scale != 1:
+            order["quantity"] = format(quantity, "f")
+        return order
 
 
 def view(db, job):
@@ -82,6 +103,7 @@ def view(db, job):
             reason=row.payload["reason"],
             authority=row.payload["authority"],
             approved_order=row.payload["approved_order"],
+            risk_scale=row.payload.get("risk_scale", "1"),
             expires_at=row.payload["expires_at"],
             created_at=row.created_at,
         )
@@ -117,7 +139,7 @@ def views(db, owner):
     ]
 
 
-def fresh_setup(db, owner, assessment_job_id):
+def fresh_setup(db, owner, assessment_job_id, *, intent_id=None):
     report = broker_setup.report(db, owner, assessment_job_id)
     if (
         not report.evidence_current
@@ -128,7 +150,7 @@ def fresh_setup(db, owner, assessment_job_id):
     original_context = report.job.request["broker_context"]
     evidence, _ = native_broker_setup.verify(original_context)
     actual = broker_setup.capture(
-        db, owner, BrokerSetupRequest.model_validate(evidence["request"])
+        db, owner, BrokerSetupRequest.model_validate(evidence["request"]), intent_id=intent_id
     )["assessment_input"]
     if (
         not actual["entry_evidence_ready"]
@@ -188,6 +210,11 @@ def enqueue(db, owner, body, *, commit=True):
     ):
         fail("This native setup already has an active or finalized broker review.")
     report, evidence, actual, order = fresh_setup(db, owner, str(body.assessment_job_id))
+    from . import live_trading
+
+    live_trading.operating_guard(
+        db, owner, broker_execution.latest_policy(db, owner, evidence["request"]["provider"])
+    )
     current = governance.status(db, owner)
     gateway = db.get(GatewayStatus, "openclaw")
     if not gateway or "broker_entry_review" not in gateway.capabilities:
@@ -206,7 +233,9 @@ def enqueue(db, owner, body, *, commit=True):
     config = governance.routing(db, owner)
     artifact = db.get(AnalysisArtifact, report.native_artifact_id)
     context = {
-        "authority": "read_only_demo_broker_entry",
+        "authority": "read_only_live_broker_entry"
+        if evidence["account"]["environment"] == "live"
+        else "read_only_demo_broker_entry",
         "assessment_job_id": report.job.id,
         "setup_evidence": evidence,
         "setup_evidence_checksum": report.job.request["broker_context"]["evidence_checksum"],
@@ -224,7 +253,7 @@ def enqueue(db, owner, body, *, commit=True):
         "settings": config["settings"],
         "routing_fingerprint": config["fingerprint"],
         "expires_at": evidence["expires_at"],
-        "limitations": "One exact OANDA practice or Alpaca paper long entry. Native reports and rating are unchanged. Native exact setup approval is required; OpenClaw may veto or defer. Owner requests no extra capital, per-trade, exposure, position or daily-loss caps. Paper simulator capital/risk values are not broker caps. Broker increments, margin/buying power, account restrictions and fresh quote/rule checks remain authoritative. Quote observations are not guaranteed fills. This is not full strategy qualification or real-money permission. OpenClaw has no order tool; one validated allow can be consumed by one durable platform intent.",
+        "limitations": "Native Tauric approval is the required risk ceiling. OpenClaw may allow, veto, defer or reduce risk_scale within (0,1]; increasing sizing needs a fresh native assessment. The platform rounds reductions down to broker increments. Strategy, stop, target, account, evidence and bindings stay fixed. Live entry also requires an explicitly enabled account policy and matching prospective forward evidence. Broker buying power, margin and fresh quotes remain authoritative. OpenClaw has no order tool; a validated allow is consumed by one durable platform intent.",
     }
     if len(json.dumps(context).encode()) > 1_000_000:
         fail("Original research exceeds this broker review's context budget.", 422)
@@ -280,7 +309,7 @@ def static_context(db, job):
     return owner
 
 
-def valid_context(db, job, *, require_gateway=True):
+def valid_context(db, job, *, require_gateway=True, intent_id=None):
     owner = static_context(db, job)
     if require_gateway:
         gateway = governance.status(db, owner)
@@ -291,7 +320,7 @@ def valid_context(db, job, *, require_gateway=True):
             or "broker_entry_review" not in capabilities.capabilities
         ):
             fail("The private Gateway is unavailable or has not applied these model settings.")
-    _, _, actual, _ = fresh_setup(db, owner, job.assessment_job_id)
+    _, _, actual, _ = fresh_setup(db, owner, job.assessment_job_id, intent_id=intent_id)
     captured = job.context["fresh_broker_evidence"]
     if (
         holdings(actual) != holdings(captured)
@@ -373,9 +402,12 @@ def finish(db, job_id, lease, raw=None, usage=None, error=None):
             "context_checksum": job.checksum,
             "outcome": result.outcome,
             "reason": result.reason,
-            "authority": "demo_broker_entry",
+            "authority": "live_broker_entry"
+            if evidence["account"]["environment"] == "live"
+            else "demo_broker_entry",
             "source": "openclaw",
-            "approved_order": job.context["approved_order"],
+            "approved_order": effective_order(job, result.risk_scale),
+            "risk_scale": result.risk_scale,
             "account_fingerprint": evidence["account"]["account_fingerprint"],
             "connection_revision": evidence["connection_revision"],
             "expires_at": job.context["expires_at"],
@@ -490,7 +522,12 @@ def validate_submission(db, row):
     review, job = decision(db, owner, row.review_decision_id)
     if review.payload["outcome"] != "allow" or row.payload["source"] != "openclaw_broker_review":
         fail("This broker entry has no verified allow permission.")
-    _, actual = valid_context(db, job, require_gateway=False)
+    _, actual = valid_context(db, job, require_gateway=False, intent_id=row.id)
+    from . import live_trading
+
+    live_trading.operating_guard(
+        db, owner, broker_execution.latest_policy(db, owner, row.provider), row.id
+    )
     history = broker_execution.events(db, row)
     payload = {
         "detail": "Native setup, bound OpenClaw permission and fresh broker/rule evidence verified before submission.",
@@ -509,13 +546,23 @@ def validate_submission(db, row):
         )
     )
     db.flush()
-    return job.id, actual["quote"]["observed_at"]
+    return job.id, actual["quote"]["observed_at"], row.id
 
 
-def final_effect_guard(db, owner, job_id, quote_time):
+def final_effect_guard(db, owner, job_id, quote_time, intent_id=None):
     db.scalar(select(Owner).where(Owner.id == owner.id).with_for_update(key_share=True))
     job = checked(db, owner, job_id)
     static_context(db, job)
+    from . import live_trading
+
+    live_trading.operating_guard(
+        db,
+        owner,
+        broker_execution.latest_policy(
+            db, owner, job.context["setup_evidence"]["request"]["provider"]
+        ),
+        intent_id,
+    )
     if not 0 <= (now() - datetime.fromisoformat(quote_time)).total_seconds() <= 60:
         fail("The broker quote expired before the submission effect.")
 

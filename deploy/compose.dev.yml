@@ -171,6 +171,46 @@ services:
       retries: 6
     mem_limit: 192m
     restart: unless-stopped
+  valuation:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    environment:
+      TAURIC_DATABASE_URL: postgresql+psycopg://tauric_app:${TAURIC_DB_PASSWORD}@db:5432/tauric
+    volumes:
+      - ../.env.market-data.json:/run/setup-market-data.json:ro
+      - ../.env.model-key:/run/setup-model-key:ro
+    command: ["python", "-m", "tauric.valuation_worker"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "from sqlalchemy.orm import Session; from tauric.database import engine; from tauric.models import WorkerStatus, now; db=Session(engine()); row=db.get(WorkerStatus, 'valuation'); assert row and 0 <= (now()-row.heartbeat_at).total_seconds()<60"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    mem_limit: 192m
+    restart: unless-stopped
+  forward_validation:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    environment:
+      TAURIC_DATABASE_URL: postgresql+psycopg://tauric_app:${TAURIC_DB_PASSWORD}@db:5432/tauric
+    volumes:
+      - ../.env.market-data.json:/run/setup-market-data.json:ro
+      - ../.env.model-key:/run/setup-model-key:ro
+    command: ["python", "-m", "tauric.forward_worker"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "from sqlalchemy.orm import Session; from tauric.database import engine; from tauric.models import WorkerStatus, now; db=Session(engine()); row=db.get(WorkerStatus, 'forward_validation'); assert row and 0 <= (now()-row.heartbeat_at).total_seconds()<60"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    mem_limit: 192m
+    restart: unless-stopped
   autonomous_paper:
     build:
       context: ..

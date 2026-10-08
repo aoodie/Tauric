@@ -16,7 +16,7 @@ with sync_playwright() as p:
     page.get_by_label("Password", exact=True).fill(fixture["password"])
     page.get_by_role("button", name="Sign in", exact=True).click()
     expect(page.locator(".app")).to_be_visible()
-    page.get_by_role("button", name="Paper trading", exact=True).click()
+    page.get_by_role("button", name="Trading", exact=True).click()
     expect(page.get_by_text("No open paper positions.", exact=True)).to_be_visible()
     page.route(
         "**/api/v1/paper",

@@ -22,15 +22,24 @@ with sync_playwright() as p:
     page.get_by_label("Password", exact=True).fill("Test-only-password-2026")
     page.get_by_role("button", name="Sign in", exact=True).click()
     expect(page.locator(".app")).to_be_visible()
-    page.get_by_role("button", name="Paper trading", exact=True).click()
-    page.get_by_text("Broker-connected demo trading", exact=True).click()
+    page.get_by_role("button", name="Trading", exact=True).click()
+    readiness = page.get_by_role("region", name="Live trading readiness", exact=True)
+    expect(readiness.get_by_text("Live trading inactive", exact=True)).to_be_visible()
+    readiness.get_by_role("button", name="Refresh portfolio values", exact=True).click()
+    expect(readiness.get_by_role("status")).to_contain_text("Portfolio values refreshed")
+    expect(readiness.get_by_role("heading", name="ALPACA paper · paper · USD", exact=True)).to_be_visible()
+    expect(readiness).to_contain_text("7")
+    expect(readiness.get_by_role("button", name="Activate live trading", exact=True)).to_have_count(0)
+    checks.append("Marked broker holdings displayed; unqualified account cannot activate live trading")
+    readiness.screenshot(path=str(root / "artifacts/live-readiness-desktop.png"))
+    page.get_by_text("Broker trading and position protection", exact=True).click()
     section = page.locator("details").filter(
-        has=page.get_by_text("Broker-connected demo trading", exact=True)
+        has=page.get_by_text("Broker trading and position protection", exact=True)
     )
     page.screenshot(
         path=str(root / "artifacts/broker-browser-inspect.png"), full_page=True
     )
-    section.get_by_label("Demo broker", exact=True).select_option("alpaca")
+    section.get_by_label("Broker", exact=True).select_option("alpaca")
     expect(
         section.get_by_role("button", name="Enable demo orders", exact=True)
     ).to_be_disabled()
@@ -42,7 +51,7 @@ with sync_playwright() as p:
     checks.append("Demo account verification precedes enablement")
     section.get_by_role("button", name="Enable demo orders", exact=True).click()
     expect(
-        section.get_by_role("button", name="Stop new demo orders", exact=True)
+        section.get_by_role("button", name="Pause new entries", exact=True)
     ).to_be_visible()
     section.get_by_label("Instrument", exact=True).fill("AAPL")
     section.get_by_label("Quantity", exact=True).fill("2")
@@ -53,7 +62,7 @@ with sync_playwright() as p:
     section.get_by_label("Reason", exact=True).fill(
         "Disposable offline broker browser order"
     )
-    section.get_by_role("button", name="Submit to Alpaca paper", exact=True).click()
+    section.get_by_role("button", name="Submit to Alpaca", exact=True).click()
     expect(section.get_by_role("button", name="Cancel", exact=True)).to_be_enabled()
     expect(
         section.get_by_text(
@@ -89,17 +98,17 @@ with sync_playwright() as p:
     page.reload()
     page.wait_for_load_state("domcontentloaded")
     expect(page.locator(".app")).to_be_visible()
-    page.get_by_role("button", name="Paper trading", exact=True).click()
-    page.get_by_text("Broker-connected demo trading", exact=True).click()
+    page.get_by_role("button", name="Trading", exact=True).click()
+    page.get_by_text("Broker trading and position protection", exact=True).click()
     section = page.locator("details").filter(
-        has=page.get_by_text("Broker-connected demo trading", exact=True)
+        has=page.get_by_text("Broker trading and position protection", exact=True)
     )
-    section.get_by_label("Demo broker", exact=True).select_option("alpaca")
+    section.get_by_label("Broker", exact=True).select_option("alpaca")
     expect(section.get_by_role("button", name="Cancel", exact=True)).to_be_disabled()
     expect(
         section.get_by_text("closed · entered 1 · closed 1 · remaining 0", exact=True)
     ).to_be_visible()
-    section.get_by_role("button", name="Stop new demo orders", exact=True).click()
+    section.get_by_role("button", name="Pause new entries", exact=True).click()
     expect(
         section.get_by_role("button", name="Enable demo orders", exact=True)
     ).to_be_visible()
@@ -108,6 +117,8 @@ with sync_playwright() as p:
         path=str(root / "artifacts/broker-execution-desktop.png"), full_page=True
     )
     page.set_viewport_size({"width": 390, "height": 844})
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth+1")
+    page.get_by_role("region", name="Live trading readiness", exact=True).screenshot(path=str(root / "artifacts/live-readiness-mobile.png"))
     expect(
         section.get_by_role("button", name="Check account & positions", exact=True)
     ).to_be_visible()

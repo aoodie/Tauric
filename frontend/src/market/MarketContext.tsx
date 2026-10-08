@@ -24,7 +24,7 @@ function useMarketState() {
   const [feed, setFeed] = useState<Market | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [auto, setAuto] = useState(false);
+  const [auto, setAuto] = useState(true);
   const [status, setStatus] = useState<AnalysisStatus | null>(null);
   const [jobs, setJobs] = useState<Analysis[]>([]);
   const current = useRef("");
@@ -117,9 +117,19 @@ function useMarketState() {
     }
   }
   useEffect(() => {
-    if (!auto) return;
-    const timer = window.setInterval(() => void refresh(), 30000);
-    return () => window.clearInterval(timer);
+    if (!auto || !instrumentId) return;
+    const update = () => {
+      if (!document.hidden) void refresh();
+    };
+    update();
+    const timer = window.setInterval(update, 30000);
+    document.addEventListener("visibilitychange", update);
+    window.addEventListener("focus", update);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", update);
+      window.removeEventListener("focus", update);
+    };
   }, [auto, instrumentId, interval]);
   async function reloadJobs() {
     setJobs(await api.analyses());

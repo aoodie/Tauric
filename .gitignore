@@ -15,6 +15,7 @@ artifacts/*
 *.tsbuildinfo
 .runtime-src/
 .runtime-venv/
+.runtime-honcho/
 
 openclaw/node_modules/
 openclaw/plugin/dist/

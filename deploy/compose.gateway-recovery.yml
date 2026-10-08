@@ -1,0 +1,14 @@
+services:
+  api:
+    volumes:
+      - ../backend/tauric/tradingview_connection.py:/app/tauric/tradingview_connection.py:ro
+      - ../backend/tauric/tradingview_mcp.py:/app/tauric/tradingview_mcp.py:ro
+  worker:
+    volumes:
+      - ../backend/tauric/tradingview_connection.py:/app/tauric/tradingview_connection.py:ro
+      - ../backend/tauric/tradingview_mcp.py:/app/tauric/tradingview_mcp.py:ro
+  openclaw:
+    mem_limit: 1610612736
+    volumes:
+      - ../openclaw/start.mjs:/app/start.mjs:ro
+      - ../openclaw/config.mjs:/app/config.mjs:ro

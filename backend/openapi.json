@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Tauric platform",
-    "version": "0.11.0"
+    "version": "0.12.0"
   },
   "paths": {
     "/api/v1/brokers/routes": {
@@ -592,6 +592,59 @@
         }
       }
     },
+    "/api/v1/brokers/closes/{close_id}/repair-protection": {
+      "post": {
+        "tags": [
+          "demo-brokers"
+        ],
+        "summary": "Repair Protection",
+        "operationId": "repair_protection_api_v1_brokers_closes__close_id__repair_protection_post",
+        "parameters": [
+          {
+            "name": "close_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Close Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrokerReviewedEntrySubmit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrokerCloseView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/brokers/setup-preview": {
       "post": {
         "tags": [
@@ -855,6 +908,162 @@
         }
       }
     },
+    "/api/v1/trading-readiness": {
+      "get": {
+        "tags": [
+          "trading readiness"
+        ],
+        "summary": "State",
+        "operationId": "state_api_v1_trading_readiness_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradingReadinessView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/trading-readiness/valuation": {
+      "post": {
+        "tags": [
+          "trading readiness"
+        ],
+        "summary": "Capture",
+        "operationId": "capture_api_v1_trading_readiness_valuation_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadinessAction"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessRecordView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/trading-readiness/forward": {
+      "post": {
+        "tags": [
+          "trading readiness"
+        ],
+        "summary": "Register",
+        "operationId": "register_api_v1_trading_readiness_forward_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForwardRegister"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessRecordView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/trading-readiness/forward/{protocol_id}/evaluate": {
+      "post": {
+        "tags": [
+          "trading readiness"
+        ],
+        "summary": "Evaluate",
+        "operationId": "evaluate_api_v1_trading_readiness_forward__protocol_id__evaluate_post",
+        "parameters": [
+          {
+            "name": "protocol_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Protocol Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadinessAction"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessRecordView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/intelligence/catalogs/refresh": {
       "post": {
         "tags": [
@@ -873,6 +1082,47 @@
                   },
                   "type": "array",
                   "title": "Response Catalogs Api V1 Intelligence Catalogs Refresh Post"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/intelligence/register": {
+      "post": {
+        "tags": [
+          "market intelligence"
+        ],
+        "summary": "Register",
+        "operationId": "register_api_v1_intelligence_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntelligenceRegister"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstrumentView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1331,6 +1581,383 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ChatTurnView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assistant": {
+      "get": {
+        "tags": [
+          "owner assistant"
+        ],
+        "summary": "State",
+        "operationId": "state_api_v1_assistant_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/knowledge/settings": {
+      "get": {
+        "tags": [
+          "knowledge and memory"
+        ],
+        "summary": "Settings",
+        "operationId": "settings_api_v1_knowledge_settings_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryState"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "knowledge and memory"
+        ],
+        "summary": "Save Settings",
+        "operationId": "save_settings_api_v1_knowledge_settings_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemorySettingsChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryState"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/knowledge": {
+      "get": {
+        "tags": [
+          "knowledge and memory"
+        ],
+        "summary": "Search",
+        "operationId": "search_api_v1_knowledge_get",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 300,
+              "default": "",
+              "title": "Query"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "strategy",
+                    "chat",
+                    "research",
+                    "preference",
+                    "wiki"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "name": "include_hidden",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Include Hidden"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100000,
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeSearch"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/knowledge/collect": {
+      "post": {
+        "tags": [
+          "knowledge and memory"
+        ],
+        "summary": "Collect",
+        "operationId": "collect_api_v1_knowledge_collect_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/knowledge/notes": {
+      "post": {
+        "tags": [
+          "knowledge and memory"
+        ],
+        "summary": "Save Note",
+        "operationId": "save_note_api_v1_knowledge_notes_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KnowledgeNote"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/knowledge/{document_id}": {
+      "get": {
+        "tags": [
+          "knowledge and memory"
+        ],
+        "summary": "Document",
+        "operationId": "document_api_v1_knowledge__document_id__get",
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "knowledge and memory"
+        ],
+        "summary": "Edit Note",
+        "operationId": "edit_note_api_v1_knowledge__document_id__put",
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KnowledgeNote"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/knowledge/{document_id}/visibility": {
+      "put": {
+        "tags": [
+          "knowledge and memory"
+        ],
+        "summary": "Visibility",
+        "operationId": "visibility_api_v1_knowledge__document_id__visibility_put",
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KnowledgeVisibility"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeView"
                 }
               }
             }
@@ -5935,6 +6562,122 @@
         ],
         "title": "AssetCosts"
       },
+      "AssistantReceipt": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "turn_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Turn Id"
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "save_scanner",
+              "run_scanner",
+              "candidate_action",
+              "research_candidate",
+              "create_strategy",
+              "revise_strategy",
+              "capture_dataset",
+              "run_backtest",
+              "save_research_note",
+              "prepare_upgrade",
+              "stage_upgrade",
+              "evaluate_paper_strategy",
+              "propose_paper_strategy",
+              "request_paper_review",
+              "plan_paper_entry",
+              "execute_paper_plan",
+              "close_paper_position"
+            ],
+            "title": "Operation"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "saved",
+              "review_required"
+            ],
+            "title": "Status"
+          },
+          "result": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Result"
+          },
+          "checksum": {
+            "type": "string",
+            "title": "Checksum"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "turn_id",
+          "operation",
+          "title",
+          "status",
+          "result",
+          "checksum",
+          "created_at"
+        ],
+        "title": "AssistantReceipt"
+      },
+      "AssistantState": {
+        "properties": {
+          "authority": {
+            "type": "string",
+            "const": "orchestrate_tauric_workflows",
+            "title": "Authority",
+            "default": "orchestrate_tauric_workflows"
+          },
+          "tauric_authority": {
+            "type": "string",
+            "const": "native_evidence_and_execution_gates",
+            "title": "Tauric Authority",
+            "default": "native_evidence_and_execution_gates"
+          },
+          "code_changes_applied": {
+            "type": "boolean",
+            "const": false,
+            "title": "Code Changes Applied",
+            "default": false
+          },
+          "receipts": {
+            "items": {
+              "$ref": "#/components/schemas/AssistantReceipt"
+            },
+            "type": "array",
+            "title": "Receipts"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "receipts"
+        ],
+        "title": "AssistantState"
+      },
       "AuditPage": {
         "properties": {
           "items": {
@@ -6458,7 +7201,8 @@
             "type": "string",
             "enum": [
               "practice",
-              "paper"
+              "paper",
+              "live"
             ],
             "title": "Environment"
           },
@@ -6512,6 +7256,39 @@
             "type": "string",
             "format": "date-time",
             "title": "Observed At"
+          },
+          "realized_pnl_home": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Realized Pnl Home"
+          },
+          "fees_home": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fees Home"
+          },
+          "financing_home": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Financing Home"
           }
         },
         "additionalProperties": false,
@@ -7047,6 +7824,17 @@
             "type": "array",
             "title": "Trade Ids"
           },
+          "protection_status": {
+            "type": "string",
+            "enum": [
+              "covered",
+              "unprotected",
+              "incomplete",
+              "not_required"
+            ],
+            "title": "Protection Status",
+            "default": "incomplete"
+          },
           "observed_at": {
             "type": "string",
             "format": "date-time",
@@ -7468,6 +8256,23 @@
             "title": "No Owner Limits",
             "default": true
           },
+          "live_acknowledged": {
+            "type": "boolean",
+            "title": "Live Acknowledged",
+            "default": false
+          },
+          "forward_report_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forward Report Id"
+          },
           "reason": {
             "type": "string",
             "maxLength": 500,
@@ -7608,6 +8413,17 @@
               }
             ],
             "title": "Price"
+          },
+          "remaining_quantity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remaining Quantity"
           }
         },
         "additionalProperties": false,
@@ -7699,6 +8515,73 @@
         ],
         "title": "BrokerQuote"
       },
+      "BrokerReadinessView": {
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "oanda",
+              "alpaca"
+            ],
+            "title": "Provider"
+          },
+          "environment": {
+            "type": "string",
+            "title": "Environment"
+          },
+          "connection_revision": {
+            "type": "integer",
+            "title": "Connection Revision"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "live_enabled": {
+            "type": "boolean",
+            "title": "Live Enabled"
+          },
+          "native_required": {
+            "type": "boolean",
+            "title": "Native Required"
+          },
+          "risk_authority": {
+            "type": "string",
+            "title": "Risk Authority"
+          },
+          "forward_report_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forward Report Id"
+          },
+          "entry_blockers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Entry Blockers"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "provider",
+          "environment",
+          "connection_revision",
+          "enabled",
+          "live_enabled",
+          "native_required",
+          "risk_authority",
+          "forward_report_id"
+        ],
+        "title": "BrokerReadinessView"
+      },
       "BrokerReviewDecisionView": {
         "properties": {
           "id": {
@@ -7720,11 +8603,19 @@
           },
           "authority": {
             "type": "string",
-            "const": "demo_broker_entry",
+            "enum": [
+              "demo_broker_entry",
+              "live_broker_entry"
+            ],
             "title": "Authority"
           },
           "approved_order": {
             "$ref": "#/components/schemas/BrokerOrderRequest"
+          },
+          "risk_scale": {
+            "type": "string",
+            "title": "Risk Scale",
+            "default": "1"
           },
           "expires_at": {
             "type": "string",
@@ -9303,6 +10194,13 @@
             },
             "type": "array",
             "title": "Action Receipts"
+          },
+          "project_receipts": {
+            "items": {
+              "$ref": "#/components/schemas/AssistantReceipt"
+            },
+            "type": "array",
+            "title": "Project Receipts"
           }
         },
         "additionalProperties": false,
@@ -10366,6 +11264,91 @@
         ],
         "title": "ForexDataConnection"
       },
+      "ForwardRegister": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "oanda",
+              "alpaca"
+            ],
+            "title": "Provider"
+          },
+          "strategy_version_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Strategy Version Id"
+          },
+          "instrument_id": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Instrument Id"
+          },
+          "minimum_days": {
+            "type": "integer",
+            "maximum": 365.0,
+            "minimum": 1.0,
+            "title": "Minimum Days",
+            "default": 14
+          },
+          "minimum_closed_trades": {
+            "type": "integer",
+            "maximum": 10000.0,
+            "minimum": 1.0,
+            "title": "Minimum Closed Trades",
+            "default": 20
+          },
+          "maximum_drawdown_percent": {
+            "type": "string",
+            "title": "Maximum Drawdown Percent",
+            "default": "10"
+          },
+          "minimum_net_pnl_home": {
+            "type": "string",
+            "title": "Minimum Net Pnl Home",
+            "default": "0"
+          },
+          "maximum_signal_to_fill_seconds": {
+            "type": "integer",
+            "maximum": 86400.0,
+            "minimum": 1.0,
+            "title": "Maximum Signal To Fill Seconds",
+            "default": 900
+          },
+          "maximum_adverse_slippage_bps": {
+            "type": "string",
+            "title": "Maximum Adverse Slippage Bps",
+            "default": "25"
+          },
+          "risk_percent": {
+            "type": "string",
+            "title": "Risk Percent",
+            "default": "1"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "reason",
+          "provider",
+          "strategy_version_id",
+          "instrument_id"
+        ],
+        "title": "ForwardRegister"
+      },
       "GovernanceEnqueue": {
         "properties": {
           "request_id": {
@@ -11298,6 +12281,32 @@
         ],
         "title": "IntelligenceRefreshResult"
       },
+      "IntelligenceRegister": {
+        "properties": {
+          "instrument_id": {
+            "type": "string",
+            "maxLength": 120,
+            "title": "Instrument Id"
+          },
+          "asset_type": {
+            "type": "string",
+            "enum": [
+              "fx",
+              "equity",
+              "etf",
+              "crypto_spot"
+            ],
+            "title": "Asset Type"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "instrument_id",
+          "asset_type"
+        ],
+        "title": "IntelligenceRegister"
+      },
       "IntelligenceSource": {
         "properties": {
           "key": {
@@ -11566,6 +12575,177 @@
         "additionalProperties": false,
         "type": "object",
         "title": "IntelligenceWatchlistView"
+      },
+      "KnowledgeNote": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision",
+            "default": 0
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "wiki",
+              "preference"
+            ],
+            "title": "Kind",
+            "default": "wiki"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 3,
+            "title": "Title"
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 20000,
+            "minLength": 3,
+            "title": "Body"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "title",
+          "body"
+        ],
+        "title": "KnowledgeNote"
+      },
+      "KnowledgeSearch": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/KnowledgeView"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "has_more": {
+            "type": "boolean",
+            "title": "Has More"
+          },
+          "search_method": {
+            "type": "string",
+            "const": "local_keyword",
+            "title": "Search Method",
+            "default": "local_keyword"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "query",
+          "items",
+          "has_more"
+        ],
+        "title": "KnowledgeSearch"
+      },
+      "KnowledgeView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "strategy",
+              "chat",
+              "research",
+              "preference",
+              "wiki"
+            ],
+            "title": "Kind"
+          },
+          "source_kind": {
+            "type": "string",
+            "title": "Source Kind"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "provenance": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Provenance"
+          },
+          "checksum": {
+            "type": "string",
+            "title": "Checksum"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "excluded": {
+            "type": "boolean",
+            "title": "Excluded"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "authority": {
+            "type": "string",
+            "const": "memory_context_only",
+            "title": "Authority",
+            "default": "memory_context_only"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "source_kind",
+          "title",
+          "body",
+          "provenance",
+          "checksum",
+          "revision",
+          "excluded",
+          "updated_at"
+        ],
+        "title": "KnowledgeView"
+      },
+      "KnowledgeVisibility": {
+        "properties": {
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expected Revision"
+          },
+          "excluded": {
+            "type": "boolean",
+            "title": "Excluded"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expected_revision",
+          "excluded"
+        ],
+        "title": "KnowledgeVisibility"
       },
       "LayoutChange": {
         "properties": {
@@ -12114,6 +13294,206 @@
           "checksum"
         ],
         "title": "MarketView"
+      },
+      "MemorySettings": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": false
+          },
+          "record_chats": {
+            "type": "boolean",
+            "title": "Record Chats",
+            "default": true
+          },
+          "record_strategies": {
+            "type": "boolean",
+            "title": "Record Strategies",
+            "default": true
+          },
+          "record_research": {
+            "type": "boolean",
+            "title": "Record Research",
+            "default": true
+          },
+          "use_in_chat": {
+            "type": "boolean",
+            "title": "Use In Chat",
+            "default": true
+          },
+          "honcho_enabled": {
+            "type": "boolean",
+            "title": "Honcho Enabled",
+            "default": false
+          },
+          "allow_external_context": {
+            "type": "boolean",
+            "title": "Allow External Context",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "MemorySettings"
+      },
+      "MemorySettingsChange": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": false
+          },
+          "record_chats": {
+            "type": "boolean",
+            "title": "Record Chats",
+            "default": true
+          },
+          "record_strategies": {
+            "type": "boolean",
+            "title": "Record Strategies",
+            "default": true
+          },
+          "record_research": {
+            "type": "boolean",
+            "title": "Record Research",
+            "default": true
+          },
+          "use_in_chat": {
+            "type": "boolean",
+            "title": "Use In Chat",
+            "default": true
+          },
+          "honcho_enabled": {
+            "type": "boolean",
+            "title": "Honcho Enabled",
+            "default": false
+          },
+          "allow_external_context": {
+            "type": "boolean",
+            "title": "Allow External Context",
+            "default": false
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expected_revision"
+        ],
+        "title": "MemorySettingsChange"
+      },
+      "MemoryState": {
+        "properties": {
+          "settings": {
+            "$ref": "#/components/schemas/MemorySettings"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Counts"
+          },
+          "worker_ready": {
+            "type": "boolean",
+            "title": "Worker Ready"
+          },
+          "last_collected_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Collected At"
+          },
+          "honcho_configured": {
+            "type": "boolean",
+            "title": "Honcho Configured"
+          },
+          "honcho_learning_enabled": {
+            "type": "boolean",
+            "title": "Honcho Learning Enabled"
+          },
+          "last_honcho_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Honcho At"
+          },
+          "honcho_representation": {
+            "type": "string",
+            "title": "Honcho Representation"
+          },
+          "honcho_detail": {
+            "type": "string",
+            "title": "Honcho Detail"
+          },
+          "chat_recall_allowed": {
+            "type": "boolean",
+            "title": "Chat Recall Allowed"
+          },
+          "chat_recall_detail": {
+            "type": "string",
+            "title": "Chat Recall Detail"
+          },
+          "vault_configured": {
+            "type": "boolean",
+            "title": "Vault Configured"
+          },
+          "vault_location": {
+            "type": "string",
+            "title": "Vault Location"
+          },
+          "vault_conflicts": {
+            "type": "integer",
+            "title": "Vault Conflicts"
+          },
+          "authority": {
+            "type": "string",
+            "const": "memory_context_only",
+            "title": "Authority",
+            "default": "memory_context_only"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "settings",
+          "revision",
+          "counts",
+          "worker_ready",
+          "last_collected_at",
+          "honcho_configured",
+          "honcho_learning_enabled",
+          "last_honcho_at",
+          "honcho_representation",
+          "honcho_detail",
+          "chat_recall_allowed",
+          "chat_recall_detail",
+          "vault_configured",
+          "vault_location",
+          "vault_conflicts"
+        ],
+        "title": "MemoryState"
       },
       "ModelConnectionChange": {
         "properties": {
@@ -14226,6 +15606,64 @@
         ],
         "title": "QualificationView"
       },
+      "ReadinessAction": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "reason"
+        ],
+        "title": "ReadinessAction"
+      },
+      "ReadinessRecordView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "checksum": {
+            "type": "string",
+            "title": "Checksum"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "checksum",
+          "payload",
+          "created_at"
+        ],
+        "title": "ReadinessRecordView"
+      },
       "ReplayCreate": {
         "properties": {
           "request_id": {
@@ -16147,6 +17585,63 @@
           "created_at"
         ],
         "title": "StrategyVersionView"
+      },
+      "TradingReadinessView": {
+        "properties": {
+          "valuations": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessRecordView"
+            },
+            "type": "array",
+            "title": "Valuations"
+          },
+          "forward_protocols": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessRecordView"
+            },
+            "type": "array",
+            "title": "Forward Protocols"
+          },
+          "forward_reports": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessRecordView"
+            },
+            "type": "array",
+            "title": "Forward Reports"
+          },
+          "brokers": {
+            "items": {
+              "$ref": "#/components/schemas/BrokerReadinessView"
+            },
+            "type": "array",
+            "title": "Brokers"
+          },
+          "valuation_worker_ready": {
+            "type": "boolean",
+            "title": "Valuation Worker Ready"
+          },
+          "forward_worker_ready": {
+            "type": "boolean",
+            "title": "Forward Worker Ready"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "valuations",
+          "forward_protocols",
+          "forward_reports",
+          "brokers",
+          "valuation_worker_ready",
+          "forward_worker_ready",
+          "generated_at"
+        ],
+        "title": "TradingReadinessView"
       },
       "TradingRecordView": {
         "properties": {

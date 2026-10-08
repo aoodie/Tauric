@@ -67,7 +67,7 @@ with sync_playwright() as p:
         and etf["stock_costs"]["minimum_commission"] == "1"
     )
     results.append("Saved-version ETF deployment persists explicit USD share costs")
-    page.get_by_role("button", name="Paper trading", exact=True).click()
+    page.get_by_role("button", name="Trading", exact=True).click()
     form = page.get_by_role("form", name="Paper proposal", exact=True)
     form.get_by_label("Paper strategy", exact=True).select_option(
         fixture["deployment_id"]

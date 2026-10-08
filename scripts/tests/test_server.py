@@ -3,6 +3,7 @@
 import io
 import json
 import os
+import subprocess
 import sys
 import tarfile
 import tempfile
@@ -13,6 +14,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import github_source
 import release_bundle
+import release_smoke
 import server
 
 
@@ -31,6 +33,37 @@ class ServerControls(unittest.TestCase):
 
     def tearDown(self):
         self.folder.cleanup()
+
+    def test_operation_errors_keep_private_diagnostics_out_of_the_exception_message(
+        self,
+    ):
+        failed = subprocess.CompletedProcess(
+            [], 1, stdout=b"private-output", stderr=b"private-password"
+        )
+        with (
+            patch("server.subprocess.run", return_value=failed),
+            self.assertRaises(server.ServerOperationError) as error,
+        ):
+            server.run(["docker", "compose", "up"])
+        self.assertNotIn("private-password", str(error.exception))
+        self.assertIn("private-password", error.exception.diagnostics)
+
+    def test_failure_diagnostics_remove_nested_tokens_and_encoded_passwords(self):
+        private = self.root / "secrets"
+        private.mkdir()
+        (private / "database-app").write_text("db/password?\n")
+        (private / "tokens").write_text(json.dumps({"tokens": ["gateway-secret"]}))
+        (private / "empty").write_text("\n")
+        text = "db/password? db%2Fpassword%3F gateway-secret owner-password service unhealthy"
+        redacted = release_smoke.redact_diagnostics(text, private, "owner-password")
+        for secret in (
+            "db/password?",
+            "db%2Fpassword%3F",
+            "gateway-secret",
+            "owner-password",
+        ):
+            self.assertNotIn(secret, redacted)
+        self.assertIn("service unhealthy", redacted)
 
     def test_setup_is_private_and_cannot_overwrite_existing_keys(self):
         state = self.root / "state"
@@ -73,6 +106,12 @@ class ServerControls(unittest.TestCase):
             "example.com/path",
             "localhost",
             "example.com\nSECRET=value",
+            "127.0.0.1",
+            "10.1.2.3",
+            "192.168.1.4",
+            "999.999.999.999",
+            "217.160.9.196:8081",
+            "::1",
         ):
             with self.assertRaises(ValueError):
                 server.setup(self.root / "state", self.images, domain)
@@ -87,6 +126,18 @@ class ServerControls(unittest.TestCase):
         server.validate_images(
             dict.fromkeys(server.IMAGE_KEYS, "sha256:" + "a" * 64), local=True
         )
+
+    def test_public_ip_uses_trusted_https_origin_and_dedicated_override(self):
+        state = self.root / "state"
+        server.setup(state, self.images, "217.160.9.196")
+        values = server.read_env(state / "server.env")
+        self.assertEqual(values["TAURIC_SECURE_COOKIES"], "true")
+        self.assertEqual(
+            json.loads(values["TAURIC_ALLOWED_ORIGINS"]), ["https://217.160.9.196"]
+        )
+        command = server.command(state, "tauric_test")
+        self.assertIn(str(server.ROOT / "deploy/compose.public-ip.yml"), command)
+        self.assertNotIn(str(server.ROOT / "deploy/compose.https.yml"), command)
 
     def test_config_rejects_public_internal_ports(self):
         state = self.root / "state"

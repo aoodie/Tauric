@@ -29,7 +29,7 @@ from .strategy_contracts import BreakoutRules
 from .strategy_execution import snapshot_checked
 
 
-def capture(db, owner, body, *, route_context=None, risk_percent=None):
+def capture(db, owner, body, *, route_context=None, risk_percent=None, intent_id=None):
     spec = market.instrument(db, body.instrument_id)
     expected = (
         "oanda"
@@ -61,6 +61,12 @@ def capture(db, owner, body, *, route_context=None, risk_percent=None):
         or policy.payload["connection_revision"] != revision
     ):
         raise HTTPException(409, "Verify and enable this demo broker before assessing its entries.")
+    from . import live_trading
+
+    live_report = live_trading.require_live_strategy(
+        db, owner, policy, version.id, spec.id, risk_percent
+    )
+    portfolio_observation = live_trading.operating_guard(db, owner, policy, intent_id)
     try:
         with broker_execution.adapter(body.provider, config) as broker:
             account = broker.account()
@@ -100,6 +106,19 @@ def capture(db, owner, body, *, route_context=None, risk_percent=None):
                                 account, instrument, quote, stop, risk_percent
                             )
                             body = body.model_copy(update={"quantity": quantity})
+                        elif live_report:
+                            maximum, sizing = broker_risk.calculate(
+                                account,
+                                instrument,
+                                quote,
+                                stop,
+                                live_report.payload["maximum_risk_percent"],
+                            )
+                            if Decimal(body.quantity) > Decimal(maximum):
+                                raise BrokerError(
+                                    "Requested live quantity exceeds the forward-validated risk ceiling; obtain new Tauric evidence before increasing risk."
+                                )
+                            sizing["quantity"] = body.quantity
                         planned = BrokerOrderRequest(
                             client_order_id="tauric_setup_" + str(body.request_id).replace("-", ""),
                             symbol=spec.provider_symbol,
@@ -137,6 +156,8 @@ def capture(db, owner, body, *, route_context=None, risk_percent=None):
         "broker_instrument": instrument.model_dump(mode="json"),
         "account": account.model_dump(mode="json"),
         "existing_positions": [position.model_dump(mode="json") for position in positions],
+        "risk_authority": "Native Tauric approves the maximum quantity. OpenClaw may reduce it; increases require a new native assessment.",
+        "portfolio_valuation": portfolio_observation,
         "policy_id": policy.id,
         "policy_checksum": policy.checksum,
         "policy": policy.payload,

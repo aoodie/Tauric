@@ -9,14 +9,14 @@ from decimal import ROUND_DOWN, Decimal, localcontext
 from types import SimpleNamespace
 
 from . import strategy_rules
-from .asset_costs import commission, execution_price, rollover_times
+from .asset_costs import commission, execution_price, rollover_times, stop_trigger_price
 from .outcomes import drawdown, metrics
 from .paper import decimal_text
 from .research_contracts import ReplayResult, ResearchBar
 
 ENGINE_VERSION = "sma_cross_spot_v1.0.2"
 BREAKOUT_ENGINE_VERSION = "closed_bar_breakout_spot_v1.0.1"
-ASSET_ENGINE_VERSION = "sma_cross_assets_v1.0.0"
+ASSET_ENGINE_VERSION = "sma_cross_assets_v1.0.1"
 D = Decimal
 ZERO = D("0")
 
@@ -115,7 +115,11 @@ def _simulate(candles, p, strategy, data_context):
         prior_mark = D(candles[i - 1]["close"]) if i else opening
         finance_until(bar["open_time"], prior_mark)
         # Gap stops take precedence over a prior close's queued crossover exit.
-        if not rules and position and opening <= D(position["stop_price"]):
+        if (
+            not rules
+            and position
+            and stop_trigger_price(bar, "open", costs) <= D(position["stop_price"])
+        ):
             exit_position(opening, bar["open_time"], "stop_gap", bar)
         if pending:
             if pending["side"] == "sell" and position:
@@ -161,7 +165,7 @@ def _simulate(candles, p, strategy, data_context):
                         / step
                     ).to_integral_value(rounding=ROUND_DOWN)
                     * step
-                    if stop < opening
+                    if stop < stop_trigger_price(bar, "open", costs)
                     else ZERO
                 )
                 if quantity > 0:
@@ -187,7 +191,11 @@ def _simulate(candles, p, strategy, data_context):
         # A bar's close is unknown at an interior rollover, so retain the prior
         # observed mark. Closed-bar funding precedes any same-timestamp exit.
         finance_until(bar["close_time"], prior_mark)
-        if not rules and position and D(bar["low"]) <= D(position["stop_price"]):
+        if (
+            not rules
+            and position
+            and stop_trigger_price(bar, "low", costs) <= D(position["stop_price"])
+        ):
             exit_position(
                 D(position["stop_price"]),
                 bar["close_time"],
@@ -255,7 +263,8 @@ def _simulate(candles, p, strategy, data_context):
                     pending = signal
         if i == len(candles) - 1 and position:
             exit_position(D(bar["close"]), bar["close_time"], "end_of_dataset_close", bar, "close")
-        equity = cash + (D(position["quantity"]) * D(bar["close"]) if position else ZERO)
+        mark = stop_trigger_price(bar, "close", costs)
+        equity = cash + (D(position["quantity"]) * mark if position else ZERO)
         if cash < 0 or equity < 0:
             raise ValueError("Replay balances failed to reconcile.")
         points.append((bar["close_time"], equity))

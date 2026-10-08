@@ -11,7 +11,8 @@ type Source = {
   kind: "news" | "calendar";
   label: string;
   status: "available" | "stale" | "unavailable";
-  url: string;
+  url: string | null;
+  warning?: string;
   items: Item[];
 };
 type Context = { fetched_at: string; currencies: string[]; sources: Source[] };
@@ -48,15 +49,27 @@ export function ForexPolicyContext({ value }: { value: unknown }) {
             .filter((s) => s.currency === currency)
             .map((source) => (
               <div className="fx-policy-source" key={source.kind}>
-                <a href={source.url} target="_blank" rel="noopener noreferrer">
-                  {source.label} ·{" "}
-                  {source.kind === "news" ? "Headlines" : "Policy calendar"}
-                </a>
+                {source.url ? (
+                  <a
+                    href={source.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {source.label} ·{" "}
+                    {source.kind === "news" ? "Headlines" : "Policy calendar"}
+                  </a>
+                ) : (
+                  <span>
+                    {source.label} ·{" "}
+                    {source.kind === "news" ? "Headlines" : "Policy calendar"}
+                  </span>
+                )}
                 {source.status !== "available" && (
                   <p className="fx-policy-warning">
                     {source.status === "stale"
                       ? "Stale headlines — check publication dates."
-                      : "Source unavailable — coverage is incomplete."}
+                      : (source.warning ??
+                        "Source unavailable — coverage is incomplete.")}
                   </p>
                 )}
                 <ul>

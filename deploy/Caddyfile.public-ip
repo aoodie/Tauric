@@ -1,0 +1,35 @@
+{
+    default_sni {$TAURIC_DOMAIN}
+}
+
+{$TAURIC_DOMAIN} {
+    tls {
+        issuer acme https://acme-v02.api.letsencrypt.org/directory {
+            profile shortlived
+        }
+    }
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy same-origin
+        Strict-Transport-Security "max-age=31536000"
+        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    }
+    handle /internal/* {
+        respond "Not found" 404
+    }
+    handle /api/* {
+        request_body {
+            max_size 128KB
+        }
+        reverse_proxy api:8000
+    }
+    handle /health/* {
+        reverse_proxy api:8000
+    }
+    handle {
+        root * /srv
+        try_files {path} /index.html
+        file_server
+    }
+}

@@ -76,7 +76,7 @@ export function Qualification({
         setPortfolios(p.filter((v) => v.preferences));
         setDatasets(
           d.datasets.filter((v) =>
-            ["crypto_spot", "fx"].includes(v.asset_type),
+            ["crypto_spot", "fx", "equity", "etf"].includes(v.asset_type),
           ),
         );
         setVersions(s.filter((v) => v.parameters.rules));
@@ -187,7 +187,20 @@ export function Qualification({
                 spread_bps: values.fxSpread ?? "0",
                 financing_daily_bps: values.fxFinancing ?? "0",
               }
-            : undefined,
+            : ["equity", "etf"].includes(
+                  datasets.find((d) => d.id === datasetId)?.asset_type ?? "",
+                )
+              ? {
+                  asset_type: datasets.find((d) => d.id === datasetId)!
+                    .asset_type as "equity" | "etf",
+                  spread_bps: values.stockSpread ?? "0",
+                  commission_per_unit: values.stockCommission ?? "0",
+                  minimum_commission: values.stockMinimum ?? "0",
+                  sell_tax_bps: values.stockTax ?? "0",
+                  financing_daily_bps: "0",
+                  triple_rollover_weekday: 2,
+                }
+              : undefined,
       },
       thresholds: {
         minimum_holdout_bars: Number(values.holdout),
@@ -260,8 +273,9 @@ export function Qualification({
     <div>
       <p className="research-context">
         Freeze an exact executable strategy and testing rules before evaluating
-        held-out data. Qualification currently supports crypto breakout research
-        comparison. Paper promotion and live scalping need further execution
+        held-out data. Qualification supports crypto, Forex, stock and ETF
+        breakout research comparison, with explicit execution and financing
+        assumptions. Paper promotion and live scalping need further execution
         evidence. A passing report grants no trading authority.
       </p>
       <section className="research-block">
@@ -422,6 +436,30 @@ export function Qualification({
                       tick activity. Costs are fixed assumptions, not historical
                       broker financing. Results grant no entry approval.
                     </p>
+                  </div>
+                )}
+                {["equity", "etf"].includes(
+                  datasets.find((d) => d.id === datasetId)?.asset_type ?? "",
+                ) && (
+                  <div className="paper-form-grid">
+                    {[
+                      ["stockSpread", "Synthetic spread (bps)"],
+                      ["stockCommission", "Commission per share"],
+                      ["stockMinimum", "Minimum commission"],
+                      ["stockTax", "Sell-side fees / tax (bps)"],
+                    ].map(([key, label]) => (
+                      <label key={key}>
+                        {label}
+                        <input
+                          required
+                          inputMode="decimal"
+                          value={values[key] ?? "0"}
+                          onChange={(e) =>
+                            setValues((v) => ({ ...v, [key]: e.target.value }))
+                          }
+                        />
+                      </label>
+                    ))}
                   </div>
                 )}
                 <label>

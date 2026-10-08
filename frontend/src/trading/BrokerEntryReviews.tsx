@@ -8,7 +8,7 @@ import {
 const explain = (e: unknown) =>
   e instanceof Error
     ? e.message
-    : "The demo entry review could not be completed.";
+    : "The broker entry review could not be completed.";
 type ReviewRequest = Parameters<typeof api.requestBrokerReview>[0];
 type EntryRequest = Parameters<typeof api.submitReviewedBrokerEntry>[1];
 export function BrokerEntryReviews({
@@ -113,7 +113,7 @@ export function BrokerEntryReviews({
         const job = await api.requestBrokerReview(body);
         setRetry(null);
         setNotice(
-          `OpenClaw review requested. ${job.submit_on_allow ? "One exact demo entry will be submitted if allowed and still valid." : "Review only; the entry requires a separate submit action."}`,
+          `OpenClaw review requested. ${job.submit_on_allow ? "One exact broker entry will be submitted if allowed and still valid." : "Review only; the entry requires a separate submit action."}`,
         );
         await load();
       } catch (err) {
@@ -154,13 +154,14 @@ export function BrokerEntryReviews({
     setups.some((s) => s.job.id === r.assessment_job_id),
   );
   return (
-    <section className="paper-card" aria-label="OpenClaw demo entry reviews">
-      <h4>OpenClaw demo entry approval</h4>
+    <section className="paper-card" aria-label="OpenClaw broker entry reviews">
+      <h4>OpenClaw broker entry approval</h4>
       <p>
         After Tauric approves the exact setup, OpenClaw can allow, reject or
-        defer that entry. An allow covers one order with the reviewed quantity,
-        stop and target. Your no-limits choice applies; broker restrictions and
-        fresh evidence checks remain.
+        defer that entry or reduce its size. An allow covers one order within
+        Tauric’s approved ceiling, with the same stop and target. Broker
+        capacity, portfolio valuation and fresh evidence checks apply to live
+        entries.
       </p>
       {error && <p role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
@@ -183,12 +184,12 @@ export function BrokerEntryReviews({
       <label>
         <input
           type="checkbox"
-          aria-label="Submit demo entry automatically if allowed"
+          aria-label="Submit broker entry automatically if allowed"
           checked={automatic}
           disabled={blocked}
           onChange={(e) => setAutomatic(e.target.checked)}
         />{" "}
-        Submit this exact demo entry automatically if allowed
+        Submit this exact broker entry automatically if allowed
       </label>
       <p>
         This applies to the selected setup only. Scheduled discovery of new
@@ -212,14 +213,14 @@ export function BrokerEntryReviews({
                 profile,
                 submit_on_allow: automatic,
                 reason: automatic
-                  ? "Owner requested OpenClaw review and one exact allowed demo entry"
-                  : "Owner requested OpenClaw demo setup review only",
+                  ? "Owner requested OpenClaw review and one exact allowed broker entry"
+                  : "Owner requested OpenClaw broker setup review only",
               })
             }
           >
             {automatic
-              ? "Review and submit demo entry if allowed"
-              : "Request OpenClaw demo review"}
+              ? "Review and submit broker entry if allowed"
+              : "Request OpenClaw broker review"}
           </button>
         </div>
       ))}
@@ -247,13 +248,13 @@ export function BrokerEntryReviews({
         disabled={pending}
         onClick={() => void act(load)}
       >
-        Refresh OpenClaw demo reviews
+        Refresh OpenClaw broker reviews
       </button>
       {related.map((r) => (
         <article
           className="paper-card"
           key={r.id}
-          aria-label="Saved OpenClaw demo review"
+          aria-label="Saved OpenClaw broker review"
         >
           <p>
             OpenClaw · {r.status} · {r.profile} · {r.model}
@@ -268,6 +269,8 @@ export function BrokerEntryReviews({
             <>
               <p>
                 OpenClaw verdict: <strong>{r.decision.outcome}</strong>
+                {r.decision.risk_scale !== "1" &&
+                  ` · size factor ${r.decision.risk_scale}`}
               </p>
               <p>{r.decision.reason}</p>
               <p>
@@ -282,7 +285,7 @@ export function BrokerEntryReviews({
               </p>
               {r.intent_id ? (
                 <p>
-                  Linked demo entry: {r.intent_id}. Its status, fills and
+                  Linked broker entry: {r.intent_id}. Its status, fills and
                   position appear in the broker orders and journal.
                 </p>
               ) : (
@@ -297,11 +300,11 @@ export function BrokerEntryReviews({
                       void submit(r.id, {
                         request_id: crypto.randomUUID(),
                         reason:
-                          "Owner submitted the exact OpenClaw-approved demo entry",
+                          "Owner submitted the exact OpenClaw-approved broker entry",
                       })
                     }
                   >
-                    Submit this approved demo entry
+                    Submit this approved broker entry
                   </button>
                 )
               )}

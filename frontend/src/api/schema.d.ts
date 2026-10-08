@@ -242,6 +242,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/brokers/closes/{close_id}/repair-protection": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Repair Protection */
+    post: operations["repair_protection_api_v1_brokers_closes__close_id__repair_protection_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/brokers/setup-preview": {
     parameters: {
       query?: never;
@@ -323,6 +340,108 @@ export interface paths {
     put?: never;
     /** Reviewed Entry */
     post: operations["reviewed_entry_api_v1_brokers_reviews__job_id__submit_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/trading-readiness": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** State */
+    get: operations["state_api_v1_trading_readiness_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/trading-readiness/valuation": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Capture */
+    post: operations["capture_api_v1_trading_readiness_valuation_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/trading-readiness/forward": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Register */
+    post: operations["register_api_v1_trading_readiness_forward_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/trading-readiness/forward/{protocol_id}/evaluate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Evaluate */
+    post: operations["evaluate_api_v1_trading_readiness_forward__protocol_id__evaluate_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/intelligence/catalogs/refresh": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Catalogs */
+    post: operations["catalogs_api_v1_intelligence_catalogs_refresh_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/intelligence/register": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Register */
+    post: operations["register_api_v1_intelligence_register_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -477,6 +596,127 @@ export interface paths {
     put?: never;
     /** Send */
     post: operations["send_api_v1_chat_messages_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/assistant": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** State */
+    get: operations["state_api_v1_assistant_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/knowledge/settings": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Settings */
+    get: operations["settings_api_v1_knowledge_settings_get"];
+    /** Save Settings */
+    put: operations["save_settings_api_v1_knowledge_settings_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/knowledge": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Search */
+    get: operations["search_api_v1_knowledge_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/knowledge/collect": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Collect */
+    post: operations["collect_api_v1_knowledge_collect_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/knowledge/notes": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Save Note */
+    post: operations["save_note_api_v1_knowledge_notes_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/knowledge/{document_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Document */
+    get: operations["document_api_v1_knowledge__document_id__get"];
+    /** Edit Note */
+    put: operations["edit_note_api_v1_knowledge__document_id__put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/knowledge/{document_id}/visibility": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Visibility */
+    put: operations["visibility_api_v1_knowledge__document_id__visibility_put"];
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -2159,6 +2399,76 @@ export interface components {
        */
       triple_rollover_weekday: number;
     };
+    /** AssistantReceipt */
+    AssistantReceipt: {
+      /** Id */
+      id: string;
+      /** Turn Id */
+      turn_id: string | null;
+      /**
+       * Operation
+       * @enum {string}
+       */
+      operation:
+        | "save_scanner"
+        | "run_scanner"
+        | "candidate_action"
+        | "research_candidate"
+        | "create_strategy"
+        | "revise_strategy"
+        | "capture_dataset"
+        | "run_backtest"
+        | "save_research_note"
+        | "prepare_upgrade"
+        | "stage_upgrade"
+        | "evaluate_paper_strategy"
+        | "propose_paper_strategy"
+        | "request_paper_review"
+        | "plan_paper_entry"
+        | "execute_paper_plan"
+        | "close_paper_position";
+      /** Title */
+      title: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "saved" | "review_required";
+      /** Result */
+      result: {
+        [key: string]: unknown;
+      };
+      /** Checksum */
+      checksum: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+    };
+    /** AssistantState */
+    AssistantState: {
+      /**
+       * Authority
+       * @default orchestrate_tauric_workflows
+       * @constant
+       */
+      authority: "orchestrate_tauric_workflows";
+      /**
+       * Tauric Authority
+       * @default native_evidence_and_execution_gates
+       * @constant
+       */
+      tauric_authority: "native_evidence_and_execution_gates";
+      /**
+       * Code Changes Applied
+       * @default false
+       * @constant
+       */
+      code_changes_applied: false;
+      /** Receipts */
+      receipts: components["schemas"]["AssistantReceipt"][];
+    };
     /** AuditPage */
     AuditPage: {
       /** Items */
@@ -2350,7 +2660,7 @@ export interface components {
        * Environment
        * @enum {string}
        */
-      environment: "practice" | "paper";
+      environment: "practice" | "paper" | "live";
       /** Account Fingerprint */
       account_fingerprint: string;
       /** Currency */
@@ -2372,6 +2682,12 @@ export interface components {
        * Format: date-time
        */
       observed_at: string;
+      /** Realized Pnl Home */
+      realized_pnl_home?: string | null;
+      /** Fees Home */
+      fees_home?: string | null;
+      /** Financing Home */
+      financing_home?: string | null;
     };
     /** BrokerCloseAction */
     BrokerCloseAction: {
@@ -2579,6 +2895,13 @@ export interface components {
       /** Trade Ids */
       trade_ids?: string[];
       /**
+       * Protection Status
+       * @default incomplete
+       * @enum {string}
+       */
+      protection_status:
+        "covered" | "unprotected" | "incomplete" | "not_required";
+      /**
        * Observed At
        * Format: date-time
        */
@@ -2735,6 +3058,13 @@ export interface components {
        * @constant
        */
       no_owner_limits: true;
+      /**
+       * Live Acknowledged
+       * @default false
+       */
+      live_acknowledged: boolean;
+      /** Forward Report Id */
+      forward_report_id?: string | null;
       /** Reason */
       reason: string;
     };
@@ -2792,6 +3122,8 @@ export interface components {
       filled_quantity: string;
       /** Price */
       price?: string | null;
+      /** Remaining Quantity */
+      remaining_quantity?: string | null;
     };
     /** BrokerQuote */
     BrokerQuote: {
@@ -2817,6 +3149,30 @@ export interface components {
       /** Quote To Home Position */
       quote_to_home_position?: string | null;
     };
+    /** BrokerReadinessView */
+    BrokerReadinessView: {
+      /**
+       * Provider
+       * @enum {string}
+       */
+      provider: "oanda" | "alpaca";
+      /** Environment */
+      environment: string;
+      /** Connection Revision */
+      connection_revision: number;
+      /** Enabled */
+      enabled: boolean;
+      /** Live Enabled */
+      live_enabled: boolean;
+      /** Native Required */
+      native_required: boolean;
+      /** Risk Authority */
+      risk_authority: string;
+      /** Forward Report Id */
+      forward_report_id: string | null;
+      /** Entry Blockers */
+      entry_blockers?: string[];
+    };
     /** BrokerReviewDecisionView */
     BrokerReviewDecisionView: {
       /** Id */
@@ -2830,10 +3186,15 @@ export interface components {
       reason: string;
       /**
        * Authority
-       * @constant
+       * @enum {string}
        */
-      authority: "demo_broker_entry";
+      authority: "demo_broker_entry" | "live_broker_entry";
       approved_order: components["schemas"]["BrokerOrderRequest"];
+      /**
+       * Risk Scale
+       * @default 1
+       */
+      risk_scale: string;
       /**
        * Expires At
        * Format: date-time
@@ -3491,6 +3852,8 @@ export interface components {
       research_jobs?: components["schemas"]["AnalysisView"][];
       /** Action Receipts */
       action_receipts?: components["schemas"]["PortfolioReceipt"][];
+      /** Project Receipts */
+      project_receipts?: components["schemas"]["AssistantReceipt"][];
     };
     /** ConversationView */
     ConversationView: {
@@ -3908,6 +4271,63 @@ export interface components {
       /** Checked At */
       checked_at?: string | null;
     };
+    /** ForwardRegister */
+    ForwardRegister: {
+      /**
+       * Request Id
+       * Format: uuid
+       */
+      request_id: string;
+      /** Reason */
+      reason: string;
+      /**
+       * Provider
+       * @enum {string}
+       */
+      provider: "oanda" | "alpaca";
+      /**
+       * Strategy Version Id
+       * Format: uuid
+       */
+      strategy_version_id: string;
+      /** Instrument Id */
+      instrument_id: string;
+      /**
+       * Minimum Days
+       * @default 14
+       */
+      minimum_days: number;
+      /**
+       * Minimum Closed Trades
+       * @default 20
+       */
+      minimum_closed_trades: number;
+      /**
+       * Maximum Drawdown Percent
+       * @default 10
+       */
+      maximum_drawdown_percent: string;
+      /**
+       * Minimum Net Pnl Home
+       * @default 0
+       */
+      minimum_net_pnl_home: string;
+      /**
+       * Maximum Signal To Fill Seconds
+       * @default 900
+       */
+      maximum_signal_to_fill_seconds: number;
+      /**
+       * Maximum Adverse Slippage Bps
+       * @default 25
+       */
+      maximum_adverse_slippage_bps: string;
+      /**
+       * Risk Percent
+       * @default 1
+       */
+      risk_percent: string;
+    };
     /** GovernanceEnqueue */
     GovernanceEnqueue: {
       /**
@@ -4097,6 +4517,27 @@ export interface components {
       /** Native Research Ready */
       readonly native_research_ready: boolean;
     };
+    /** IntelligenceCatalog */
+    IntelligenceCatalog: {
+      /**
+       * Market
+       * @enum {string}
+       */
+      market: "fx" | "stocks" | "crypto";
+      /** Label */
+      label: string;
+      /** Total */
+      total: number;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "available" | "stale" | "unavailable" | "missing";
+      /** Checked At */
+      checked_at?: string | null;
+      /** Warning */
+      warning?: string | null;
+    };
     /** IntelligenceDashboard */
     IntelligenceDashboard: {
       /**
@@ -4126,6 +4567,8 @@ export interface components {
       watchlist: components["schemas"]["IntelligenceWatchlistView"];
       /** Coverage */
       coverage: string[];
+      /** Catalogs */
+      catalogs?: components["schemas"]["IntelligenceCatalog"][];
     };
     /** IntelligenceItem */
     IntelligenceItem: {
@@ -4179,7 +4622,7 @@ export interface components {
     };
     /** IntelligenceMove */
     IntelligenceMove: {
-      instrument: components["schemas"]["InstrumentView"];
+      instrument: components["schemas"]["IntelligenceSymbol"];
       /** Price */
       price?: string | null;
       /** Changes */
@@ -4198,6 +4641,12 @@ export interface components {
       warning?: string | null;
       /** Snapshot Id */
       snapshot_id?: string | null;
+      /** Price Receipt Id */
+      price_receipt_id?: string | null;
+      /** Daily Bars */
+      daily_bars?: {
+        [key: string]: unknown;
+      }[];
       /** Source */
       source: string;
       /** Volume Type */
@@ -4223,6 +4672,16 @@ export interface components {
       }[];
       /** Receipt Ids */
       receipt_ids: string[];
+    };
+    /** IntelligenceRegister */
+    IntelligenceRegister: {
+      /** Instrument Id */
+      instrument_id: string;
+      /**
+       * Asset Type
+       * @enum {string}
+       */
+      asset_type: "fx" | "equity" | "etf" | "crypto_spot";
     };
     /** IntelligenceSource */
     IntelligenceSource: {
@@ -4256,6 +4715,75 @@ export interface components {
        */
       truncated: boolean;
     };
+    /** IntelligenceSymbol */
+    IntelligenceSymbol: {
+      /** Id */
+      id: string;
+      /** Symbol */
+      symbol: string;
+      /** Name */
+      name: string;
+      /** Provider */
+      provider: string;
+      /** Provider Symbol */
+      provider_symbol: string;
+      /**
+       * Asset Type
+       * @enum {string}
+       */
+      asset_type: "crypto_spot" | "fx" | "equity" | "etf" | "us_listing";
+      /** Base Currency */
+      base_currency: string;
+      /** Quote Currency */
+      quote_currency: string;
+      /**
+       * Volume Type
+       * @enum {string}
+       */
+      volume_type: "exchange_base" | "provider_ticks" | "feed_shares";
+      /** Native Symbol */
+      native_symbol: string;
+      /**
+       * Native Asset Type
+       * @enum {string}
+       */
+      native_asset_type: "crypto" | "forex" | "stock";
+      /** Analysis Scope */
+      analysis_scope: string;
+      /**
+       * Calendar Id
+       * @default crypto_24x7
+       * @enum {string}
+       */
+      calendar_id: "crypto_24x7" | "oanda_fx" | "us_equity";
+      /**
+       * Price Side
+       * @default trades
+       * @enum {string}
+       */
+      price_side: "trades" | "midpoint" | "bid_ask";
+      /**
+       * Supported Intervals
+       * @default [
+       *       "1m",
+       *       "5m",
+       *       "15m",
+       *       "1h",
+       *       "4h",
+       *       "1d"
+       *     ]
+       */
+      supported_intervals: ("1m" | "5m" | "15m" | "1h" | "4h" | "1d")[];
+      /**
+       * Registered
+       * @default true
+       */
+      registered: boolean;
+      /** Catalog Id */
+      catalog_id?: string | null;
+      /** Native Research Ready */
+      readonly native_research_ready: boolean;
+    };
     /** IntelligenceWatchlistChange */
     IntelligenceWatchlistChange: {
       /** Expected Revision */
@@ -4272,6 +4800,88 @@ export interface components {
       revision: number;
       /** Instrument Ids */
       instrument_ids?: string[];
+    };
+    /** KnowledgeNote */
+    KnowledgeNote: {
+      /**
+       * Request Id
+       * Format: uuid
+       */
+      request_id: string;
+      /**
+       * Expected Revision
+       * @default 0
+       */
+      expected_revision: number;
+      /**
+       * Kind
+       * @default wiki
+       * @enum {string}
+       */
+      kind: "wiki" | "preference";
+      /** Title */
+      title: string;
+      /** Body */
+      body: string;
+    };
+    /** KnowledgeSearch */
+    KnowledgeSearch: {
+      /** Query */
+      query: string;
+      /** Items */
+      items: components["schemas"]["KnowledgeView"][];
+      /** Has More */
+      has_more: boolean;
+      /**
+       * Search Method
+       * @default local_keyword
+       * @constant
+       */
+      search_method: "local_keyword";
+    };
+    /** KnowledgeView */
+    KnowledgeView: {
+      /** Id */
+      id: string;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "strategy" | "chat" | "research" | "preference" | "wiki";
+      /** Source Kind */
+      source_kind: string;
+      /** Title */
+      title: string;
+      /** Body */
+      body: string;
+      /** Provenance */
+      provenance: {
+        [key: string]: unknown;
+      };
+      /** Checksum */
+      checksum: string;
+      /** Revision */
+      revision: number;
+      /** Excluded */
+      excluded: boolean;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /**
+       * Authority
+       * @default memory_context_only
+       * @constant
+       */
+      authority: "memory_context_only";
+    };
+    /** KnowledgeVisibility */
+    KnowledgeVisibility: {
+      /** Expected Revision */
+      expected_revision: number;
+      /** Excluded */
+      excluded: boolean;
     };
     /** LayoutChange */
     LayoutChange: {
@@ -4494,6 +5104,124 @@ export interface components {
        * @enum {string}
        */
       session_state: "open" | "closed" | "unknown";
+    };
+    /** MemorySettings */
+    MemorySettings: {
+      /**
+       * Enabled
+       * @default false
+       */
+      enabled: boolean;
+      /**
+       * Record Chats
+       * @default true
+       */
+      record_chats: boolean;
+      /**
+       * Record Strategies
+       * @default true
+       */
+      record_strategies: boolean;
+      /**
+       * Record Research
+       * @default true
+       */
+      record_research: boolean;
+      /**
+       * Use In Chat
+       * @default true
+       */
+      use_in_chat: boolean;
+      /**
+       * Honcho Enabled
+       * @default false
+       */
+      honcho_enabled: boolean;
+      /**
+       * Allow External Context
+       * @default false
+       */
+      allow_external_context: boolean;
+    };
+    /** MemorySettingsChange */
+    MemorySettingsChange: {
+      /**
+       * Enabled
+       * @default false
+       */
+      enabled: boolean;
+      /**
+       * Record Chats
+       * @default true
+       */
+      record_chats: boolean;
+      /**
+       * Record Strategies
+       * @default true
+       */
+      record_strategies: boolean;
+      /**
+       * Record Research
+       * @default true
+       */
+      record_research: boolean;
+      /**
+       * Use In Chat
+       * @default true
+       */
+      use_in_chat: boolean;
+      /**
+       * Honcho Enabled
+       * @default false
+       */
+      honcho_enabled: boolean;
+      /**
+       * Allow External Context
+       * @default false
+       */
+      allow_external_context: boolean;
+      /** Expected Revision */
+      expected_revision: number;
+    };
+    /** MemoryState */
+    MemoryState: {
+      settings: components["schemas"]["MemorySettings"];
+      /** Revision */
+      revision: number;
+      /** Counts */
+      counts: {
+        [key: string]: number;
+      };
+      /** Worker Ready */
+      worker_ready: boolean;
+      /** Last Collected At */
+      last_collected_at: string | null;
+      /** Honcho Configured */
+      honcho_configured: boolean;
+      /** Honcho Learning Enabled */
+      honcho_learning_enabled: boolean;
+      /** Last Honcho At */
+      last_honcho_at: string | null;
+      /** Honcho Representation */
+      honcho_representation: string;
+      /** Honcho Detail */
+      honcho_detail: string;
+      /** Chat Recall Allowed */
+      chat_recall_allowed: boolean;
+      /** Chat Recall Detail */
+      chat_recall_detail: string;
+      /** Vault Configured */
+      vault_configured: boolean;
+      /** Vault Location */
+      vault_location: string;
+      /** Vault Conflicts */
+      vault_conflicts: number;
+      /**
+       * Authority
+       * @default memory_context_only
+       * @constant
+       */
+      authority: "memory_context_only";
     };
     /** ModelConnectionChange */
     ModelConnectionChange: {
@@ -5389,6 +6117,34 @@ export interface components {
        */
       execution_authority: false;
     };
+    /** ReadinessAction */
+    ReadinessAction: {
+      /**
+       * Request Id
+       * Format: uuid
+       */
+      request_id: string;
+      /** Reason */
+      reason: string;
+    };
+    /** ReadinessRecordView */
+    ReadinessRecordView: {
+      /** Id */
+      id: string;
+      /** Kind */
+      kind: string;
+      /** Checksum */
+      checksum: string;
+      /** Payload */
+      payload: {
+        [key: string]: unknown;
+      };
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+    };
     /** ReplayCreate */
     ReplayCreate: {
       /**
@@ -6181,6 +6937,26 @@ export interface components {
        */
       created_at: string;
     };
+    /** TradingReadinessView */
+    TradingReadinessView: {
+      /** Valuations */
+      valuations: components["schemas"]["ReadinessRecordView"][];
+      /** Forward Protocols */
+      forward_protocols: components["schemas"]["ReadinessRecordView"][];
+      /** Forward Reports */
+      forward_reports: components["schemas"]["ReadinessRecordView"][];
+      /** Brokers */
+      brokers: components["schemas"]["BrokerReadinessView"][];
+      /** Valuation Worker Ready */
+      valuation_worker_ready: boolean;
+      /** Forward Worker Ready */
+      forward_worker_ready: boolean;
+      /**
+       * Generated At
+       * Format: date-time
+       */
+      generated_at: string;
+    };
     /** TradingRecordView */
     TradingRecordView: {
       /** Id */
@@ -6701,6 +7477,41 @@ export interface operations {
       };
     };
   };
+  repair_protection_api_v1_brokers_closes__close_id__repair_protection_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        close_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["BrokerReviewedEntrySubmit"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BrokerCloseView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   setup_preview_api_v1_brokers_setup_preview_post: {
     parameters: {
       query?: never;
@@ -6893,6 +7704,180 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["BrokerIntentView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  state_api_v1_trading_readiness_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TradingReadinessView"];
+        };
+      };
+    };
+  };
+  capture_api_v1_trading_readiness_valuation_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReadinessAction"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReadinessRecordView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  register_api_v1_trading_readiness_forward_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ForwardRegister"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReadinessRecordView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  evaluate_api_v1_trading_readiness_forward__protocol_id__evaluate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        protocol_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReadinessAction"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReadinessRecordView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  catalogs_api_v1_intelligence_catalogs_refresh_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["IntelligenceCatalog"][];
+        };
+      };
+    };
+  };
+  register_api_v1_intelligence_register_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["IntelligenceRegister"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InstrumentView"];
         };
       };
       /** @description Validation Error */
@@ -7207,6 +8192,268 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ChatTurnView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  state_api_v1_assistant_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AssistantState"];
+        };
+      };
+    };
+  };
+  settings_api_v1_knowledge_settings_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MemoryState"];
+        };
+      };
+    };
+  };
+  save_settings_api_v1_knowledge_settings_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["MemorySettingsChange"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MemoryState"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  search_api_v1_knowledge_get: {
+    parameters: {
+      query?: {
+        query?: string;
+        kind?:
+          ("strategy" | "chat" | "research" | "preference" | "wiki") | null;
+        include_hidden?: boolean;
+        offset?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["KnowledgeSearch"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  collect_api_v1_knowledge_collect_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  save_note_api_v1_knowledge_notes_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["KnowledgeNote"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["KnowledgeView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  document_api_v1_knowledge__document_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        document_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["KnowledgeView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  edit_note_api_v1_knowledge__document_id__put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        document_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["KnowledgeNote"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["KnowledgeView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  visibility_api_v1_knowledge__document_id__visibility_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        document_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["KnowledgeVisibility"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["KnowledgeView"];
         };
       };
       /** @description Validation Error */

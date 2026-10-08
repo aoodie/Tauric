@@ -5,6 +5,7 @@ from sqlalchemy import select, text
 from sqlalchemy.exc import SQLAlchemyError
 
 from . import services
+from .assistant_api import router as assistant_router
 from .auth import COOKIE_NAME, CurrentOwner, Db, csrf, login
 from .broker_api import router as broker_router
 from .chat_api import router as chat_router
@@ -14,6 +15,8 @@ from .forex_connection import router as forex_connection_router
 from .governance_api import resource as governance_resource
 from .governance_api import router as governance_router
 from .intelligence_api import router as intelligence_router
+from .knowledge_api import router as knowledge_router
+from .live_api import router as live_router
 from .market_api import resource as market_resource
 from .market_api import router as market_router
 from .market_connections import connection_view as market_connection_view
@@ -52,10 +55,13 @@ from .trading_api import router as trading_router
 from .tradingview_connection import CALLBACK_PATH, OAUTH_COOKIE
 from .tradingview_connection import router as tradingview_connection_router
 
-app = FastAPI(title="Tauric platform", version="0.11.0", docs_url=None, redoc_url=None)
+app = FastAPI(title="Tauric platform", version="0.12.0", docs_url=None, redoc_url=None)
 app.include_router(broker_router)
+app.include_router(live_router)
 app.include_router(intelligence_router)
 app.include_router(chat_router)
+app.include_router(assistant_router)
+app.include_router(knowledge_router)
 app.include_router(portfolio_router)
 app.include_router(portfolio_research_router)
 app.include_router(qualification_router)

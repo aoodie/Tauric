@@ -206,7 +206,7 @@ try:
                     "native_artifact_id": artifact_id,
                 },
             )
-            page.get_by_role("button", name="Paper trading", exact=True).click()
+            page.get_by_role("button", name="Trading", exact=True).click()
             # The page polls stored records. Reselect after the completed API write.
             page.wait_for_timeout(5500)
             page.get_by_label("Recorded proposal", exact=True).select_option(prop["id"])
@@ -295,7 +295,7 @@ try:
         )
         public = api(page, "/api/v1/governance")
         assert "fixture-key-not-a-real-credential" not in json.dumps(public)
-        page.get_by_role("button", name="Paper trading", exact=True).click()
+        page.get_by_role("button", name="Trading", exact=True).click()
         page.wait_for_timeout(5500)
         page.get_by_label("Recorded proposal", exact=True).select_option(prop["id"])
         page.get_by_label("Reviewer", exact=True).select_option("cloud")

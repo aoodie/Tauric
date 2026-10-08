@@ -32,6 +32,9 @@ commands = {
     "worker": [str(root / ".runtime-venv/bin/python"), "-m", "tauric.worker"],
     "scanner": [python, "-m", "tauric.scanner_worker"],
     "candidate-research": [python, "-m", "tauric.candidate_research_worker"],
+    "valuation": [python, "-m", "tauric.valuation_worker"],
+    "forward-validation": [python, "-m", "tauric.forward_worker"],
+    "broker": [python, "-m", "tauric.broker_worker"],
     "migrate": [python, "-m", "alembic", "upgrade", "head"],
     "api": [
         python,
@@ -49,6 +52,6 @@ commands = {
 }
 if command not in commands:
     raise SystemExit(
-        "Use: local.py migrate | api | worker | scanner | candidate-research | create-owner --username NAME | test"
+        "Use: local.py migrate | api | worker | scanner | candidate-research | broker | valuation | forward-validation | create-owner --username NAME | test"
     )
 raise SystemExit(subprocess.call(commands[command], cwd=root / "backend", env=env))

@@ -1,0 +1,139 @@
+[app]
+LOG_LEVEL = "WARNING"
+MAX_MESSAGE_SIZE = 25000
+EMBED_MESSAGES = true
+COLLECT_METRICS_LOCAL = false
+
+[db]
+POOL_SIZE = 3
+MAX_OVERFLOW = 2
+
+[auth]
+USE_AUTH = true
+
+[sentry]
+ENABLED = false
+[telemetry]
+ENABLED = false
+[metrics]
+ENABLED = false
+
+[embedding]
+VECTOR_DIMENSIONS = 768
+MAX_INPUT_TOKENS = 1500
+MAX_TOKENS_PER_REQUEST = 12000
+[embedding.model_config]
+transport = "openai"
+model = "nomic-embed-text:v1.5"
+dimensions_mode = "never"
+encoding_format_mode = "float"
+max_batch_size = 8
+timeout = 180.0
+[embedding.model_config.overrides]
+base_url = "http://memory-model:11434/v1"
+
+[deriver]
+ENABLED = true
+WORKERS = 1
+MAX_INPUT_TOKENS = 4096
+WORKING_REPRESENTATION_MAX_OBSERVATIONS = 20
+REPRESENTATION_BATCH_WORK_UNIT_TARGET_TOKENS = 512
+REPRESENTATION_BATCH_TARGET_INPUT_TOKENS = 1024
+REPRESENTATION_BATCH_MAX_AGE_SECONDS = 60
+POLLING_STARTUP_JITTER_SECONDS = 0.0
+[deriver.model_config]
+transport = "openai"
+model = "tauric-memory:4b"
+temperature = 0.0
+thinking_effort = "none"
+max_output_tokens = 1000
+timeout = 300.0
+[deriver.model_config.overrides]
+base_url = "http://memory-model:11434/v1"
+
+[summary]
+ENABLED = false
+[summary.model_config]
+transport = "openai"
+model = "tauric-memory:4b"
+thinking_effort = "none"
+max_output_tokens = 1000
+timeout = 300.0
+[summary.model_config.overrides]
+base_url = "http://memory-model:11434/v1"
+
+[peer_card]
+ENABLED = false
+[dream]
+ENABLED = false
+[dream.deduction_model_config]
+transport = "openai"
+model = "tauric-memory:4b"
+thinking_effort = "none"
+max_output_tokens = 1000
+timeout = 300.0
+[dream.deduction_model_config.overrides]
+base_url = "http://memory-model:11434/v1"
+[dream.induction_model_config]
+transport = "openai"
+model = "tauric-memory:4b"
+thinking_effort = "none"
+max_output_tokens = 1000
+timeout = 300.0
+[dream.induction_model_config.overrides]
+base_url = "http://memory-model:11434/v1"
+
+[dialectic.levels.minimal]
+max_tool_iterations = 2
+max_output_tokens = 1000
+[dialectic.levels.minimal.model_config]
+transport = "openai"
+model = "tauric-memory:4b"
+thinking_effort = "none"
+timeout = 300.0
+[dialectic.levels.minimal.model_config.overrides]
+base_url = "http://memory-model:11434/v1"
+
+[dialectic.levels.low]
+max_tool_iterations = 2
+max_output_tokens = 1000
+[dialectic.levels.low.model_config]
+transport = "openai"
+model = "tauric-memory:4b"
+thinking_effort = "none"
+timeout = 300.0
+[dialectic.levels.low.model_config.overrides]
+base_url = "http://memory-model:11434/v1"
+
+[dialectic.levels.medium]
+max_tool_iterations = 2
+max_output_tokens = 1000
+[dialectic.levels.medium.model_config]
+transport = "openai"
+model = "tauric-memory:4b"
+thinking_effort = "none"
+timeout = 300.0
+[dialectic.levels.medium.model_config.overrides]
+base_url = "http://memory-model:11434/v1"
+
+[dialectic.levels.high]
+max_tool_iterations = 2
+max_output_tokens = 1000
+[dialectic.levels.high.model_config]
+transport = "openai"
+model = "tauric-memory:4b"
+thinking_effort = "none"
+timeout = 300.0
+[dialectic.levels.high.model_config.overrides]
+base_url = "http://memory-model:11434/v1"
+
+[dialectic.levels.max]
+max_tool_iterations = 2
+max_output_tokens = 1000
+[dialectic.levels.max.model_config]
+transport = "openai"
+model = "tauric-memory:4b"
+thinking_effort = "none"
+timeout = 300.0
+[dialectic.levels.max.model_config.overrides]
+base_url = "http://memory-model:11434/v1"

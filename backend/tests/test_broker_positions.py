@@ -29,6 +29,7 @@ class LifecycleBroker(FixtureBroker):
         self.entry_id = None
         self.external = Decimal(7)
         self.holding_override = None
+        self.replacement_orders = {}
 
     def submit(self, order):
         self.submissions.append(order.client_order_id)
@@ -83,6 +84,27 @@ class LifecycleBroker(FixtureBroker):
     view_order = AlpacaPaper.view_order
 
     def request(self, method, path, params=None, **kwargs):
+        if method == "POST" and path == "/v2/orders":
+            body = kwargs["body"]
+            raw = {
+                "id": body["client_order_id"],
+                "client_order_id": body["client_order_id"],
+                "symbol": body["symbol"],
+                "side": body["side"],
+                "qty": body["qty"],
+                "type": body["type"],
+                "status": "accepted",
+                "filled_qty": "0",
+                "filled_avg_price": None,
+                "limit_price": body.get("limit_price"),
+                "stop_price": body.get("stop_price"),
+                "legs": [],
+            }
+            self.replacement_orders[raw["id"]] = raw
+            self.orders[raw["id"]] = self.view_order(raw)
+            return raw
+        if method == "GET" and path.rsplit("/", 1)[-1] in self.replacement_orders:
+            return self.replacement_orders[path.rsplit("/", 1)[-1]]
         if method == "GET" and path == "/v2/account/activities":
             return self.activities.get(params["order_id"], [])
         if method == "DELETE":

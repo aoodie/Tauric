@@ -25,6 +25,11 @@ class IntelligenceRefresh(Contract):
     sources: bool = True
 
 
+class IntelligenceRegister(Contract):
+    instrument_id: str = Field(max_length=120)
+    asset_type: Literal["fx", "equity", "etf", "crypto_spot"]
+
+
 class IntelligenceSymbol(InstrumentView):
     asset_type: Literal["crypto_spot", "fx", "equity", "etf", "us_listing"]
     registered: bool = True

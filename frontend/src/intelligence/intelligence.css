@@ -641,3 +641,33 @@
     align-items: stretch;
   }
 }
+.mi-catalogs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 14px 0;
+}
+.mi-catalogs button {
+  flex: 1;
+  min-width: 180px;
+  text-align: left;
+  white-space: normal;
+}
+.mi-catalogs strong {
+  color: var(--cyan, #00c9ef);
+  font-size: 18px;
+  margin-right: 5px;
+}
+.mi-catalogs small {
+  display: block;
+  font-size: 10px;
+  color: var(--muted, #91a7bb);
+  margin-top: 5px;
+}
+.mi-price-history {
+  width: min(800px, calc(100vw - 30px));
+}
+.mi-price-chart {
+  width: 100%;
+  min-height: 320px;
+}
