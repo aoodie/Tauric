@@ -44,7 +44,7 @@ class RuntimeConfig(BaseSettings):
         return self
 
 
-SCHEMA_REVISION = "0032_live_readiness"
+SCHEMA_REVISION = "0033_worker_progress"
 
 
 @lru_cache

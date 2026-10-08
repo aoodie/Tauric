@@ -8,7 +8,7 @@ permissions:
   contents: read
 concurrency:
   group: tauric-release-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref == 'refs/heads/codex/deployment-candidate' }}
+  cancel-in-progress: ${{ github.ref == 'refs/heads/codex/deployment-candidate' || github.ref == 'refs/heads/codex/trading-acceptance-monitoring' }}
 jobs:
   checks:
     uses: ./.github/workflows/checks.yml
