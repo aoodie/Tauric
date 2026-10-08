@@ -8,6 +8,7 @@ from pydantic import Field, model_validator
 
 from .governance_contracts import GovernanceEnqueue
 from .portfolio_contracts import ChatIdentity
+from .quant_contracts import ExperimentCreate, HistoricalDatasetCreate, SessionReportCreate
 from .research_contracts import DatasetCapture, ReplayCreate
 from .scanner_contracts import CandidateAction, CandidateEscalate
 from .schemas import Contract
@@ -23,6 +24,9 @@ Operation = Literal[
     "revise_strategy",
     "capture_dataset",
     "run_backtest",
+    "retrieve_history",
+    "session_research",
+    "quant_experiment",
     "save_research_note",
     "prepare_upgrade",
     "stage_upgrade",
@@ -139,6 +143,8 @@ class AssistantRead(ChatIdentity):
         "paper_state",
         "paper_record",
         "paper_review",
+        "research_lab",
+        "lab_record",
     ] = "overview"
     operation: Operation | None = None
     resource_id: UUID | None = None
@@ -170,4 +176,6 @@ class AssistantState(Contract):
 
 
 # Re-exported here so schema discovery always describes the actual service contracts.
-RESEARCH_CONTRACTS = {"capture_dataset": DatasetCapture, "run_backtest": ReplayCreate}
+RESEARCH_CONTRACTS = {"capture_dataset": DatasetCapture, "run_backtest": ReplayCreate,
+                      "retrieve_history": HistoricalDatasetCreate, "session_research": SessionReportCreate,
+                      "quant_experiment": ExperimentCreate}

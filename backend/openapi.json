@@ -2699,6 +2699,236 @@
         }
       }
     },
+    "/api/v1/research/lab/datasets/history": {
+      "post": {
+        "tags": [
+          "session research and machine learning"
+        ],
+        "summary": "History",
+        "operationId": "history_api_v1_research_lab_datasets_history_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HistoricalDatasetCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/research/lab": {
+      "get": {
+        "tags": [
+          "session research and machine learning"
+        ],
+        "summary": "State",
+        "operationId": "state_api_v1_research_lab_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/research/lab/reports": {
+      "post": {
+        "tags": [
+          "session research and machine learning"
+        ],
+        "summary": "Report",
+        "operationId": "report_api_v1_research_lab_reports_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionReportCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRecordView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/research/lab/experiments": {
+      "post": {
+        "tags": [
+          "session research and machine learning"
+        ],
+        "summary": "Experiment",
+        "operationId": "experiment_api_v1_research_lab_experiments_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExperimentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRecordView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/research/lab/records/{record_id}": {
+      "get": {
+        "tags": [
+          "session research and machine learning"
+        ],
+        "summary": "Record",
+        "operationId": "record_api_v1_research_lab_records__record_id__get",
+        "parameters": [
+          {
+            "name": "record_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Record Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRecordView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/research/lab/experiments/{record_id}/cancel": {
+      "post": {
+        "tags": [
+          "session research and machine learning"
+        ],
+        "summary": "Cancel",
+        "operationId": "cancel_api_v1_research_lab_experiments__record_id__cancel_post",
+        "parameters": [
+          {
+            "name": "record_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Record Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRecordView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/market-connections/{provider}/test": {
       "post": {
         "summary": "Check Connection",
@@ -6611,6 +6841,9 @@
               "revise_strategy",
               "capture_dataset",
               "run_backtest",
+              "retrieve_history",
+              "session_research",
+              "quant_experiment",
               "save_research_note",
               "prepare_upgrade",
               "stage_upgrade",
@@ -11176,6 +11409,184 @@
         ],
         "title": "EquityPoint"
       },
+      "EvidenceNote": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 180,
+            "minLength": 3,
+            "title": "Title"
+          },
+          "source": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Source"
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 3,
+            "title": "Content"
+          },
+          "published_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Published At"
+          },
+          "available_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Available At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "source",
+          "content",
+          "published_at",
+          "available_at"
+        ],
+        "title": "EvidenceNote"
+      },
+      "ExperimentCreate": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "dataset_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Dataset Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 3,
+            "title": "Name"
+          },
+          "hypothesis": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 3,
+            "title": "Hypothesis"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason"
+          },
+          "engine": {
+            "type": "string",
+            "enum": [
+              "lean",
+              "qlib"
+            ],
+            "title": "Engine"
+          },
+          "session": {
+            "$ref": "#/components/schemas/SessionWindow"
+          },
+          "train_end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Train End"
+          },
+          "validation_end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Validation End"
+          },
+          "test_end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Test End"
+          },
+          "horizon_bars": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Horizon Bars",
+            "default": 4
+          },
+          "lookback_bars": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 3.0,
+            "title": "Lookback Bars",
+            "default": 12
+          },
+          "fast_window": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Fast Window",
+            "default": 5
+          },
+          "slow_window": {
+            "type": "integer",
+            "maximum": 300.0,
+            "minimum": 2.0,
+            "title": "Slow Window",
+            "default": 20
+          },
+          "starting_balance": {
+            "type": "string",
+            "title": "Starting Balance",
+            "default": "10000"
+          },
+          "allocation_percent": {
+            "type": "string",
+            "title": "Allocation Percent",
+            "default": "25"
+          },
+          "fee_bps": {
+            "type": "string",
+            "title": "Fee Bps",
+            "default": "0"
+          },
+          "slippage_bps": {
+            "type": "string",
+            "title": "Slippage Bps",
+            "default": "5"
+          },
+          "asset_costs": {
+            "$ref": "#/components/schemas/AssetCosts"
+          },
+          "model_run_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Run Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "dataset_id",
+          "name",
+          "hypothesis",
+          "reason",
+          "engine",
+          "train_end",
+          "validation_end",
+          "test_end",
+          "asset_costs"
+        ],
+        "title": "ExperimentCreate"
+      },
       "ExperimentPlan": {
         "properties": {
           "dataset_id": {
@@ -11659,6 +12070,67 @@
           "status"
         ],
         "title": "HealthView"
+      },
+      "HistoricalDatasetCreate": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 3,
+            "title": "Name"
+          },
+          "instrument_id": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Instrument Id"
+          },
+          "interval": {
+            "type": "string",
+            "enum": [
+              "1m",
+              "5m",
+              "15m",
+              "1h",
+              "4h",
+              "1d"
+            ],
+            "title": "Interval"
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "End"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "name",
+          "instrument_id",
+          "interval",
+          "start",
+          "end",
+          "reason"
+        ],
+        "title": "HistoricalDatasetCreate"
       },
       "InstrumentAdd": {
         "properties": {
@@ -12767,6 +13239,87 @@
           "excluded"
         ],
         "title": "KnowledgeVisibility"
+      },
+      "LabRecordView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "checksum": {
+            "type": "string",
+            "title": "Checksum"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "checksum",
+          "created_at",
+          "payload"
+        ],
+        "title": "LabRecordView"
+      },
+      "LabState": {
+        "properties": {
+          "engines": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Engines"
+          },
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/SessionWindow"
+            },
+            "type": "array",
+            "title": "Sessions"
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/LabRecordView"
+            },
+            "type": "array",
+            "title": "Records"
+          },
+          "authority": {
+            "type": "string",
+            "const": "research_only",
+            "title": "Authority",
+            "default": "research_only"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "engines",
+          "sessions",
+          "records"
+        ],
+        "title": "LabState"
       },
       "LaneProgressView": {
         "properties": {
@@ -16908,6 +17461,88 @@
         ],
         "title": "ScannerState"
       },
+      "SessionReportCreate": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "dataset_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Dataset Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 3,
+            "title": "Name"
+          },
+          "hypothesis": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 3,
+            "title": "Hypothesis"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "historical",
+              "current",
+              "forecast"
+            ],
+            "title": "Mode",
+            "default": "current"
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start"
+          },
+          "as_of": {
+            "type": "string",
+            "format": "date-time",
+            "title": "As Of"
+          },
+          "session": {
+            "$ref": "#/components/schemas/SessionWindow"
+          },
+          "forecast_bars": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Forecast Bars",
+            "default": 4
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceNote"
+            },
+            "type": "array",
+            "maxItems": 30,
+            "title": "Evidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "dataset_id",
+          "name",
+          "hypothesis",
+          "reason",
+          "start",
+          "as_of"
+        ],
+        "title": "SessionReportCreate"
+      },
       "SessionView": {
         "properties": {
           "username": {
@@ -16932,6 +17567,44 @@
           "expires_at"
         ],
         "title": "SessionView"
+      },
+      "SessionWindow": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name",
+            "default": "All trading hours"
+          },
+          "timezone": {
+            "type": "string",
+            "title": "Timezone",
+            "default": "UTC"
+          },
+          "opening": {
+            "type": "string",
+            "title": "Opening",
+            "default": "00:00"
+          },
+          "closing": {
+            "type": "string",
+            "title": "Closing",
+            "default": "00:00"
+          },
+          "weekdays": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "maxItems": 7,
+            "minItems": 1,
+            "title": "Weekdays"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SessionWindow"
       },
       "SettingChange": {
         "properties": {

@@ -44,7 +44,7 @@ class RuntimeConfig(BaseSettings):
         return self
 
 
-SCHEMA_REVISION = "0033_worker_progress"
+SCHEMA_REVISION = "0034_quant_lab"
 
 
 @lru_cache
