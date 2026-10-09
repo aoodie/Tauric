@@ -37,6 +37,7 @@ jobs:
           .venv/bin/python -m unittest discover -s scripts/tests -v
       - name: Frontend and OpenClaw contracts
         run: |
+          node --test scripts/tests/test_registry_handoff.mjs
           npm --prefix frontend run format:check
           npm --prefix frontend run build
           npm --prefix openclaw run plugin:build
