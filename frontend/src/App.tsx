@@ -1537,6 +1537,7 @@ function Workstation({
       return (
         <AnalysisPanel
           open={open}
+          ask={askOpenClaw}
           setup={() => {
             setSettingsSection("models");
             setPage("settings");

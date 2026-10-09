@@ -97,7 +97,7 @@ def test_built_fx_stock_data_and_costs(database, monkeypatch, tmp_path, script):
     monkeypatch.setattr(market.PROVIDERS["alpaca_stocks"], "collect", stock_collect)
     monkeypatch.setattr(forex_macro, "collect", policy_fixture)
 
-    def supplemental(db, spec):
+    def supplemental(db, spec, *, deadline=None):
         result = supplement_fixture(spec)
         if tradingview_connection.saved(db)[0].get("access_token"):
             result["data"]["version"] = forex_sources.TRADINGVIEW_VERSION

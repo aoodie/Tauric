@@ -19,6 +19,16 @@ Every tool call checks the owner conversation and active lease before and after 
 
 Open research creates no native graph report, strategy qualification, account change, governance approval or order. Existing native daily report and financial controls remain separate.
 
+## Research screen
+
+The workspace chart's **Research** button opens research regardless of native report eligibility. **Research any pair or market** accepts an unsaved pair or product and a timeframe such as `15m`, `7m`, `1w` or `1mo`. **Ask OpenClaw** opens a chat draft retaining that exact request; sending it uses the existing open research tools. It does not require the native worker or a built-in daily report. Provider access and retained history still determine exact candle availability; source research can continue when candles are unavailable.
+
+The built-in daily report remains a separate option for eligible saved instruments. Its model, evidence and worker checks still apply specifically to that report. No trading or qualification gate is removed.
+
+Deployed on 9 October 2026 at 19:57 BST as web source supplement `sha256:047639cb1583718fc3da28fa3e440a6b2a81d774434e0e0fae1d5503463d273e`, built from deployed frontend revision `18b3d34` with only five research-screen source files changed. All 68 installed static files match the tested release, all 15 services are healthy, and the 14 backend containers and private configuration were unchanged. The previous web files were backed up and independently restored for verification. No database migration or financial-route change occurred.
+
+Verification: 67 scoped research and browser tests passed, followed by a browser check of the isolated release itself. The tests cover an instrument without native eligibility, unsaved silver and gold, futures identity, custom/weekly/monthly timeframes, and mobile layout. Records are in `artifacts/open-research-browser-results.json`, `artifacts/native-independent-release-browser.log`, and `artifacts/native-independent-research-deployment.json`. Public HTTPS assets and readiness were verified. Saved owner credentials were rejected during the production sign-in check, and no authenticated browser session was available, so the signed-in production flow remains unverified; no credentials were changed and no research or broker request was submitted by that check.
+
 ## Implementation and verification status
 
 Source implementation and local tests are recorded in `artifacts/open-commodity-research-tests.log`. Pinned Gateway/plugin checks are recorded in `artifacts/open-commodity-openclaw-checks.log`. Production installation and real connected evidence must be recorded separately in `artifacts/open-commodity-deployment.json` and `artifacts/open-commodity-live-verification.json`; implementation alone is not proof of deployment or a successful model-generated answer.

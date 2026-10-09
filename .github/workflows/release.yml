@@ -20,7 +20,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: tauric-release-${{ github.ref }}
+  group: tauric-${{ inputs.registry_revision && 'registry' || 'release' }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref == 'refs/heads/codex/deployment-candidate' || github.ref == 'refs/heads/codex/trading-acceptance-monitoring' }}
 jobs:
   checks:
@@ -60,6 +60,8 @@ jobs:
           name: encrypted-registry-access-${{ inputs.registry_revision }}
           path: artifacts/encrypted-registry-access.json
           retention-days: 1
+      - name: Keep scoped access valid during the encrypted handoff
+        run: sleep 180
   images:
     needs: checks
     runs-on: ubuntu-24.04

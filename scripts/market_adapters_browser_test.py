@@ -26,7 +26,7 @@ with sync_playwright() as p:
     expect(chart.locator(".market-foot")).to_contain_text("7 candles")
     expect(chart.locator(".market-readout")).to_contain_text("Ticks")
     expect(
-        chart.get_by_role("button", name="Daily research", exact=True)
+        chart.get_by_role("button", name="Research", exact=True)
     ).to_be_enabled()
     expect(chart).to_contain_text("Data credentials needed")
     chart.locator("summary").filter(has_text="Data quality").click()

@@ -71,3 +71,11 @@ The observer records health, unexpected restarts/recreations, OOM flags, CPU/mem
 - Keep real-money execution disabled. Wider platform features retain their separate acceptance checks in `SERVER_READINESS.md`.
 
 Primary workflow references: [GitHub container publication](https://docs.github.com/en/actions/tutorials/publish-packages/publish-docker-images), [Docker provenance and SBOMs](https://docs.docker.com/build/ci/github-actions/attestations/), and [Compose services](https://docs.docker.com/reference/compose-file/services/).
+
+## Encrypted image-only registry recovery
+
+If the server registry login has expired, the release workflow can exchange its own package-read permission for four repository-scoped pull tokens. Supply `registry_revision`, the successful `registry_run` and an ephemeral RSA public `registry_recipient` when dispatching `release.yml`. It requires a completed successful same-repository release and validates all four immutable image identities and manifest bytes. The GitHub credential stays inside the workflow. The encrypted envelope uses RSA-OAEP-SHA256 and authenticated AES-256-GCM; retain the private recipient key locally and delete it after use.
+
+The workflow stays alive for 180 seconds after uploading the envelope because registry authorization can expire when its issuing workflow ends. Receive and decrypt it immediately, then send its plaintext only over the already verified SSH connection to `python3 scripts/registry_pull.py --revision FULL_COMMIT` on standard input. Never put tokens in command arguments, logs, chat or the public release bundle. The downloader uses the host's existing containerd image store, private temporary RAM-backed registry configuration and exact amd64 digests. It removes that transient configuration and saves only public image identities. This does not change the permanent registry configuration, start containers or grant financial authority. [Containerd registry configuration](https://github.com/containerd/containerd/blob/main/docs/hosts.md) documents the temporary host-header mechanism.
+
+After downloading, remove the encrypted access artifact and local recipient key. Continue the ordinary backup, isolated migration rehearsal, installation and post-deployment checks. A registry handoff does not authorize an untested release.
