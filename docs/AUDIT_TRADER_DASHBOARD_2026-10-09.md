@@ -108,6 +108,10 @@ Full ownership still requires the five capabilities and acceptance scenarios in 
 
 ## Verification record
 
+Post-installation checks on the first immutable release (`1f5f00b`) exposed a native-artifact checksum mismatch in the activity projection: `analysis.finish` uses sorted JSON with default separators, while compact assistant receipts use `paper.checksum`. The historical native report matches its original writer; changing its stored checksum would be incorrect. The correction verifies the exact serializer for `AnalysisArtifact`, preserves strict receipt verification and exercises the actual native writer in the asynchronous activity regression. The final correction and live feed results belong in the release verification record.
+
+The initial production preservation guard also detected routine valuation observations after workers restarted. All 2,844 pre-backup readiness records matched their original count/hash, and the additions were checksum-valid automatic valuation observations. The 33 other protected authority/settings tables, private credentials, non-image settings and all 23 execution-critical files were unchanged. Treat append-only monitoring observations separately from changes to historical evidence or financial authority.
+
 Before this report: 47 baseline stop/reprotection/readiness/discovery tests and 11 deployment controls passed. The focused scoring/activity/calendar suite passed, and both built-UI browser workflows passed on disposable PostgreSQL with explicit synthetic candles, no real model calls and no broker orders. The governed candidate-to-paper test covers original evidence, mismatched inputs and stable replay.
 
 Release validation results, exact counts, immutable commit/images, backup/restore/migration results, authenticated endpoint checks and post-deployment source/settings comparison are recorded in the accompanying release verification document after they actually complete. Any missing operational acceptance remains explicitly open.
