@@ -90,7 +90,7 @@ def rank(candidates, config):
     ordered = sorted(
         candidates,
         key=lambda c: (
-            -c.setup_score,
+            -Decimal(c.assessment.score if c.assessment else str(c.setup_score)),
             -c.strategy_priority,
             -c.market_data_timestamp.timestamp(),
             c.instrument_id,
@@ -107,7 +107,9 @@ def rank(candidates, config):
         reason = None
         if candidate.dedupe_key in seen:
             reason = "DUPLICATE"
-        elif candidate.setup_score < config.minimum_score:
+        elif Decimal(
+            candidate.assessment.score if candidate.assessment else str(candidate.setup_score)
+        ) < Decimal(str(config.minimum_score)):
             reason = "LOW_SCORE"
         elif len(selected) >= config.max_candidates_per_cycle:
             reason = "CYCLE_LIMIT"

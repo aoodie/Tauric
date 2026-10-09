@@ -333,6 +333,15 @@ def audit_history(
 @app.get("/api/v1/resources/{resource_type}/{resource_id}", response_model=ResourceView)
 def open_resource(resource_type: str, resource_id: str, db: Db, owner: CurrentOwner):
     ref = ResourceRef(type=resource_type, id=resource_id)
+    if resource_type == "assistant_receipt":
+        from .assistant_activity import receipt_item
+        from .models import AssistantRecord
+
+        row = db.get(AssistantRecord, resource_id)
+        if not row or row.owner_id != owner.id:
+            raise HTTPException(404, "This assistant receipt does not exist.")
+        view = receipt_item(db, owner, row)
+        return ResourceView(resource=ref, title=view.title, data=view.model_dump(mode="json"))
     if resource_type == "setting":
         view = services.setting_view(db, owner, resource_id)
         return ResourceView(

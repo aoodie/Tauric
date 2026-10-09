@@ -1,13 +1,16 @@
 from fastapi import APIRouter
+from pydantic import Field
 from sqlalchemy import select
 
-from . import candidate_research, scanner
+from . import candidate_research, scanner, scanner_context, scanner_paper
 from .auth import CurrentOwner, Db
 from .market_contracts import AnalysisView
 from .models import ScannerCandidate, ScannerProfileVersion, ScannerRun
 from .scanner_contracts import (
     CandidateAction,
     CandidateEscalate,
+    CandidatePaperReadiness,
+    CandidatePaperStage,
     CandidateView,
     ScannerProfileView,
     ScannerRunRequest,
@@ -15,9 +18,20 @@ from .scanner_contracts import (
     ScannerSave,
     ScannerState,
 )
-from .schemas import ResourceRef, ResourceView
+from .schemas import Contract, ResourceRef, ResourceView
+from .trading_contracts import TradingRecordView
+
+
+class ScannerContextRefresh(Contract):
+    instrument_ids: list[str] = Field(min_length=1, max_length=50)
+
 
 router = APIRouter(prefix="/api/v1/scanners", tags=["scanners"])
+
+
+@router.post("/context")
+def refresh_context(body: ScannerContextRefresh, db: Db, owner: CurrentOwner):
+    return scanner_context.refresh(db, owner, body.instrument_ids)
 
 
 @router.get("", response_model=ScannerState)
@@ -68,6 +82,16 @@ def action(candidate_id: str, body: CandidateAction, db: Db, owner: CurrentOwner
 @router.post("/candidates/{candidate_id}/analysis", response_model=AnalysisView)
 def escalate(candidate_id: str, body: CandidateEscalate, db: Db, owner: CurrentOwner):
     return candidate_research.escalate(db, owner, candidate_id, body)
+
+
+@router.get("/candidates/{candidate_id}/paper-readiness", response_model=CandidatePaperReadiness)
+def paper_readiness(candidate_id: str, db: Db, owner: CurrentOwner):
+    return scanner_paper.readiness(db, owner, candidate_id)
+
+
+@router.post("/candidates/{candidate_id}/paper-plan", response_model=TradingRecordView)
+def paper_stage(candidate_id: str, body: CandidatePaperStage, db: Db, owner: CurrentOwner):
+    return scanner_paper.stage(db, owner, candidate_id, body)
 
 
 def resource(kind, resource_id, db, owner):

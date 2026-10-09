@@ -453,6 +453,35 @@ export const api = {
   sendChat: async (body: components["schemas"]["ChatSend"]) =>
     unwrap(await client.POST("/api/v1/chat/messages", { body })),
   scanners: async () => unwrap(await client.GET("/api/v1/scanners")),
+  assistantActivities: async (cursor?: string) =>
+    unwrap(
+      await client.GET("/api/v1/assistant/activities", {
+        params: { query: { limit: 50, cursor } },
+      }),
+    ),
+  observeActivities: async (identities: string[]) =>
+    unwrap(
+      await client.POST("/api/v1/assistant/activities/observe", {
+        body: { identities },
+      }),
+    ),
+  candidatePaperReadiness: async (candidate_id: string) =>
+    unwrap(
+      await client.GET(
+        "/api/v1/scanners/candidates/{candidate_id}/paper-readiness",
+        { params: { path: { candidate_id } } },
+      ),
+    ),
+  stageCandidatePaper: async (
+    candidate_id: string,
+    body: components["schemas"]["CandidatePaperStage"],
+  ) =>
+    unwrap(
+      await client.POST(
+        "/api/v1/scanners/candidates/{candidate_id}/paper-plan",
+        { params: { path: { candidate_id } }, body },
+      ),
+    ),
   saveScanner: async (body: components["schemas"]["ScannerSave"]) =>
     unwrap(await client.PUT("/api/v1/scanners/profiles", { body })),
   runScanner: async (body: components["schemas"]["ScannerRunRequest"]) =>

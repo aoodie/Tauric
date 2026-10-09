@@ -44,7 +44,7 @@ class RuntimeConfig(BaseSettings):
         return self
 
 
-SCHEMA_REVISION = "0033_worker_progress"
+SCHEMA_REVISION = "0035_scanner_budget"
 
 
 @lru_cache

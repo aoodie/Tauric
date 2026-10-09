@@ -290,6 +290,8 @@ def register(db, owner, body):
         InstrumentView.model_validate(row.definition) for row in db.scalars(select(Instrument))
     ]
     for spec in existing:
+        if spec.classification_source == "unclassified":
+            continue
         if (
             spec.provider == ("oanda_v20" if body.provider == "oanda" else "alpaca_stocks")
             and spec.provider_symbol == body.symbol
@@ -317,6 +319,7 @@ def register(db, owner, body):
         analysis_scope="",
         calendar_id="oanda_fx" if is_fx else "us_equity",
         price_side="bid_ask" if is_fx else "trades",
+        classification_source="provider_currency" if is_fx else "owner_selection",
     )
     db.add(
         Instrument(

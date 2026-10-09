@@ -158,7 +158,7 @@ def test_worker_success_and_lease_fencing(ready, database, monkeypatch):
         assert '"daily_native_research": true' in instructions
         assert '"forex_policy_currencies": ["EUR", "GBP", "JPY", "USD"]' in instructions
         assert (
-            '"unsupported_scopes": ["commodities", "weekly", "historical", "intraday", "futures"]'
+            '"unsupported_native_scopes": ["commodities", "weekly", "historical", "intraday", "futures"]'
             in instructions
         )
         assert (

@@ -25,9 +25,17 @@ from .models import (
     StrategyVersion,
     now,
 )
+from .open_research import OpenResearchRequest
 from .portfolio_contracts import ChatContextRead, PortfolioChatAction, PortfolioResearchInvocation
 
 router = APIRouter(prefix="/internal/openclaw", include_in_schema=False)
+
+
+@router.post("/open-research")
+def open_research(body: OpenResearchRequest, request: Request, db: Db):
+    from . import open_research
+
+    return open_research.execute(db, service_owner(request, db), body)
 
 
 @router.post("/market-observations")

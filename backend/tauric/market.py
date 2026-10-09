@@ -11,6 +11,7 @@ import httpx
 from fastapi import HTTPException
 from sqlalchemy import func, select
 
+from . import provider_requests
 from .config import runtime_config
 from .data_providers import AlpacaStocks, OandaFX, ReadOnlyProvider, connections
 from .data_quality import freshness, verify
@@ -223,11 +224,12 @@ def refresh(db, instrument_id, interval, *, commit=True):
     adapter = PROVIDERS.get(spec.provider)
     if not adapter:
         raise HTTPException(422, "This data provider is not implemented.")
-    collected = (
-        adapter.collect(spec, interval, config=connections(db))
-        if isinstance(adapter, ReadOnlyProvider)
-        else adapter.collect(spec, interval)
-    )
+    with provider_requests.scope(db, spec.provider):
+        collected = (
+            adapter.collect(spec, interval, config=connections(db))
+            if isinstance(adapter, ReadOnlyProvider)
+            else adapter.collect(spec, interval)
+        )
     candles, provider_time, received_at = collected[:3]
     context = collected[3] if len(collected) == 4 else default_context(spec).model_dump(mode="json")
     try:

@@ -6,7 +6,7 @@ from uuid import UUID
 
 from pydantic import AwareDatetime, Field, field_validator, model_validator
 
-from .financial_contracts import Money
+from .financial_contracts import Cost, Money
 from .market_contracts import AnalysisView, Interval
 from .schemas import Contract
 
@@ -23,6 +23,43 @@ class CandidateRanking(Contract):
     max_candidates_per_cycle: int = Field(default=2, ge=1, le=100, strict=True)
     max_candidates_per_asset_class: int = Field(default=2, ge=1, le=100, strict=True)
     max_candidates_per_strategy: int = Field(default=2, ge=1, le=100, strict=True)
+
+
+class SetupAssessment(Contract):
+    version: Literal["multifactor_v1"]
+    score: Cost
+    rating: Literal["HIGH", "MODERATE", "LOW"]
+    factors: dict[str, str]
+    contributions: dict[str, str]
+    macro_penalty: Cost
+    missing_evidence: list[str]
+    bar_close_time: AwareDatetime
+    geometry: dict[str, str | None]
+    context_receipts: dict[str, dict]
+    macro_receipts: list[dict]
+    execution_authority: Literal[False] = False
+
+    @model_validator(mode="after")
+    def exact_band(self):
+        from decimal import Decimal
+
+        score = Decimal(self.score)
+        band = (
+            "HIGH"
+            if score >= Decimal("0.82")
+            else "MODERATE"
+            if score >= Decimal("0.65")
+            else "LOW"
+        )
+        if score > 1 or self.rating != band or (self.missing_evidence and band == "HIGH"):
+            raise ValueError("Score, band and evidence completeness must agree.")
+        return self
+
+
+class ScannerCatalog(Contract):
+    provider: Literal["oanda", "alpaca"]
+    all_catalog: Literal[True] = True
+    instruments_per_cycle: int = Field(default=10, ge=1, le=100, strict=True)
 
 
 class PotentialCandidate(Contract):
@@ -44,12 +81,16 @@ class PotentialCandidate(Contract):
     dedupe_key: str
     trace_id: str
     strategy_priority: int = Field(default=0, ge=0, le=100)
+    assessment: SetupAssessment | None = None
 
 
 class ScannerParameters(Contract):
     enabled: bool = Field(strict=True)
-    universe: list[str] = Field(min_length=1, max_length=1000)
+    universe: list[str] = Field(default_factory=list, max_length=1000)
     interval: Interval
+    intervals: list[Interval] = Field(default_factory=list, max_length=6)
+    catalog: ScannerCatalog | None = None
+    scoring_version: Literal["legacy_v1", "multifactor_v1"] = "legacy_v1"
     detector_id: DetectorId
     detector_ids: list[DetectorId] = Field(default_factory=list, max_length=3)
     lookback: int = Field(ge=2, le=100, strict=True)
@@ -85,13 +126,19 @@ class ScannerParameters(Contract):
 
     @model_validator(mode="after")
     def coherent_filters(self):
+        if not self.universe and not self.catalog:
+            raise ValueError("Choose saved instruments or a provider catalog.")
+        if len(set(self.intervals)) != len(self.intervals):
+            raise ValueError("Select each timeframe once.")
         if len(set(self.detector_ids)) != len(self.detector_ids):
             raise ValueError("Select each setup once.")
         if "trend_pullback_v1" in self.detectors and self.lookback < 4:
             raise ValueError("Trend pullbacks require at least four prior closed candles.")
-        if len(set(self.disabled_instruments)) != len(self.disabled_instruments) or not set(
-            self.disabled_instruments
-        ) <= set(self.universe):
+        if (
+            len(set(self.disabled_instruments)) != len(self.disabled_instruments)
+            or not set(self.disabled_instruments) <= set(self.universe)
+            and not self.catalog
+        ):
             raise ValueError("Disabled instruments must be distinct members of the universe.")
         if self.minimum_price and self.maximum_price:
             from decimal import Decimal
@@ -103,6 +150,10 @@ class ScannerParameters(Contract):
     @property
     def detectors(self):
         return self.detector_ids or [self.detector_id]
+
+    @property
+    def scan_intervals(self):
+        return self.intervals or [self.interval]
 
 
 class ScannerSave(Contract):
@@ -165,6 +216,28 @@ class CandidateEscalate(Contract):
     reason: str = Field(min_length=3, max_length=500)
 
 
+class CandidatePaperStage(Contract):
+    request_id: UUID
+    decision_id: UUID
+    backtest_id: UUID
+    reason: str = Field(min_length=3, max_length=500)
+
+
+class PaperPrerequisite(Contract):
+    name: str
+    ready: bool
+    detail: str
+
+
+class CandidatePaperReadiness(Contract):
+    candidate_id: str
+    ready: bool
+    prerequisites: list[PaperPrerequisite]
+    decision_id: str | None
+    backtest_id: str | None
+    detail: str
+
+
 class CandidateView(Contract):
     id: str
     asset_class: Literal["crypto_spot", "fx", "equity", "etf"]
@@ -183,6 +256,7 @@ class CandidateView(Contract):
     analysis: AnalysisView | None
     history: list[dict]
     setup_score: float = Field(default=0, ge=0, le=1)
+    assessment: SetupAssessment | None = None
     potential_candidates: list[PotentialCandidate] = Field(default_factory=list)
     execution_authority: Literal[False] = False
 

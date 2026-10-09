@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { getToolPluginMetadata } from 'openclaw/plugin-sdk/tool-plugin';
 import entry from './plugin/dist/index.js';
 const metadata=getToolPluginMetadata(entry);
 assert.equal(metadata.id,'tauric-governance-tools');
-assert.deepEqual(metadata.tools.map(t=>t.name),['tauric_paper_context','tauric_review_context','tauric_chat_context','tauric_request_research','tauric_research_status','tauric_portfolio_action','tauric_request_portfolio_research','tauric_broker_review_context','tauric_project_read','tauric_project_action','tauric_market_data']);
+assert.deepEqual(metadata.tools.map(t=>t.name),['tauric_paper_context','tauric_review_context','tauric_chat_context','tauric_request_research','tauric_research_status','tauric_portfolio_action','tauric_request_portfolio_research','tauric_broker_review_context','tauric_project_read','tauric_project_action','tauric_market_data','tauric_open_research']);
 assert.equal(metadata.tools[0].optional,true);
 const tools=[];
 entry.register({pluginConfig:{platformUrl:'http://api:8000/',platformToken:'offline-test-token'},registerTool:t=>tools.push(t)});
-assert.equal(tools.length,11);
+assert.equal(tools.length,12);
 const fakeContext={authority:'read_only_paper_context',native_original:{payload:{native_rating:'BUY',governance:null}}};
 const originalFetch=globalThis.fetch;
 let calls=0;
@@ -101,7 +102,7 @@ entry.register({pluginConfig:{platformUrl:'https://attacker.example/',platformTo
 globalThis.fetch=async()=>{throw Error('Forbidden external endpoint');};
 await assert.rejects(()=>badTools[7].execute('wrong-root',{job_id:reviewId}),/Unsupported private/);
 globalThis.fetch=originalFetch;
-for(const [index,endpoint,params] of [[10,'market-observations',{symbol:'XAU/USD',intervals:['15m','1h']}],[8,'project-read',{resource:'source',path:'frontend/src/scanner/Scanner.tsx'}],
+for(const [index,endpoint,params] of [[11,'open-research',{operation:'prices',symbol:'KC=F',provider:'yahoo',interval:'1w',start:'2025-01-01T00:00:00Z'}],[10,'market-observations',{symbol:'XAU/USD',intervals:['15m','1h']}],[8,'project-read',{resource:'source',path:'frontend/src/scanner/Scanner.tsx'}],
   [9,'project-action',{operation:'save_research_note',parameters:{title:'Fixture idea'},reason:'Owner asked'}]]) {
   const factory=tools[index];
   assert.equal(typeof factory,'function');
@@ -123,3 +124,19 @@ for(const [index,endpoint,params] of [[10,'market-observations',{symbol:'XAU/USD
 }
 globalThis.fetch=originalFetch;
 console.log('Pinned SDK metadata, trusted scoped factories, effect guards, research budgets and portfolio action fixtures passed (no model calls).');
+
+const sourceReader=tools[11](trusted);
+assert.match(sourceReader.description,/operation=read/);
+globalThis.fetch=async()=>Response.json({detail:[{loc:['body'],msg:'Value error, Use operation=read for a source URL.',input:{url:'must-not-echo-input'}}]},{status:422});
+const invalidSource=(await sourceReader.execute('source-validation',{operation:'search',url:'https://example.org/',query:'source'})).details;
+assert.match(invalidSource.error,/Use operation=read/);
+assert.equal(invalidSource.validation_errors[0].message,'Value error, Use operation=read for a source URL.');
+assert.equal(JSON.stringify(invalidSource).includes('must-not-echo-input'),false);
+globalThis.fetch=async(url,options)=>{const data=JSON.parse(options.body);assert.equal(data.operation,'read');assert.equal(data.url,'https://example.org/');return Response.json({authority:'open_research_only',result:{text:'Verified original source'},orders_submitted:false});};
+assert.equal((await sourceReader.execute('source-read',{operation:'read',url:'https://example.org/'})).details.result.text,'Verified original source');
+globalThis.fetch=originalFetch;
+console.log('Original-source read descriptions and actionable validation feedback passed without echoing rejected inputs.');
+const publishedSchema=JSON.parse(readFileSync(new URL('../backend/openapi.json',import.meta.url),'utf8'));
+const advertisedOperations=tools[9](trusted).parameters.properties.operation.anyOf.map(value=>value.const);
+assert.deepEqual(advertisedOperations.sort(),publishedSchema.components.schemas.AssistantReceipt.properties.operation.enum.sort());
+console.log('Registered management operations exactly match the released backend contract.');

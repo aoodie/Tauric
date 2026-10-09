@@ -14,3 +14,7 @@ Forex daily requests still use the analysis screen. Chat dispatch and automated 
 - `artifacts/chat-capabilities-preview-verification.json`: ready local API and chat worker match all five changed source files; the private Gateway plugin and copied workspace instructions match; its actual read-only context confirms daily Forex and stock/ETF chat scope. Zero verification model calls and research requests.
 
 Deployment used two small image layers built from the running backend/Gateway images, containing only the tested chat files. Only API, chat worker and Gateway were recreated; no migration was required. The source changes are also present in the normal build context for subsequent full deployments. The read-only check can be repeated with `python scripts/chat_capabilities_preview_check.py`.
+
+## Open research scope, 9 October 2026
+
+The earlier unsupported commodity/timeframe statements above describe native graph reports. The new open research route separates public source investigation and market observations from those native reports. Commodities require no research registration, and any requested timeframe can be investigated with source research and available provider candles/custom aggregates. See [implementation, limits and deployment evidence](OPEN_COMMODITY_RESEARCH.md).

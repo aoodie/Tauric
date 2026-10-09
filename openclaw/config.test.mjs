@@ -22,7 +22,7 @@ const runtime={settings:{timeout_seconds:180,max_output_tokens:2000},routes:{
 const config=buildConfig('/state',tokens,runtime);
 runtime.chat={profile:'local',telegram:{enabled:true,owner_id:'12345678',token:'fixture-telegram-token'},discord:{enabled:true,owner_id:'123456789012345678',token:'fixture-discord-token'}};
 const chatConfig=buildConfig('/state',tokens,runtime);
-assert.deepEqual(chatConfig.agents.entries['tauric-chat'].tools.allow,['tauric_chat_context','tauric_request_research','tauric_research_status','tauric_portfolio_action','tauric_request_portfolio_research','tauric_project_read','tauric_project_action','tauric_market_data']);
+assert.deepEqual(chatConfig.agents.entries['tauric-chat'].tools.allow,['tauric_chat_context','tauric_request_research','tauric_research_status','tauric_portfolio_action','tauric_request_portfolio_research','tauric_project_read','tauric_project_action','tauric_market_data','tauric_open_research']);
 assert.deepEqual(chatConfig.commands.ownerAllowFrom,['telegram:12345678','discord:123456789012345678']);
 assert.deepEqual(chatConfig.agents.entries['governor-local'].tools.allow,['tauric_review_context']);
 assert.equal(chatConfig.channels.telegram.dmPolicy,'allowlist');

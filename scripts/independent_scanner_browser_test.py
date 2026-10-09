@@ -39,6 +39,7 @@ with sync_playwright() as p:
         )
         form.get_by_label("Scanner name", exact=True).fill(name)
         form.get_by_label("Timeframe", exact=True).select_option("15m")
+        form.get_by_label("Setup scoring", exact=True).select_option("legacy_v1")
         form.get_by_text("Advanced settings", exact=False).click()
         for label, value in {
             "Minimum setup score (0–1)": "0.50",

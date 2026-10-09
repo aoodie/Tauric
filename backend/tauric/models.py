@@ -65,7 +65,7 @@ class AssistantRecord(Base):
     turn_id: Mapped[str | None] = mapped_column(ForeignKey("chat_turns.id"))
     request_id: Mapped[str] = mapped_column(String(36))
     stage: Mapped[str] = mapped_column(String(20))
-    operation: Mapped[str] = mapped_column(String(30))
+    operation: Mapped[str] = mapped_column(String(64))
     title: Mapped[str] = mapped_column(String(120))
     payload: Mapped[dict] = mapped_column(JSON)
     checksum: Mapped[str] = mapped_column(String(64))

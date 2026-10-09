@@ -41,10 +41,20 @@ def capabilities(db):
         )
     total = db.scalar(select(func.count()).select_from(Instrument))
     return {
-        "scope": "Current daily research for supported registered crypto, stocks, ETFs and Forex. Chat can request crypto, stock, ETF and provider-verified Forex daily runs. Forex policy/economic coverage varies by currency; missing sources stay explicit. Owner authorization, connections, readiness and allowances still apply.",
+        "scope": "Open research for any commodity, asset or timeframe through tauric_open_research without registration. Separately, native graph reports provide current daily research for supported registered crypto, stocks, ETFs and Forex. Chat can request crypto, stock, ETF and provider-verified Forex daily runs. Forex policy/economic coverage varies by currency; missing sources stay explicit. Owner authorization, connections, readiness and allowances still apply.",
         "forex_policy_currencies": sorted(native_scope.FX_POLICY_CURRENCIES),
-        "unsupported_scopes": ["commodities", "weekly", "historical", "intraday", "futures"],
-        "market_information": "Fresh candles and chat interpretation are separate from native research. Use tauric_market_data for registered assets or account-verified XAU/USD gold; default intervals are 15m and 1h. No native report, strategy qualification or execution approval is created by an observation.",
+        "unsupported_native_scopes": ["commodities", "weekly", "historical", "intraday", "futures"],
+        "open_research": {
+            "enabled": True,
+            "tool": "tauric_open_research",
+            "registration_required": False,
+            "scope": "Open research for any commodity, asset or timeframe: public source search/read, instrument discovery and timestamped price history. OANDA account products and public Yahoo Finance markets have separate verified identities. Provider availability and retained history determine price coverage; no asset/timeframe is categorically barred from source research.",
+            "operations": ["search", "read", "discover", "prices"],
+            "price_timeframes": "Provider-native seconds through monthly bars, plus complete custom aggregates such as 7m, 2w and 1y. Use start/end for history. Exact feed coverage remains explicit.",
+            "native_report_created": False,
+            "execution_authority": False,
+        },
+        "market_information": "Use tauric_market_data for registered charts and OANDA account-verified products, including metals and commodity CFDs. Use tauric_open_research for source research, public instrument discovery and any requested price timeframe/history. Registration is unnecessary for open research. Missing native support does not prevent open research or chart interpretation. No native report, strategy qualification or execution approval is created.",
         "registered_instruments": instruments,
         "registered_count": total,
         "registry_truncated": total > len(instruments),

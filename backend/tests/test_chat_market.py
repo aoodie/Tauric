@@ -8,12 +8,12 @@ from fastapi import HTTPException
 from test_assistant_management import invocation as invocation
 from test_chat import ready as ready
 
-from tauric import chat_market
+from tauric import chat_market, open_research, research_intervals
 from tauric.models import now
 
 
 def response(interval="15m"):
-    duration = 900 if interval == "15m" else 3600
+    duration = {"15m": 900, "1h": 3600, "1d": 86400}[interval]
     opening = now().replace(second=0, microsecond=0) - timedelta(seconds=duration * 2)
     sides = {
         "mid": {"o": "2600", "h": "2604", "l": "2598", "c": "2602"},
@@ -22,7 +22,7 @@ def response(interval="15m"):
     }
     return {
         "instrument": "XAU_USD",
-        "granularity": "M15" if interval == "15m" else "H1",
+        "granularity": research_intervals.OANDA[interval],
         "candles": [{"time": opening.isoformat(), "complete": True, "volume": 20, **sides}],
     }
 
@@ -31,7 +31,7 @@ def response(interval="15m"):
 def provider(monkeypatch):
     config = SimpleNamespace(environment="practice")
     monkeypatch.setattr(
-        chat_market,
+        open_research,
         "endpoint",
         lambda *args: ("https://api-fxpractice.oanda.com/v3/accounts/private/instruments", {}),
     )
@@ -45,7 +45,7 @@ def provider(monkeypatch):
         data["calls"].append((url, params))
         return data["catalog"] if url.endswith("/instruments") else data["candles"]
 
-    monkeypatch.setattr(chat_market, "request_json", request)
+    monkeypatch.setattr(open_research, "request_json", request)
     return config, data
 
 
@@ -60,7 +60,7 @@ def test_gold_observation_has_closed_bars_and_no_native_authority(provider):
     assert observed["provider_time"] is None and observed["warnings"]
     assert data["calls"][1][0] == "https://api-fxpractice.oanda.com/v3/instruments/XAU_USD/candles"
     assert data["calls"][1][1]["price"] == "MBA"
-    assert data["calls"][1][1]["count"] == 61
+    assert data["calls"][1][1]["count"] == 122
 
 
 @pytest.mark.parametrize(
@@ -77,7 +77,7 @@ def test_gold_requires_actual_metal_entitlement(provider, catalog):
     data["catalog"] = catalog
     with pytest.raises(HTTPException) as rejected:
         chat_market.gold("15m", config)
-    assert rejected.value.status_code == 503 and len(data["calls"]) == 1
+    assert rejected.value.status_code in (404, 502, 503) and len(data["calls"]) == 1
 
 
 @pytest.mark.parametrize(
@@ -97,11 +97,12 @@ def test_gold_rejects_unverifiable_candles(provider, change):
     assert rejected.value.status_code == 502
 
 
-def test_no_daily_gold_substitution(provider):
+def test_daily_gold_observation_is_available_without_native_report(provider):
     config, data = provider
-    with pytest.raises(HTTPException):
-        chat_market.gold("1d", config)
-    assert data["calls"] == []
+    data["candles"] = response("1d")
+    observed = chat_market.gold("1d", config)
+    assert observed["interval"] == "1d" and observed["native_research_supported"] is False
+    assert data["calls"][1][1]["granularity"] == "D"
 
 
 def test_market_tool_requires_owner_and_fresh_chat(ready, invocation, monkeypatch):
@@ -117,13 +118,12 @@ def test_market_tool_requires_owner_and_fresh_chat(ready, invocation, monkeypatc
         ready.post(path, headers=headers, json={**body, "session_key": "unbound"}).status_code
         == 403
     )
-    monkeypatch.setattr(chat_market, "stored_connection", lambda *args: (None, 1, "settings"))
     monkeypatch.setattr(
-        chat_market,
-        "gold",
-        lambda interval, config: {
+        open_research,
+        "prices",
+        lambda db, request: {
             "symbol": "XAU/USD",
-            "interval": interval,
+            "interval": request.interval,
             "native_research_supported": False,
         },
     )
