@@ -1,5 +1,7 @@
 # Tauric trading workstation
 
+OpenClaw is the intended general autonomous project owner. The owner's standing mandate includes planning, engineering, research, follow-up, operations, and routine tested deployments and recovery under the existing release process. See [project ownership, authority and acceptance](docs/OPENCLAW_PROJECT_OWNERSHIP.md); the mandate is recorded, while the full persistent ownership runtime still requires implementation and verification.
+
 Self-hosted trading intelligence, governance and execution for one owner.
 
 A [GitHub deployment candidate](docs/GITHUB_DEPLOYMENT.md) is published and deployed on IONOS with digest-pinned images, trusted HTTPS and backup/restore and reboot evidence. The 7 October hosted release passed 968 backend tests, four multi-architecture image publications and clean installation/full restoration of 76 tables and four runtime volumes. A fresh 8 October server check found all 15 services healthy. Representative 24-hour workload, the connected governed demo lifecycle, failed migrated-upgrade recovery and real prospective strategy evidence remain open. See the [current acceptance plan](docs/ACCEPTANCE_PLAN.md) and [server evidence](docs/SERVER_DEPLOYMENT_VERIFICATION.md).
