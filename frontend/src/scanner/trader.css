@@ -1,0 +1,275 @@
+.trader-dashboard {
+  background: radial-gradient(ellipse at 10% 0%, #12314655, transparent 45%);
+}
+.trader-heading,
+.radar-heading,
+.opportunity-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+.trader-heading h1 {
+  margin: 0.25rem 0;
+}
+.trader-heading p {
+  color: var(--muted);
+  margin: 0.3rem 0 1.3rem;
+}
+.trader-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr) 1.8fr;
+  border: 1px solid var(--border);
+  margin-bottom: 1.2rem;
+  background: var(--panel);
+}
+.trader-summary > div {
+  padding: 1rem 1.2rem;
+  border-right: 1px solid var(--border);
+  display: grid;
+  gap: 0.4rem;
+}
+.trader-summary > div:last-child {
+  border: 0;
+}
+.trader-summary span,
+.trader-summary small {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+.trader-summary strong {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 2rem;
+  font-weight: 500;
+}
+.trader-summary .summary-time {
+  font-size: 1.5rem;
+}
+.trader-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(340px, 1fr);
+  align-items: start;
+  gap: 1.3rem;
+}
+.opportunity-radar {
+  min-width: 0;
+}
+.radar-heading {
+  align-items: center;
+}
+.radar-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.3rem 0;
+}
+.radar-explanation {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.radar-filters {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr 1fr 1fr;
+  gap: 0.65rem;
+  margin: 1rem 0;
+}
+.radar-filters label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.radar-filters input,
+.radar-filters select {
+  min-width: 0;
+  width: 100%;
+}
+.opportunity-list {
+  display: grid;
+  gap: 1rem;
+}
+.opportunity-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 1.1rem;
+  position: relative;
+}
+.opportunity-card.band-high {
+  border-left: 3px solid var(--green);
+}
+.opportunity-card.band-moderate {
+  border-left: 3px solid var(--gold);
+}
+.opportunity-heading h2 {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 2rem;
+  margin: 0.15rem 0;
+}
+.opportunity-heading p {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 0;
+}
+.setup-score {
+  text-align: right;
+  display: grid;
+  gap: 0.1rem;
+  flex-shrink: 0;
+}
+.setup-score strong {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 1.8rem;
+  font-weight: 500;
+}
+.setup-score strong small {
+  font-size: 0.65rem;
+  color: var(--muted);
+}
+.setup-score > span:last-child {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+.band-high .setup-score strong {
+  color: var(--green);
+}
+.band-moderate .setup-score strong {
+  color: var(--gold);
+}
+.score-track {
+  height: 3px;
+  background: var(--border);
+  margin: 1rem 0;
+}
+.score-track > span {
+  display: block;
+  height: 100%;
+  background: var(--cyan);
+}
+.band-high .score-track > span {
+  background: var(--green);
+}
+.band-moderate .score-track > span {
+  background: var(--gold);
+}
+.factor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+.factor-grid > div {
+  display: grid;
+  gap: 0.25rem;
+  border-left: 1px solid var(--border);
+  padding: 0.35rem 0.65rem;
+}
+.factor-grid span,
+.factor-grid small {
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+.factor-grid strong {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.factor-unknown strong {
+  color: var(--gold);
+}
+.opportunity-geometry {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin: 1rem 0 0.65rem;
+  padding: 0.8rem 0;
+  gap: 0.5rem;
+}
+.opportunity-geometry dt {
+  color: var(--muted);
+  font-size: 0.65rem;
+}
+.opportunity-geometry dd {
+  margin: 0.4rem 0 0;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.76rem;
+  overflow-wrap: anywhere;
+}
+.opportunity-missing {
+  font-size: 0.75rem;
+  color: var(--gold);
+  line-height: 1.5;
+  padding: 0.65rem 0.8rem;
+  background: #f4b84a09;
+}
+.opportunity-provenance {
+  color: var(--muted);
+  font-size: 0.67rem;
+  line-height: 1.5;
+}
+.opportunity-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0.8rem 0;
+}
+.opportunity-card .scanner-detail {
+  border-top: 1px solid var(--border);
+  padding-top: 0.8rem;
+}
+.radar-empty {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  padding: 3rem 2rem;
+  border: 1px dashed var(--border);
+  color: var(--muted);
+}
+.radar-empty h3 {
+  color: var(--text);
+  margin-bottom: 0;
+}
+.radar-empty p {
+  max-width: 390px;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+.catalog-coverage {
+  border-left: 2px solid var(--cyan);
+  padding: 0.5rem 1rem;
+  margin-bottom: 1rem;
+  background: var(--panel);
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+@media (max-width: 1200px) {
+  .trader-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .trader-columns .openclaw-activity {
+    margin-top: 0.5rem;
+  }
+}
+@media (max-width: 650px) {
+  .trader-heading {
+    flex-direction: column;
+  }
+  .trader-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .trader-summary > div {
+    border-bottom: 1px solid var(--border);
+  }
+  .radar-filters {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .factor-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .opportunity-geometry {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  .opportunity-card {
+    padding: 0.8rem;
+  }
+}

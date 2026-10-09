@@ -34,7 +34,8 @@
       "tauric_broker_review_context",
       "tauric_project_read",
       "tauric_project_action",
-      "tauric_market_data"
+      "tauric_market_data",
+      "tauric_open_research"
     ]
   },
   "toolMetadata": {
@@ -69,6 +70,9 @@
       "optional": true
     },
     "tauric_market_data": {
+      "optional": true
+    },
+    "tauric_open_research": {
       "optional": true
     }
   }

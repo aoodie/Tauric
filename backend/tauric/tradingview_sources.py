@@ -175,7 +175,7 @@ def rates(data, symbol, name, stamp):
     ]
 
 
-def collect(db, spec, *, deadline=None):
+def collect(db, spec, *, deadline=None, calendar_only=False):
     stamp = now()
     sources = [
         {
@@ -188,8 +188,10 @@ def collect(db, spec, *, deadline=None):
             "items": [],
             "warning": "Connect and test your subscribed TradingView account in Settings.",
         }
-        for currency in (spec.base_currency, spec.quote_currency)
-        for kind in ("economic_calendar", "policy_rate")
+        for currency in dict.fromkeys((spec.base_currency, spec.quote_currency))
+        for kind in (
+            ("economic_calendar",) if calendar_only else ("economic_calendar", "policy_rate")
+        )
     ]
     try:
         if deadline is not None and time.monotonic() >= deadline:
@@ -228,6 +230,12 @@ def collect(db, spec, *, deadline=None):
                         )
                         items, omitted = calendar(data, source["currency"], country, stamp)
                         source["items_omitted"] = omitted
+                        source["coverage_start"] = (
+                            stamp - timedelta(days=7)
+                        ).date().isoformat() + "T00:00:00+00:00"
+                        source["coverage_end"] = (
+                            stamp + timedelta(days=15)
+                        ).date().isoformat() + "T00:00:00+00:00"
                         source["warning"] = (
                             f"Nearest 40 events retained; {omitted} other returned events omitted."
                             if omitted

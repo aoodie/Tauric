@@ -11,6 +11,7 @@ import httpx
 from fastapi import HTTPException
 from pydantic import Field, SecretStr
 
+from . import provider_requests
 from .config import runtime_config
 from .market_calendars import NY, default_context, periods, session_open
 from .market_contracts import Candle, DataContext, DataProviderView, MarketSession, PriceOHLC
@@ -92,7 +93,9 @@ def stamp(value):
 
 
 def request(client, url, *, params=None, headers=None):
+    provider_requests.acquire()
     response = client.get(url, params=params, headers=headers)
+    provider_requests.observe(response)
     response.raise_for_status()
     # Parsing via Decimal preserves provider JSON numeric precision.
     return json.loads(response.text, parse_float=Decimal)
@@ -101,6 +104,8 @@ def request(client, url, *, params=None, headers=None):
 class ReadOnlyProvider:
     def __init__(self):
         self.lock = threading.Lock()
+        self.client = None
+        self.client_factory = None
 
     def collect(self, spec, interval, *, config=None):
         config = config if config is not None else connections()
@@ -109,10 +114,18 @@ class ReadOnlyProvider:
         if not self.lock.acquire(blocking=False):
             raise HTTPException(429, "A provider refresh is already running. Try again shortly.")
         try:
-            with httpx.Client(
-                timeout=runtime_config().market_timeout_seconds, follow_redirects=False
-            ) as client:
-                return self.fetch(client, spec, interval, config)
+            if (
+                self.client is None
+                or self.client_factory is not httpx.Client
+                or self.client.is_closed
+            ):
+                if self.client:
+                    self.client.close()
+                self.client = httpx.Client(
+                    timeout=runtime_config().market_timeout_seconds, follow_redirects=False
+                )
+                self.client_factory = httpx.Client
+            return self.fetch(self.client, spec, interval, config)
         except httpx.HTTPStatusError as error:
             code = error.response.status_code
             if code == 429:
@@ -250,7 +263,7 @@ class AlpacaStocks(ReadOnlyProvider):
         }
         received = now()
         as_of = received - timedelta(minutes=connection.delay_minutes)
-        start = as_of - timedelta(days=500 if interval == "1d" else 30)
+        start = as_of - timedelta(days={"1d": 500, "4h": 180, "1h": 90}.get(interval, 30))
         host = (
             "paper-api.alpaca.markets"
             if connection.environment == "paper"

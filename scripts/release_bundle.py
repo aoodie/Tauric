@@ -11,6 +11,11 @@ from pathlib import Path
 from server import IMAGE_KEYS, ROOT, validate_images
 
 FILES = (
+    "README.md",
+    "backend/tauric/chat_instructions.txt",
+    "docs/OPENCLAW_PROJECT_OWNERSHIP.md",
+    "docs/TRADER_DASHBOARD_IMPLEMENTATION.md",
+    "docs/AUDIT_TRADER_DASHBOARD_2026-10-09.md",
     "deploy/compose.server.yml",
     "deploy/compose.https.yml",
     "deploy/compose.public-ip.yml",

@@ -44,6 +44,7 @@ PANELS = {
     "scanner": "Scanner",
     "tauric": "Tauric analysis",
     "openclaw": "OpenClaw governance",
+    "openclaw_activity": "OpenClaw activity",
     "positions": "Positions",
     "orders": "Orders",
     "journal": "Journal",

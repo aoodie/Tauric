@@ -32,6 +32,7 @@ from .assistant_contracts import (
     AssistantState,
     CandidateManagement,
     CandidateResearch,
+    OpportunityBriefRequest,
     PaperCloseRequest,
     PaperExecutionRequest,
     PaperPlanRequest,
@@ -63,6 +64,7 @@ CONTRACTS = {
     "run_scanner": ScannerRunRequest,
     "candidate_action": CandidateManagement,
     "research_candidate": CandidateResearch,
+    "propose_high_conviction_candidates": OpportunityBriefRequest,
     "create_strategy": StrategyCreate,
     "revise_strategy": StrategyRevision,
     **RESEARCH_CONTRACTS,
@@ -81,6 +83,7 @@ TITLES = {
     "run_scanner": "Scan completed",
     "candidate_action": "Opportunity updated",
     "research_candidate": "Tauric research requested",
+    "propose_high_conviction_candidates": "Opportunity briefs recorded",
     "create_strategy": "Strategy created",
     "revise_strategy": "Strategy version saved",
     "capture_dataset": "Dataset saved",
@@ -611,6 +614,31 @@ def execute(db, owner, body):
                 CandidateEscalate(**params.model_dump(exclude={"candidate_id"})),
             )
         )
+    elif operation == "propose_high_conviction_candidates":
+        candidates = [
+            c
+            for c in scanner.state(db, owner).candidates
+            if c.status in {"candidate", "watch"} and c.assessment and c.assessment.rating == "HIGH"
+        ]
+        from decimal import Decimal
+
+        candidates.sort(key=lambda c: (-Decimal(c.assessment.score), c.id))
+        result = {
+            "opportunities": [
+                {
+                    "candidate_id": c.id,
+                    "instrument_id": c.instrument_id,
+                    "timeframe": c.interval,
+                    "direction": c.direction,
+                    "assessment": c.assessment.model_dump(mode="json"),
+                    "next_step": "Admit through existing research limits; paper staging requires matching backtest, native evidence and governance.",
+                }
+                for c in candidates[: params.limit]
+            ],
+            "total_high_score": len(candidates),
+            "execution_authority": False,
+            "score_meaning": "Setup rule score; not win probability or validated edge.",
+        }
     elif operation == "create_strategy":
         result = summary_result(strategies.save(db, owner, params))
     elif operation == "revise_strategy":
@@ -772,3 +800,9 @@ def execute(db, owner, body):
             raise
         return receipt(previous)
     return receipt(row)
+
+
+def activity_stream(db, owner, limit=50, cursor=None):
+    from .assistant_activity import stream
+
+    return stream(db, owner, limit, cursor)

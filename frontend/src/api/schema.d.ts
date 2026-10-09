@@ -636,6 +636,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/assistant/activities": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Activities */
+    get: operations["activities_api_v1_assistant_activities_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/assistant/activities/observe": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Observe */
+    post: operations["observe_api_v1_assistant_activities_observe_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/knowledge/settings": {
     parameters: {
       query?: never;
@@ -2009,6 +2043,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/scanners/context": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Refresh Context */
+    post: operations["refresh_context_api_v1_scanners_context_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/scanners": {
     parameters: {
       query?: never;
@@ -2122,6 +2173,40 @@ export interface paths {
     put?: never;
     /** Escalate */
     post: operations["escalate_api_v1_scanners_candidates__candidate_id__analysis_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/scanners/candidates/{candidate_id}/paper-readiness": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Paper Readiness */
+    get: operations["paper_readiness_api_v1_scanners_candidates__candidate_id__paper_readiness_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/scanners/candidates/{candidate_id}/paper-plan": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Paper Stage */
+    post: operations["paper_stage_api_v1_scanners_candidates__candidate_id__paper_plan_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -2285,6 +2370,11 @@ export interface components {
         [key: string]: unknown;
       }[];
     };
+    /** ActivityObservationRequest */
+    ActivityObservationRequest: {
+      /** Identities */
+      identities: string[];
+    };
     /** AnalysisArtifactView */
     AnalysisArtifactView: {
       /** Id */
@@ -2416,6 +2506,106 @@ export interface components {
        */
       triple_rollover_weekday: number;
     };
+    /** AssistantActivityFeed */
+    AssistantActivityFeed: {
+      /**
+       * Generated At
+       * Format: date-time
+       */
+      generated_at: string;
+      /** Items */
+      items: components["schemas"]["AssistantActivityItem"][];
+      /** Current Work */
+      current_work: components["schemas"]["AssistantActivityItem"][];
+      /** Next Cursor */
+      next_cursor?: string | null;
+      /**
+       * Poll Seconds
+       * @default 10
+       */
+      poll_seconds: number;
+      /** Coverage */
+      coverage?: string[];
+    };
+    /** AssistantActivityItem */
+    AssistantActivityItem: {
+      /** Id */
+      id: string;
+      /**
+       * Timestamp
+       * Format: date-time
+       */
+      timestamp: string;
+      /** Updated At */
+      updated_at?: string | null;
+      /**
+       * Actor
+       * @enum {string}
+       */
+      actor: "openclaw" | "platform_worker" | "owner" | "unknown";
+      /**
+       * Category
+       * @enum {string}
+       */
+      category:
+        | "scan"
+        | "proposal"
+        | "research"
+        | "governance"
+        | "paper_trade"
+        | "upgrade"
+        | "chat"
+        | "operations";
+      /** Title */
+      title: string;
+      /** Summary */
+      summary: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status:
+        | "queued"
+        | "running"
+        | "waiting"
+        | "blocked"
+        | "retry_scheduled"
+        | "reconciling"
+        | "review_required"
+        | "completed"
+        | "failed"
+        | "cancelled";
+      /** Operation */
+      operation: string;
+      /** Resource Type */
+      resource_type: string;
+      /** Resource Id */
+      resource_id: string;
+      /** Request Id */
+      request_id?: string | null;
+      /** Symbols */
+      symbols?: string[];
+      /** Details */
+      details?: {
+        [key: string]: unknown;
+      };
+      /** Links */
+      links?: components["schemas"]["AssistantActivityLink"][];
+      /** Checksum */
+      checksum?: string | null;
+      /**
+       * Verification
+       * @enum {string}
+       */
+      verification: "checksum_verified" | "append_only" | "observed_state";
+    };
+    /** AssistantActivityLink */
+    AssistantActivityLink: {
+      /** Resource Type */
+      resource_type: string;
+      /** Resource Id */
+      resource_id: string;
+    };
     /** AssistantReceipt */
     AssistantReceipt: {
       /** Id */
@@ -2431,6 +2621,7 @@ export interface components {
         | "run_scanner"
         | "candidate_action"
         | "research_candidate"
+        | "propose_high_conviction_candidates"
         | "create_strategy"
         | "revise_strategy"
         | "capture_dataset"
@@ -3528,6 +3719,41 @@ export interface components {
       /** Reason */
       reason: string;
     };
+    /** CandidatePaperReadiness */
+    CandidatePaperReadiness: {
+      /** Candidate Id */
+      candidate_id: string;
+      /** Ready */
+      ready: boolean;
+      /** Prerequisites */
+      prerequisites: components["schemas"]["PaperPrerequisite"][];
+      /** Decision Id */
+      decision_id: string | null;
+      /** Backtest Id */
+      backtest_id: string | null;
+      /** Detail */
+      detail: string;
+    };
+    /** CandidatePaperStage */
+    CandidatePaperStage: {
+      /**
+       * Request Id
+       * Format: uuid
+       */
+      request_id: string;
+      /**
+       * Decision Id
+       * Format: uuid
+       */
+      decision_id: string;
+      /**
+       * Backtest Id
+       * Format: uuid
+       */
+      backtest_id: string;
+      /** Reason */
+      reason: string;
+    };
     /** CandidateRanking */
     CandidateRanking: {
       /**
@@ -3614,6 +3840,7 @@ export interface components {
        * @default 0
        */
       setup_score: number;
+      assessment?: components["schemas"]["SetupAssessment"] | null;
       /** Potential Candidates */
       potential_candidates?: components["schemas"]["PotentialCandidate"][];
       /**
@@ -4531,6 +4758,13 @@ export interface components {
        *     ]
        */
       supported_intervals: ("1m" | "5m" | "15m" | "1h" | "4h" | "1d")[];
+      /**
+       * Classification Source
+       * @default seed
+       * @enum {string}
+       */
+      classification_source:
+        "seed" | "owner_selection" | "provider_currency" | "unclassified";
       /** Native Research Ready */
       readonly native_research_ready: boolean;
     };
@@ -4791,6 +5025,13 @@ export interface components {
        *     ]
        */
       supported_intervals: ("1m" | "5m" | "15m" | "1h" | "4h" | "1d")[];
+      /**
+       * Classification Source
+       * @default seed
+       * @enum {string}
+       */
+      classification_source:
+        "seed" | "owner_selection" | "provider_currency" | "unclassified";
       /**
        * Registered
        * @default true
@@ -5586,6 +5827,15 @@ export interface components {
        */
       opened_at: string;
     };
+    /** PaperPrerequisite */
+    PaperPrerequisite: {
+      /** Name */
+      name: string;
+      /** Ready */
+      ready: boolean;
+      /** Detail */
+      detail: string;
+    };
     /** PaperState */
     PaperState: {
       /**
@@ -6018,6 +6268,7 @@ export interface components {
        * @default 0
        */
       strategy_priority: number;
+      assessment?: components["schemas"]["SetupAssessment"] | null;
     };
     /** PriceOHLC */
     PriceOHLC: {
@@ -6456,17 +6707,50 @@ export interface components {
       /** Reason */
       reason: string;
     };
+    /** ScannerCatalog */
+    ScannerCatalog: {
+      /**
+       * Provider
+       * @enum {string}
+       */
+      provider: "oanda" | "alpaca";
+      /**
+       * All Catalog
+       * @default true
+       * @constant
+       */
+      all_catalog: true;
+      /**
+       * Instruments Per Cycle
+       * @default 10
+       */
+      instruments_per_cycle: number;
+    };
+    /** ScannerContextRefresh */
+    ScannerContextRefresh: {
+      /** Instrument Ids */
+      instrument_ids: string[];
+    };
     /** ScannerParameters */
     ScannerParameters: {
       /** Enabled */
       enabled: boolean;
       /** Universe */
-      universe: string[];
+      universe?: string[];
       /**
        * Interval
        * @enum {string}
        */
       interval: "1m" | "5m" | "15m" | "1h" | "4h" | "1d";
+      /** Intervals */
+      intervals?: ("1m" | "5m" | "15m" | "1h" | "4h" | "1d")[];
+      catalog?: components["schemas"]["ScannerCatalog"] | null;
+      /**
+       * Scoring Version
+       * @default legacy_v1
+       * @enum {string}
+       */
+      scoring_version: "legacy_v1" | "multifactor_v1";
       /**
        * Detector Id
        * @enum {string}
@@ -6795,6 +7079,58 @@ export interface components {
       user_revision: number;
       /** Overridden */
       overridden: boolean;
+    };
+    /** SetupAssessment */
+    SetupAssessment: {
+      /**
+       * Version
+       * @constant
+       */
+      version: "multifactor_v1";
+      /** Score */
+      score: string;
+      /**
+       * Rating
+       * @enum {string}
+       */
+      rating: "HIGH" | "MODERATE" | "LOW";
+      /** Factors */
+      factors: {
+        [key: string]: string;
+      };
+      /** Contributions */
+      contributions: {
+        [key: string]: string;
+      };
+      /** Macro Penalty */
+      macro_penalty: string;
+      /** Missing Evidence */
+      missing_evidence: string[];
+      /**
+       * Bar Close Time
+       * Format: date-time
+       */
+      bar_close_time: string;
+      /** Geometry */
+      geometry: {
+        [key: string]: string | null;
+      };
+      /** Context Receipts */
+      context_receipts: {
+        [key: string]: {
+          [key: string]: unknown;
+        };
+      };
+      /** Macro Receipts */
+      macro_receipts: {
+        [key: string]: unknown;
+      }[];
+      /**
+       * Execution Authority
+       * @default false
+       * @constant
+       */
+      execution_authority: false;
     };
     /** SharedAdmissionBudgetSave */
     SharedAdmissionBudgetSave: {
@@ -8334,6 +8670,71 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["AssistantState"];
+        };
+      };
+    };
+  };
+  activities_api_v1_assistant_activities_get: {
+    parameters: {
+      query?: {
+        limit?: number;
+        cursor?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AssistantActivityFeed"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  observe_api_v1_assistant_activities_observe_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ActivityObservationRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AssistantActivityItem"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };
@@ -11196,6 +11597,39 @@ export interface operations {
       };
     };
   };
+  refresh_context_api_v1_scanners_context_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ScannerContextRefresh"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   state_api_v1_scanners_get: {
     parameters: {
       query?: never;
@@ -11401,6 +11835,72 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["AnalysisView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  paper_readiness_api_v1_scanners_candidates__candidate_id__paper_readiness_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        candidate_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CandidatePaperReadiness"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  paper_stage_api_v1_scanners_candidates__candidate_id__paper_plan_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        candidate_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CandidatePaperStage"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TradingRecordView"];
         };
       };
       /** @description Validation Error */

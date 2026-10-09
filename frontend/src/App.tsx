@@ -3,6 +3,8 @@ import {
   ScannerPanel,
   ScannerWorkspace,
 } from "./scanner/Scanner";
+import { TraderDashboard } from "./scanner/TraderDashboard";
+import { OpenClawActivity } from "./chat/ActivityFeed";
 import { StrategiesPage } from "./trading/StrategySettings";
 import { BrokerModeBadge } from "./trading/LiveTrading";
 import {
@@ -101,6 +103,7 @@ const PANELS: Record<string, { label: string; icon: LucideIcon }> = {
   scanner: { label: "Scanner", icon: Radar },
   tauric: { label: "Tauric analysis", icon: Sparkles },
   openclaw: { label: "OpenClaw governance", icon: ShieldCheck },
+  openclaw_activity: { label: "OpenClaw activity", icon: Activity },
   positions: { label: "Positions", icon: Boxes },
   orders: { label: "Orders", icon: ArrowDownToLine },
   journal: { label: "Journal", icon: BookOpen },
@@ -1168,6 +1171,7 @@ function pageFromUrl() {
       "workspace",
       "intelligence",
       "scanners",
+      "trader",
       "strategies",
       "paper",
       "research",
@@ -1521,6 +1525,8 @@ function Workstation({
     }
   }
   function renderPanel(component: string) {
+    if (component === "openclaw_activity")
+      return <OpenClawActivity timezone={timezone} open={open} compact />;
     if (component === "chart")
       return (
         <Suspense fallback={<p className="muted">Opening market chart…</p>}>
@@ -1602,6 +1608,7 @@ function Workstation({
   };
   const nav = [
     { id: "workspace", label: "Workspace", icon: LayoutDashboard },
+    { id: "trader", label: "Trader dashboard", icon: Radar },
     { id: "intelligence", label: "Market intelligence", icon: Waves },
     { id: "scanners", label: "Scanners", icon: Radar },
     { id: "strategies", label: "Strategies", icon: Sparkles },
@@ -1993,6 +2000,14 @@ function Workstation({
             open={open}
             chart={() => openPanel("chart")}
             ask={askOpenClaw}
+          />
+        )}
+        {page === "trader" && (
+          <TraderDashboard
+            open={open}
+            chart={() => openPanel("chart")}
+            scanners={() => navigate("scanners")}
+            timezone={timezone}
           />
         )}
         {page === "strategies" && (

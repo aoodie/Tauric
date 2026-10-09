@@ -19,6 +19,7 @@ Operation = Literal[
     "run_scanner",
     "candidate_action",
     "research_candidate",
+    "propose_high_conviction_candidates",
     "create_strategy",
     "revise_strategy",
     "capture_dataset",
@@ -41,6 +42,12 @@ class CandidateManagement(CandidateAction):
 
 class CandidateResearch(CandidateEscalate):
     candidate_id: UUID
+
+
+class OpportunityBriefRequest(Contract):
+    request_id: UUID
+    reason: str = Field(min_length=3, max_length=500)
+    limit: int = Field(default=10, ge=1, le=25, strict=True)
 
 
 class StrategyRevision(StrategyRevise):
@@ -171,3 +178,65 @@ class AssistantState(Contract):
 
 # Re-exported here so schema discovery always describes the actual service contracts.
 RESEARCH_CONTRACTS = {"capture_dataset": DatasetCapture, "run_backtest": ReplayCreate}
+
+
+ActivityStatus = Literal[
+    "queued",
+    "running",
+    "waiting",
+    "blocked",
+    "retry_scheduled",
+    "reconciling",
+    "review_required",
+    "completed",
+    "failed",
+    "cancelled",
+]
+ActivityCategory = Literal[
+    "scan",
+    "proposal",
+    "research",
+    "governance",
+    "paper_trade",
+    "upgrade",
+    "chat",
+    "operations",
+]
+
+
+class AssistantActivityLink(Contract):
+    resource_type: str
+    resource_id: str
+
+
+class AssistantActivityItem(Contract):
+    id: str
+    timestamp: datetime
+    updated_at: datetime | None = None
+    actor: Literal["openclaw", "platform_worker", "owner", "unknown"]
+    category: ActivityCategory
+    title: str
+    summary: str
+    status: ActivityStatus
+    operation: str
+    resource_type: str
+    resource_id: str
+    request_id: str | None = None
+    symbols: list[str] = Field(default_factory=list)
+    details: dict = Field(default_factory=dict)
+    links: list[AssistantActivityLink] = Field(default_factory=list)
+    checksum: str | None = None
+    verification: Literal["checksum_verified", "append_only", "observed_state"]
+
+
+class AssistantActivityFeed(Contract):
+    generated_at: datetime
+    items: list[AssistantActivityItem]
+    current_work: list[AssistantActivityItem]
+    next_cursor: str | None = None
+    poll_seconds: int = 10
+    coverage: list[str] = Field(default_factory=list)
+
+
+class ActivityObservationRequest(Contract):
+    identities: list[str] = Field(min_length=1, max_length=100)

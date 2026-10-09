@@ -3,13 +3,13 @@
 import logging
 import signal
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from . import candidate_pipeline, scanner
+from . import candidate_pipeline, scanner, scanner_context
 from .database import engine
 from .models import (
     Owner,
@@ -58,6 +58,10 @@ def process_one(db):
             .order_by(ScannerRun.created_at.desc())
             .limit(1)
         )
+        if last:
+            retry_at = scanner.checked(last).payload.get("metrics", {}).get("next_check_at")
+            if retry_at and stamp < datetime.fromisoformat(retry_at):
+                continue
         # A live candidate/watch match uses the shorter cadence, without position checks.
         watching = False
         for candidate_id in db.scalars(
@@ -106,6 +110,8 @@ def main():
     logger.info("Scanner worker started. Saved opt-in profiles only; zero model calls.")
     while not STOP:
         try:
+            with Session(engine()) as db:
+                scanner_context.process_one(db)
             with Session(engine()) as db:
                 worked = process_one(db)
             if not worked:

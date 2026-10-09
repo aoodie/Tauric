@@ -28,6 +28,7 @@ import { WorkflowTabs } from "../ui/WorkflowTabs";
 import { usePaper } from "../trading/PaperTrading";
 import { Radar, ArrowRight, RefreshCw } from "lucide-react";
 import "./scanner.css";
+import type { components } from "../api/schema";
 
 const detectorLabels = {
   closed_bar_breakout_v1: "Long breakout",
@@ -109,7 +110,7 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
   const value = useScannerState();
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
-function useScanner() {
+export function useScanner() {
   const value = useContext(Context);
   if (!value) throw new Error("Scanner context required");
   return value;
@@ -162,8 +163,9 @@ function ProfileForm({
     const detectors = f
       .getAll("detector_ids")
       .map(String) as ScannerParameters["detector_id"][];
-    if (!universe.length) {
-      setSetupError("Choose at least one market to scan.");
+    const provider = String(f.get("catalog_provider") ?? "");
+    if (!universe.length && !provider) {
+      setSetupError("Choose saved markets or an available provider catalog.");
       return;
     }
     if (!detectors.length) {
@@ -197,6 +199,19 @@ function ProfileForm({
       enabled: f.get("enabled") === "on",
       universe: f.getAll("universe").map(String),
       interval: String(f.get("interval")) as ScannerParameters["interval"],
+      intervals: f
+        .getAll("intervals")
+        .map(String) as ScannerParameters["interval"][],
+      scoring_version: String(
+        f.get("scoring_version"),
+      ) as ScannerParameters["scoring_version"],
+      catalog: provider
+        ? {
+            provider: provider as "oanda" | "alpaca",
+            all_catalog: true,
+            instruments_per_cycle: Number(f.get("instruments_per_cycle")),
+          }
+        : null,
       detector_id: detectors[0],
       detector_ids: detectors,
       lookback: Number(f.get("lookback")),
@@ -267,9 +282,75 @@ function ProfileForm({
               ))}
             </select>
           </label>
+          <label>
+            Setup scoring
+            <select
+              name="scoring_version"
+              aria-label="Setup scoring"
+              defaultValue={p?.scoring_version ?? "multifactor_v1"}
+            >
+              <option value="legacy_v1">Legacy rules · saved behavior</option>
+              <option value="multifactor_v1">
+                Multifactor v1 · experimental
+              </option>
+            </select>
+          </label>
         </div>
+        <details className="workflow-advanced">
+          <summary>Additional timeframes</summary>
+          <p className="muted">
+            Select multiple timeframes to replace the primary timeframe above.
+            Each uses its own closed bars.
+          </p>
+          <div className="scanner-universe">
+            {Object.entries(timeframeLabels).map(([value, name]) => (
+              <label key={value} className="checkbox">
+                <input
+                  type="checkbox"
+                  name="intervals"
+                  value={value}
+                  defaultChecked={p?.intervals?.includes(
+                    value as ScannerParameters["interval"],
+                  )}
+                />
+                {name}
+              </label>
+            ))}
+          </div>
+        </details>
         <fieldset className="scanner-market-picker">
           <legend>1. Markets to scan</legend>
+          <div className="paper-form-grid">
+            <label>
+              Provider catalog
+              <select
+                name="catalog_provider"
+                aria-label="Provider catalog"
+                defaultValue={p?.catalog?.provider ?? ""}
+              >
+                <option value="">Saved symbols only</option>
+                <option value="oanda">Available OANDA currency pairs</option>
+                <option value="alpaca">Available Alpaca US listings</option>
+              </select>
+            </label>
+            <label>
+              Catalog symbols per cycle
+              <input
+                name="instruments_per_cycle"
+                aria-label="Catalog symbols per cycle"
+                type="number"
+                min={1}
+                max={100}
+                required
+                defaultValue={p?.catalog?.instruments_per_cycle ?? 10}
+              />
+            </label>
+          </div>
+          <p className="muted">
+            Catalog scans progress in bounded slices and require an existing
+            data connection. New US listings need stock or ETF classification
+            before native research.
+          </p>
           <label>
             Find a saved symbol
             <input
@@ -571,7 +652,9 @@ function ProfileCard({ p }: { p: ScannerProfile }) {
       </p>
       <p className="scanner-symbols">
         {timeframeLabels[p.parameters.interval] ?? p.parameters.interval} ·{" "}
-        {p.parameters.universe.map((v) => v.split(":").at(-1)).join(" / ")}
+        {(p.parameters.universe ?? [])
+          .map((v) => v.split(":").at(-1))
+          .join(" / ")}
       </p>
       <details className="workflow-advanced">
         <summary>Filters &amp; research allowance</summary>
@@ -686,7 +769,101 @@ export function ScannerSettings() {
     </div>
   );
 }
-function CandidateDetail({
+function PaperReadiness({
+  c,
+  reason,
+  open,
+}: {
+  c: ScannerCandidate;
+  reason: string;
+  open: (kind: string, id: string) => void;
+}) {
+  const s = useScanner();
+  const [readiness, setReadiness] =
+    useState<components["schemas"]["CandidatePaperReadiness"]>();
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  async function load() {
+    setLoading(true);
+    try {
+      setReadiness(await api.candidatePaperReadiness(c.id));
+      setError("");
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Paper prerequisites are unavailable.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+  return (
+    <details
+      className="candidate-paper"
+      onToggle={(e) => {
+        if (e.currentTarget.open && !readiness && !loading) void load();
+      }}
+    >
+      <summary>Paper plan prerequisites</summary>
+      {error && (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
+      )}
+      {loading && <p className="muted">Checking saved evidence…</p>}
+      {readiness && (
+        <>
+          <ol className="paper-prerequisites">
+            {readiness.prerequisites.map((p) => (
+              <li key={p.name}>
+                <strong>
+                  {p.ready ? "Ready" : "Needed"} · {p.name}
+                </strong>
+                <p>{p.detail}</p>
+              </li>
+            ))}
+          </ol>
+          <p className="muted">{readiness.detail}</p>
+        </>
+      )}
+      <div className="paper-actions">
+        <button
+          className="secondary small"
+          disabled={s.pending || !readiness?.ready || reason.trim().length < 3}
+          onClick={() => {
+            if (!readiness?.decision_id || !readiness.backtest_id) return;
+            void s.act(
+              `paper-${c.id}-${readiness.decision_id}-${readiness.backtest_id}-${reason}`,
+              async (request_id) => {
+                const plan = await api.stageCandidatePaper(c.id, {
+                  request_id,
+                  decision_id: readiness.decision_id!,
+                  backtest_id: readiness.backtest_id!,
+                  reason,
+                });
+                open("trading_record", plan.id);
+              },
+              "Governed paper plan staged. Review the plan before a separate execution action.",
+            );
+          }}
+        >
+          Stage paper plan
+        </button>
+        <button
+          className="text-button"
+          disabled={loading}
+          onClick={() => void load()}
+        >
+          Recheck prerequisites
+        </button>
+      </div>
+      {reason.trim().length < 3 && (
+        <p className="muted">Add an action reason above before staging.</p>
+      )}
+    </details>
+  );
+}
+
+export function CandidateDetail({
   c,
   open,
   chart,
@@ -835,6 +1012,7 @@ function CandidateDetail({
         Tauric researches daily market context. This timeframe’s setup stays
         separate evidence; trading still follows the route’s required approvals.
       </p>
+      <PaperReadiness c={c} reason={reason} open={open} />
       {c.analysis && (
         <p>
           Daily research:{" "}

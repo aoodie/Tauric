@@ -117,8 +117,11 @@ def test_chat_capabilities_follow_registry_and_admit_new_stock(ready, database, 
     assert rows[definition["id"]]["chat_request_enabled"]
     assert rows["oanda:fx:EUR_USD"]["daily_native_research"]
     assert rows["oanda:fx:EUR_USD"]["chat_request_enabled"]
-    assert "weekly" in capabilities["unsupported_scopes"]
-    assert "commodities" in capabilities["unsupported_scopes"]
+    assert "weekly" in capabilities["unsupported_native_scopes"]
+    assert "commodities" in capabilities["unsupported_native_scopes"]
+    assert capabilities["open_research"]["enabled"]
+    assert capabilities["open_research"]["registration_required"] is False
+    assert capabilities["open_research"]["native_report_created"] is False
     assert "crypto research only" not in context["research_scope"]
     assert counts(database) == (0, 0)
     response = request(ready, {**invocation, "instrument_id": definition["id"]})

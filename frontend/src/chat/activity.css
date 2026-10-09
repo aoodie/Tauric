@@ -1,0 +1,224 @@
+.openclaw-activity {
+  min-width: 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 20px;
+}
+.activity-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.activity-heading h2 {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 5px 0;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 25px;
+}
+.activity-heading p,
+.activity-coverage {
+  font-size: 11px;
+}
+.activity-now {
+  padding: 12px 14px;
+  background: var(--bg);
+  border-left: 2px solid var(--cyan);
+  margin-bottom: 16px;
+}
+.activity-now > p {
+  margin-top: 6px;
+}
+.activity-current {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 10px;
+}
+.activity-current > span:last-child {
+  color: var(--muted);
+  font-size: 11px;
+}
+.activity-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+.activity-filters:has(input) {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.4fr);
+}
+.activity-filters select,
+.activity-filters input {
+  padding: 8px;
+}
+.activity-coverage {
+  margin: 9px 0 16px;
+}
+.activity-row {
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr);
+  gap: 16px;
+}
+.activity-rail {
+  position: relative;
+  border-right: 1px solid var(--border);
+  color: var(--muted);
+  font:
+    10px "IBM Plex Mono",
+    monospace;
+  padding: 5px 12px 22px 0;
+}
+.activity-rail > span {
+  position: absolute;
+  right: -4px;
+  top: 7px;
+  height: 7px;
+  width: 7px;
+  background: var(--muted);
+  border-radius: 50%;
+}
+.state-running > .activity-rail > span {
+  background: var(--cyan);
+}
+.state-completed > .activity-rail > span {
+  background: var(--green);
+}
+.state-failed > .activity-rail > span,
+.state-blocked > .activity-rail > span {
+  background: var(--red);
+}
+.activity-content {
+  min-width: 0;
+  padding-bottom: 20px;
+}
+.activity-row-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+.activity-row-heading strong {
+  font-weight: 500;
+}
+.activity-status {
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 3px 6px;
+  border-radius: 2px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.activity-status.state-running {
+  color: var(--cyan);
+  border-color: var(--cyan);
+}
+.activity-status.state-completed {
+  color: var(--green);
+  border-color: #4bd3a050;
+}
+.activity-status.state-review_required,
+.activity-status.state-waiting,
+.activity-status.state-reconciling {
+  color: var(--gold);
+}
+.activity-status.state-failed,
+.activity-status.state-blocked {
+  color: var(--red);
+  border-color: #ff929850;
+}
+.activity-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 10px;
+  margin: 7px 0 5px;
+}
+.activity-content p {
+  font-size: 12px;
+}
+.activity-content details {
+  margin-top: 8px;
+  font-size: 11px;
+}
+.activity-content summary {
+  cursor: pointer;
+  color: var(--cyan);
+}
+.activity-content pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 10px;
+  background: var(--bg);
+  font-size: 10px;
+  max-height: 260px;
+  overflow: auto;
+}
+.activity-evidence {
+  margin: 12px 0;
+}
+.activity-evidence > div {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr);
+  gap: 8px;
+  margin: 7px 0;
+}
+.activity-evidence dt {
+  color: var(--muted);
+}
+.activity-evidence dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.activity-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.activity-empty {
+  padding: 20px 0;
+}
+.activity-error {
+  border-left: 2px solid var(--red);
+  padding: 9px 12px;
+  background: var(--bg);
+  color: var(--red);
+  margin-bottom: 12px;
+}
+.activity-scope {
+  margin-top: 15px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.activity-scope ul {
+  padding-left: 18px;
+  line-height: 1.7;
+}
+.openclaw-activity.compact {
+  border: 0;
+  padding: 14px;
+  height: 100%;
+  overflow: auto;
+}
+.compact .activity-row {
+  grid-template-columns: 95px minmax(0, 1fr);
+  gap: 10px;
+}
+@media (max-width: 760px) {
+  .activity-filters,
+  .activity-filters:has(input) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .activity-row {
+    grid-template-columns: 84px minmax(0, 1fr);
+    gap: 10px;
+  }
+  .openclaw-activity {
+    padding: 14px;
+  }
+}

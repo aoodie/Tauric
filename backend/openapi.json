@@ -1640,6 +1640,113 @@
         }
       }
     },
+    "/api/v1/assistant/activities": {
+      "get": {
+        "tags": [
+          "owner assistant"
+        ],
+        "summary": "Activities",
+        "operationId": "activities_api_v1_assistant_activities_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 400
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantActivityFeed"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assistant/activities/observe": {
+      "post": {
+        "tags": [
+          "owner assistant"
+        ],
+        "summary": "Observe",
+        "operationId": "observe_api_v1_assistant_activities_observe_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivityObservationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AssistantActivityItem"
+                  },
+                  "type": "array",
+                  "title": "Response Observe Api V1 Assistant Activities Observe Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/knowledge/settings": {
       "get": {
         "tags": [
@@ -5563,6 +5670,45 @@
         }
       }
     },
+    "/api/v1/scanners/context": {
+      "post": {
+        "tags": [
+          "scanners"
+        ],
+        "summary": "Refresh Context",
+        "operationId": "refresh_context_api_v1_scanners_context_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScannerContextRefresh"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/scanners": {
       "get": {
         "tags": [
@@ -5841,6 +5987,100 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AnalysisView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/scanners/candidates/{candidate_id}/paper-readiness": {
+      "get": {
+        "tags": [
+          "scanners"
+        ],
+        "summary": "Paper Readiness",
+        "operationId": "paper_readiness_api_v1_scanners_candidates__candidate_id__paper_readiness_get",
+        "parameters": [
+          {
+            "name": "candidate_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Candidate Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidatePaperReadiness"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/scanners/candidates/{candidate_id}/paper-plan": {
+      "post": {
+        "tags": [
+          "scanners"
+        ],
+        "summary": "Paper Stage",
+        "operationId": "paper_stage_api_v1_scanners_candidates__candidate_id__paper_plan_post",
+        "parameters": [
+          {
+            "name": "candidate_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Candidate Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CandidatePaperStage"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradingRecordView"
                 }
               }
             }
@@ -6257,6 +6497,25 @@
         ],
         "title": "AccountAnalytics"
       },
+      "ActivityObservationRequest": {
+        "properties": {
+          "identities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Identities"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "identities"
+        ],
+        "title": "ActivityObservationRequest"
+      },
       "AnalysisArtifactView": {
         "properties": {
           "id": {
@@ -6583,6 +6842,230 @@
         ],
         "title": "AssetCosts"
       },
+      "AssistantActivityFeed": {
+        "properties": {
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AssistantActivityItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "current_work": {
+            "items": {
+              "$ref": "#/components/schemas/AssistantActivityItem"
+            },
+            "type": "array",
+            "title": "Current Work"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "poll_seconds": {
+            "type": "integer",
+            "title": "Poll Seconds",
+            "default": 10
+          },
+          "coverage": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Coverage"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "generated_at",
+          "items",
+          "current_work"
+        ],
+        "title": "AssistantActivityFeed"
+      },
+      "AssistantActivityItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "actor": {
+            "type": "string",
+            "enum": [
+              "openclaw",
+              "platform_worker",
+              "owner",
+              "unknown"
+            ],
+            "title": "Actor"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "scan",
+              "proposal",
+              "research",
+              "governance",
+              "paper_trade",
+              "upgrade",
+              "chat",
+              "operations"
+            ],
+            "title": "Category"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "waiting",
+              "blocked",
+              "retry_scheduled",
+              "reconciling",
+              "review_required",
+              "completed",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Status"
+          },
+          "operation": {
+            "type": "string",
+            "title": "Operation"
+          },
+          "resource_type": {
+            "type": "string",
+            "title": "Resource Type"
+          },
+          "resource_id": {
+            "type": "string",
+            "title": "Resource Id"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          },
+          "symbols": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Symbols"
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Details"
+          },
+          "links": {
+            "items": {
+              "$ref": "#/components/schemas/AssistantActivityLink"
+            },
+            "type": "array",
+            "title": "Links"
+          },
+          "checksum": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checksum"
+          },
+          "verification": {
+            "type": "string",
+            "enum": [
+              "checksum_verified",
+              "append_only",
+              "observed_state"
+            ],
+            "title": "Verification"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "timestamp",
+          "actor",
+          "category",
+          "title",
+          "summary",
+          "status",
+          "operation",
+          "resource_type",
+          "resource_id",
+          "verification"
+        ],
+        "title": "AssistantActivityItem"
+      },
+      "AssistantActivityLink": {
+        "properties": {
+          "resource_type": {
+            "type": "string",
+            "title": "Resource Type"
+          },
+          "resource_id": {
+            "type": "string",
+            "title": "Resource Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "resource_type",
+          "resource_id"
+        ],
+        "title": "AssistantActivityLink"
+      },
       "AssistantReceipt": {
         "properties": {
           "id": {
@@ -6607,6 +7090,7 @@
               "run_scanner",
               "candidate_action",
               "research_candidate",
+              "propose_high_conviction_candidates",
               "create_strategy",
               "revise_strategy",
               "capture_dataset",
@@ -9409,6 +9893,96 @@
         ],
         "title": "CandidateEscalate"
       },
+      "CandidatePaperReadiness": {
+        "properties": {
+          "candidate_id": {
+            "type": "string",
+            "title": "Candidate Id"
+          },
+          "ready": {
+            "type": "boolean",
+            "title": "Ready"
+          },
+          "prerequisites": {
+            "items": {
+              "$ref": "#/components/schemas/PaperPrerequisite"
+            },
+            "type": "array",
+            "title": "Prerequisites"
+          },
+          "decision_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Id"
+          },
+          "backtest_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Backtest Id"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "candidate_id",
+          "ready",
+          "prerequisites",
+          "decision_id",
+          "backtest_id",
+          "detail"
+        ],
+        "title": "CandidatePaperReadiness"
+      },
+      "CandidatePaperStage": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "decision_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Decision Id"
+          },
+          "backtest_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Backtest Id"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "decision_id",
+          "backtest_id",
+          "reason"
+        ],
+        "title": "CandidatePaperStage"
+      },
       "CandidateRanking": {
         "properties": {
           "minimum_score": {
@@ -9564,6 +10138,16 @@
             "minimum": 0.0,
             "title": "Setup Score",
             "default": 0
+          },
+          "assessment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SetupAssessment"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "potential_candidates": {
             "items": {
@@ -11811,6 +12395,17 @@
               "1d"
             ]
           },
+          "classification_source": {
+            "type": "string",
+            "enum": [
+              "seed",
+              "owner_selection",
+              "provider_currency",
+              "unclassified"
+            ],
+            "title": "Classification Source",
+            "default": "seed"
+          },
           "native_research_ready": {
             "type": "boolean",
             "title": "Native Research Ready",
@@ -12512,6 +13107,17 @@
               "4h",
               "1d"
             ]
+          },
+          "classification_source": {
+            "type": "string",
+            "enum": [
+              "seed",
+              "owner_selection",
+              "provider_currency",
+              "unclassified"
+            ],
+            "title": "Classification Source",
+            "default": "seed"
           },
           "registered": {
             "type": "boolean",
@@ -14354,6 +14960,30 @@
         ],
         "title": "PaperPositionView"
       },
+      "PaperPrerequisite": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "ready": {
+            "type": "boolean",
+            "title": "Ready"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "ready",
+          "detail"
+        ],
+        "title": "PaperPrerequisite"
+      },
       "PaperState": {
         "properties": {
           "mode": {
@@ -15336,6 +15966,16 @@
             "minimum": 0.0,
             "title": "Strategy Priority",
             "default": 0
+          },
+          "assessment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SetupAssessment"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -16388,6 +17028,56 @@
         ],
         "title": "RestoreRequest"
       },
+      "ScannerCatalog": {
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "oanda",
+              "alpaca"
+            ],
+            "title": "Provider"
+          },
+          "all_catalog": {
+            "type": "boolean",
+            "const": true,
+            "title": "All Catalog",
+            "default": true
+          },
+          "instruments_per_cycle": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Instruments Per Cycle",
+            "default": 10
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "provider"
+        ],
+        "title": "ScannerCatalog"
+      },
+      "ScannerContextRefresh": {
+        "properties": {
+          "instrument_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Instrument Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "instrument_ids"
+        ],
+        "title": "ScannerContextRefresh"
+      },
       "ScannerParameters": {
         "properties": {
           "enabled": {
@@ -16400,7 +17090,6 @@
             },
             "type": "array",
             "maxItems": 1000,
-            "minItems": 1,
             "title": "Universe"
           },
           "interval": {
@@ -16414,6 +17103,41 @@
               "1d"
             ],
             "title": "Interval"
+          },
+          "intervals": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "1m",
+                "5m",
+                "15m",
+                "1h",
+                "4h",
+                "1d"
+              ]
+            },
+            "type": "array",
+            "maxItems": 6,
+            "title": "Intervals"
+          },
+          "catalog": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScannerCatalog"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scoring_version": {
+            "type": "string",
+            "enum": [
+              "legacy_v1",
+              "multifactor_v1"
+            ],
+            "title": "Scoring Version",
+            "default": "legacy_v1"
           },
           "detector_id": {
             "type": "string",
@@ -16597,7 +17321,6 @@
         "type": "object",
         "required": [
           "enabled",
-          "universe",
           "interval",
           "detector_id",
           "lookback",
@@ -17218,6 +17941,110 @@
           "overridden"
         ],
         "title": "SettingView"
+      },
+      "SetupAssessment": {
+        "properties": {
+          "version": {
+            "type": "string",
+            "const": "multifactor_v1",
+            "title": "Version"
+          },
+          "score": {
+            "type": "string",
+            "title": "Score"
+          },
+          "rating": {
+            "type": "string",
+            "enum": [
+              "HIGH",
+              "MODERATE",
+              "LOW"
+            ],
+            "title": "Rating"
+          },
+          "factors": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Factors"
+          },
+          "contributions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Contributions"
+          },
+          "macro_penalty": {
+            "type": "string",
+            "title": "Macro Penalty"
+          },
+          "missing_evidence": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing Evidence"
+          },
+          "bar_close_time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Bar Close Time"
+          },
+          "geometry": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Geometry"
+          },
+          "context_receipts": {
+            "additionalProperties": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "object",
+            "title": "Context Receipts"
+          },
+          "macro_receipts": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Macro Receipts"
+          },
+          "execution_authority": {
+            "type": "boolean",
+            "const": false,
+            "title": "Execution Authority",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version",
+          "score",
+          "rating",
+          "factors",
+          "contributions",
+          "macro_penalty",
+          "missing_evidence",
+          "bar_close_time",
+          "geometry",
+          "context_receipts",
+          "macro_receipts"
+        ],
+        "title": "SetupAssessment"
       },
       "SharedAdmissionBudgetSave": {
         "properties": {
