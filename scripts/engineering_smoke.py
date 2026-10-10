@@ -7,6 +7,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 from uuid import uuid4
 
@@ -36,7 +37,7 @@ def run(image, output):
         host.WORKSPACE_ROOT = root / "workspaces"
         workspace = str(uuid4())
 
-        def job(script, purpose="develop", cancelled=False):
+        def job(script, purpose="develop", cancelled=False, recover=False):
             values = {
                 "script": script,
                 "timeout_seconds": 90,
@@ -49,7 +50,33 @@ def run(image, output):
             request.write_text(json.dumps(data))
             if cancelled:
                 (root / "cancel" / request.name).write_text("{}")
+            original = None
+            if recover:
+                image_id = json.loads(host.docker("image", "inspect", image))[0]["Id"]
+                host.prepare_workspace(data, image_id)
+                name = "tauric-engineering-" + data["id"]
+                host.docker(*host.container_args(image, data))
+                original = subprocess.Popen(
+                    ["docker", "start", "-ai", name],
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                original.stdin.write(host.canonical(data))
+                original.stdin.close()
+                deadline = time.monotonic() + 10
+                while (
+                    json.loads(host.docker("inspect", name))[0]["State"]["Status"]
+                    == "created"
+                ):
+                    if time.monotonic() >= deadline:
+                        raise RuntimeError(
+                            "The original acceptance execution never started"
+                        )
+                    time.sleep(0.05)
             host.process(request, root, image, key)
+            if original:
+                assert original.wait(timeout=10) == 0
             receipt = root / "receipts" / request.name
             envelope = json.loads(receipt.read_text())
             result = envelope["result"]
@@ -112,6 +139,27 @@ PY""")
             assert (
                 integration["exit_code"] == 0 and integration["tests_executed"] == 1
             ), integration
+            resumed = job(
+                """python - <<'PY'
+from pathlib import Path
+import time
+p=Path('scripts/owner_recovery_counter.py')
+p.write_text(str(int(p.read_text()) + 1 if p.exists() else 1) + '\\n')
+time.sleep(2)
+PY""",
+                recover=True,
+            )
+            assert resumed["exit_code"] == 0, resumed
+            resumed_source = json.loads(
+                (
+                    root
+                    / "receipts"
+                    / (workspace + "-" + resumed["id"] + ".source.json")
+                ).read_text()
+            )
+            assert (
+                resumed_source["files"]["scripts/owner_recovery_counter.py"] == "1\n"
+            ), "Recovery duplicated the original side effect"
             stopped = job("touch scripts/should-never-execute.py", cancelled=True)
             assert stopped["cancelled"] and stopped["exit_code"] == 125
             folder = host.WORKSPACE_ROOT / workspace
@@ -136,6 +184,7 @@ PY""")
                     "signed exact source artifact",
                     "persistent quota workspace",
                     "receipt reconciliation without replay",
+                    "recover an original running container without duplicating its side effect",
                     "cancellation before start",
                     "no network, Docker socket or production credentials",
                 ],
