@@ -108,6 +108,33 @@
           "bind": {
             "create_host_path": true
           }
+        },
+        {
+          "type": "bind",
+          "source": "${TAURIC_SECRETS_DIR}/operations/spool/requests",
+          "target": "/run/tauric-release/requests",
+          "read_only": false,
+          "bind": {
+            "create_host_path": true
+          }
+        },
+        {
+          "type": "bind",
+          "source": "${TAURIC_SECRETS_DIR}/operations/spool/receipts",
+          "target": "/run/tauric-release/receipts",
+          "read_only": true,
+          "bind": {
+            "create_host_path": true
+          }
+        },
+        {
+          "type": "bind",
+          "source": "${TAURIC_SECRETS_DIR}/operations/spool/public",
+          "target": "/run/tauric-release/public",
+          "read_only": true,
+          "bind": {
+            "create_host_path": true
+          }
         }
       ]
     },
@@ -1207,6 +1234,33 @@
           "type": "bind",
           "source": "${TAURIC_SECRETS_DIR}/engineering/public",
           "target": "/run/tauric-engineering/public",
+          "read_only": true,
+          "bind": {
+            "create_host_path": true
+          }
+        },
+        {
+          "type": "bind",
+          "source": "${TAURIC_SECRETS_DIR}/operations/spool/requests",
+          "target": "/run/tauric-release/requests",
+          "read_only": false,
+          "bind": {
+            "create_host_path": true
+          }
+        },
+        {
+          "type": "bind",
+          "source": "${TAURIC_SECRETS_DIR}/operations/spool/receipts",
+          "target": "/run/tauric-release/receipts",
+          "read_only": true,
+          "bind": {
+            "create_host_path": true
+          }
+        },
+        {
+          "type": "bind",
+          "source": "${TAURIC_SECRETS_DIR}/operations/spool/public",
+          "target": "/run/tauric-release/public",
           "read_only": true,
           "bind": {
             "create_host_path": true

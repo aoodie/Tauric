@@ -557,6 +557,9 @@ def restore_check(directory, project, archive, local=False):
             target = directory / "secrets" / "engineering" / "spool" / folder
             if target.is_dir():
                 os.chown(target, 10001, 10001)
+        release_requests = directory / "secrets" / "operations/spool/requests"
+        if release_requests.is_dir():
+            os.chown(release_requests, 10001, 10001)
         (directory / "secrets").chmod(0o700)
         validate(directory, project, local)
         compose = command(directory, project) + ["--profile", "*"]

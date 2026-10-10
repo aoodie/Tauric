@@ -32,6 +32,7 @@ class RuntimeConfig(BaseSettings):
     knowledge_vault_display: str = ""
     engineering_spool_directory: str = "/run/tauric-engineering"
     engineering_public_key_file: str = "/run/tauric-engineering/public/public.pem"
+    release_spool_directory: str = "/run/tauric-release"
 
     @model_validator(mode="after")
     def private_database_password(self):

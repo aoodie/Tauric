@@ -20,6 +20,7 @@ class Criterion(Contract):
         "command_success",
         "tests_passed",
         "child_complete",
+        "deployment_verified",
     ]
 
 
@@ -43,7 +44,7 @@ class TaskControl(Contract):
 
 
 class JobReference(Contract):
-    kind: Literal["analysis", "quant", "open_research", "engineering", "assistant_receipt", "task"]
+    kind: Literal["analysis", "quant", "open_research", "engineering", "assistant_receipt", "task", "release"]
     id: UUID
 
 

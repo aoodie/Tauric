@@ -2554,6 +2554,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/internal/openclaw/release": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Release Tool */
+    post: operations["release_tool_internal_openclaw_release_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/assistant/releases/{job_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Release Job */
+    get: operations["release_job_api_v1_assistant_releases__job_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -7750,7 +7784,8 @@ export interface components {
         | "job_success"
         | "command_success"
         | "tests_passed"
-        | "child_complete";
+        | "child_complete"
+        | "deployment_verified";
     };
     /** EngineeringInvocation */
     EngineeringInvocation: {
@@ -8196,6 +8231,47 @@ export interface components {
       lease_id: string | null;
       /** Heartbeat At */
       heartbeat_at: string | null;
+    };
+    /** ReleaseInvocation */
+    ReleaseInvocation: {
+      /**
+       * Channel
+       * @enum {string}
+       */
+      channel: "webchat" | "telegram" | "discord";
+      /**
+       * Agent Id
+       * @constant
+       */
+      agent_id: "tauric-chat";
+      /** Session Key */
+      session_key: string;
+      /**
+       * Sender Id
+       * @default
+       */
+      sender_id: string;
+      /** Sender Is Owner */
+      sender_is_owner: boolean;
+      /**
+       * Account Id
+       * @default default
+       */
+      account_id: string;
+      /** Tool Call Id */
+      tool_call_id: string;
+      /**
+       * Task Id
+       * Format: uuid
+       */
+      task_id: string;
+      /**
+       * Test Job Id
+       * Format: uuid
+       */
+      test_job_id: string;
+      /** Effect Key */
+      effect_key: string;
     };
   };
   responses: never;
@@ -13269,6 +13345,70 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["LabRecordView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  release_tool_internal_openclaw_release_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReleaseInvocation"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  release_job_api_v1_assistant_releases__job_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        job_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
         };
       };
       /** @description Validation Error */

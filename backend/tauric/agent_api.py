@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Request
 from sqlalchemy import select
 
-from . import agent_tasks, assistant, engineering
+from . import agent_tasks, assistant, engineering, release_jobs
 from .agent_contracts import (
     EngineeringInvocation,
     TaskControl,
@@ -16,6 +16,7 @@ from .agent_contracts import (
 from .agent_models import AgentTask, AgentTaskEvent, EngineeringJob
 from .auth import CurrentOwner, Db
 from .openclaw_api import service_owner
+from .release_contracts import ReleaseInvocation
 
 router = APIRouter(tags=["OpenClaw project work"])
 
@@ -101,3 +102,15 @@ def engineering_source(job_id: UUID, db: Db, owner: CurrentOwner):
     result = engineering.source(db, owner, job_id)
     db.commit()
     return result
+
+
+@router.post("/internal/openclaw/release")
+def release_tool(body: ReleaseInvocation, request: Request, db: Db):
+    owner = service_owner(request, db)
+    turn = assistant.authorize(db, owner, body)
+    return release_jobs.enqueue(db, owner, turn, body)
+
+
+@router.get("/api/v1/assistant/releases/{job_id}")
+def release_job(job_id: UUID, db: Db, owner: CurrentOwner):
+    return release_jobs.observe(db, owner, job_id)

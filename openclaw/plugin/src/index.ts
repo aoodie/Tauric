@@ -42,12 +42,12 @@ const projectActionParameters=Type.Object({operation:managerOperation,effect_key
 type TrustedContext={agentId?:string;senderIsOwner?:boolean;sessionKey?:string;
   messageChannel?:string;requesterSenderId?:string;agentAccountId?:string;
   assertInvocationCurrent?:()=>void};
-const taskReference=Type.Object({kind:Type.Union(['analysis','quant','open_research','engineering','assistant_receipt','task'].map(v=>Type.Literal(v))),id:Type.String({format:'uuid'})},{additionalProperties:false});
+const taskReference=Type.Object({kind:Type.Union(['analysis','quant','open_research','engineering','assistant_receipt','task','release'].map(v=>Type.Literal(v))),id:Type.String({format:'uuid'})},{additionalProperties:false});
 const taskParameters=Type.Object({
   action:Type.Union(['create','read','wait','complete','needs_owner'].map(v=>Type.Literal(v))),
   task_id:Type.Optional(Type.String({format:'uuid'})),effect_key:Type.Optional(Type.String({minLength:3,maxLength:80,pattern:'^[a-zA-Z0-9_.:-]+$'})),
   parameters:Type.Optional(Type.Union([
-    Type.Object({objective:Type.String({minLength:3,maxLength:4000}),criteria:Type.Array(Type.Object({description:Type.String({minLength:3,maxLength:500}),proof:Type.Union(['research_report','source_evidence','job_success','command_success','tests_passed','child_complete'].map(v=>Type.Literal(v)))},{additionalProperties:false}),{minItems:1,maxItems:12}),
+    Type.Object({objective:Type.String({minLength:3,maxLength:4000}),criteria:Type.Array(Type.Object({description:Type.String({minLength:3,maxLength:500}),proof:Type.Union(['research_report','source_evidence','job_success','command_success','tests_passed','child_complete','deployment_verified'].map(v=>Type.Literal(v)))},{additionalProperties:false}),{minItems:1,maxItems:12}),
       scope:Type.Optional(Type.Array(Type.Union(['research','engineering','operations'].map(v=>Type.Literal(v))),{minItems:1})),dependencies:Type.Optional(Type.Array(Type.String({format:'uuid'}),{maxItems:12})),
       max_wakes:Type.Optional(Type.Integer({minimum:1,maximum:40})),max_attempts:Type.Optional(Type.Integer({minimum:1,maximum:5})),deadline_hours:Type.Optional(Type.Integer({minimum:1,maximum:168}))},{additionalProperties:false}),
     Type.Object({job:taskReference,reason:Type.String({minLength:3,maxLength:500})},{additionalProperties:false}),
@@ -56,7 +56,7 @@ const taskParameters=Type.Object({
     Type.Object({},{additionalProperties:false}),
   ])),
 },{additionalProperties:false});
-const taskDescription='Manage durable owner-authorized project work. action=create requires parameters={objective,criteria:[{description,proof}],scope(optional)} and a stable effect_key; do not add reason to create parameters. The server supplies request identity and parent lineage. Children inherit the current scope when omitted and cannot broaden it. proof is research_report, source_evidence, job_success, command_success, tests_passed or child_complete. action=read takes task_id. action=wait takes task_id and parameters={job:{kind,id},reason}; kind is analysis,quant,open_research,engineering,assistant_receipt or task. After wait, return immediately so the supervisor follows it. action=complete takes task_id and parameters={evidence:[{kind,id}],summary}; supply one authoritative proof per criterion. action=needs_owner takes task_id and parameters={reason}. Correct any stated validation error using the same effect_key. Read existing task state before repeating a stable effect. Tasks never grant financial policy, trading or external-message authority.';
+const taskDescription='Manage durable owner-authorized project work. action=create requires parameters={objective,criteria:[{description,proof}],scope(optional)} and a stable effect_key; do not add reason to create parameters. The server supplies request identity and parent lineage. Children inherit the current scope when omitted and cannot broaden it. proof is research_report, source_evidence, job_success, command_success, tests_passed, child_complete or deployment_verified. action=read takes task_id. action=wait takes task_id and parameters={job:{kind,id},reason}; kind is analysis,quant,open_research,engineering,assistant_receipt, task or release. After wait, return immediately so the supervisor follows it. action=complete takes task_id and parameters={evidence:[{kind,id}],summary}; supply one authoritative proof per criterion. action=needs_owner takes task_id and parameters={reason}. Correct any stated validation error using the same effect_key. Read existing task state before repeating a stable effect. Tasks never grant financial policy, trading or external-message authority.';
 function boundTool(config:{platformUrl:string;platformToken:string},ctx:TrustedContext,
   name:string,description:string,parameters:ReturnType<typeof Type.Object>,endpoint:string,keys:string[]) {
   if(ctx.agentId!=='tauric-chat' || ctx.senderIsOwner!==true || !ctx.sessionKey ||
@@ -86,6 +86,9 @@ function boundTool(config:{platformUrl:string;platformToken:string},ctx:TrustedC
       return jsonResult(response.ok?data:{applied:false,error:typeof data.detail==='string'?data.detail:validation?.map((item:{field:string;message:string})=>`${item.field}: ${item.message}`).join('; ')||'Tauric rejected this request.',...(validation?{validation_errors:validation}:{})});
     }};
 }
+
+const releaseParameters=Type.Object({task_id:Type.String({format:'uuid'}),test_job_id:Type.String({format:'uuid'}),effect_key:Type.String({minLength:3,maxLength:80,pattern:'^[a-zA-Z0-9_.:-]+$'})},{additionalProperties:false});
+const releaseDescription='Publish and deploy existing signed successful engineering test source for an owner-authorized engineering and operations task. Supply the original test_job_id and a stable effect_key. The separate host bridge verifies current task controls, exact source/base, one repository, full CI, five immutable images, recovery backup restoration, migration and installed source/service readiness. Execution is asynchronous: use tauric_task wait with kind=release and the returned job ID, then return. Only a signed deployment_verified result can prove installation. Repeated identities reconcile the original release. Fixed host executors and workflow changes require the trusted installation path. No broker order, risk-limit, financial approval or account activation authority is granted.';
 
 // Owner-bound project tools; financial effects remain inside Tauric services.
 export default defineToolPlugin({
@@ -271,6 +274,13 @@ export default defineToolPlugin({
       return boundTool(config,toolContext,'tauric_engineering','Run shell, Python, Git or real tests asynchronously in the isolated persistent project workspace. Supply the current task_id and a stable effect_key. purpose=test requires direct python -m pytest or node --test. Repeating the same key reconciles its original execution. After submission, call tauric_task action=wait with parameters={job:{kind:"engineering",id:returned_job_id},reason:"Follow the isolated command"}, then return. A signed successful execution and source artifact are required for completion. No network, production secrets or financial authority is available in the workspace.',
         Type.Object({task_id:Type.String({format:'uuid'}),effect_key:Type.String({minLength:3,maxLength:80}),script:Type.String({minLength:1,maxLength:30000}),timeout_seconds:Type.Optional(Type.Integer({minimum:1,maximum:600})),purpose:Type.Optional(Type.Union(['inspect','develop','test'].map(v=>Type.Literal(v))))},{additionalProperties:false}),
         '/internal/openclaw/engineering',['task_id','effect_key','script','timeout_seconds','purpose']);
+    },
+  }), tool({
+    name:'tauric_release',label:'Publish and verify a project release',optional:true,
+    description:releaseDescription,parameters:releaseParameters,
+    factory({config,toolContext}) {
+      return boundTool(config,toolContext,'tauric_release',releaseDescription,releaseParameters,
+        '/internal/openclaw/release',['task_id','test_job_id','effect_key']);
     },
   })],
 });

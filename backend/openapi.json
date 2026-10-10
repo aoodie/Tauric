@@ -6948,6 +6948,86 @@
           }
         }
       }
+    },
+    "/internal/openclaw/release": {
+      "post": {
+        "tags": [
+          "OpenClaw project work"
+        ],
+        "summary": "Release Tool",
+        "operationId": "release_tool_internal_openclaw_release_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseInvocation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assistant/releases/{job_id}": {
+      "get": {
+        "tags": [
+          "OpenClaw project work"
+        ],
+        "summary": "Release Job",
+        "operationId": "release_job_api_v1_assistant_releases__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -19585,7 +19665,8 @@
               "job_success",
               "command_success",
               "tests_passed",
-              "child_complete"
+              "child_complete",
+              "deployment_verified"
             ],
             "title": "Proof"
           }
@@ -20559,6 +20640,82 @@
           "heartbeat_at"
         ],
         "title": "TaskView"
+      },
+      "ReleaseInvocation": {
+        "properties": {
+          "channel": {
+            "type": "string",
+            "enum": [
+              "webchat",
+              "telegram",
+              "discord"
+            ],
+            "title": "Channel"
+          },
+          "agent_id": {
+            "type": "string",
+            "const": "tauric-chat",
+            "title": "Agent Id"
+          },
+          "session_key": {
+            "type": "string",
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Session Key"
+          },
+          "sender_id": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Sender Id",
+            "default": ""
+          },
+          "sender_is_owner": {
+            "type": "boolean",
+            "title": "Sender Is Owner"
+          },
+          "account_id": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Account Id",
+            "default": "default"
+          },
+          "tool_call_id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Tool Call Id"
+          },
+          "task_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Task Id"
+          },
+          "test_job_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Test Job Id"
+          },
+          "effect_key": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 3,
+            "pattern": "^[a-zA-Z0-9_.:-]+$",
+            "title": "Effect Key"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "channel",
+          "agent_id",
+          "session_key",
+          "sender_is_owner",
+          "tool_call_id",
+          "task_id",
+          "test_job_id",
+          "effect_key"
+        ],
+        "title": "ReleaseInvocation"
       }
     }
   }

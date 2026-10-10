@@ -37,7 +37,8 @@
       "tauric_market_data",
       "tauric_open_research",
       "tauric_task",
-      "tauric_engineering"
+      "tauric_engineering",
+      "tauric_release"
     ]
   },
   "toolMetadata": {
@@ -81,6 +82,9 @@
       "optional": true
     },
     "tauric_engineering": {
+      "optional": true
+    },
+    "tauric_release": {
       "optional": true
     }
   }

@@ -293,6 +293,17 @@ def control(db, owner, task_id, body):
 def reference(db, owner, ref):
     """Observe actual service state; a request receipt never means completion."""
     key = str(ref.id)
+    if ref.kind == "release":
+        from . import release_jobs
+
+        job = release_jobs.observe(db, owner, key)
+        result = job["result"]
+        return {
+            "kind": ref.kind, "id": key, "status": job["status"],
+            "proofs": ["deployment_verified"]
+            if job["status"] == "succeeded" and result.get("receipt_verified") else [],
+            "checksum": paper.checksum(result), "error": result.get("error"),
+        }
     if ref.kind == "open_research":
         row = db.get(AuditEvent, key)
         if not row or row.owner_id != owner.id or row.action != "chat.open_research_observed":
@@ -483,6 +494,12 @@ def invoke(db, owner, turn, body):
                     fail("Engineering proof must come from this project goal.", 403)
             if proof["kind"] == "task" and owned(db, owner, proof["id"]).parent_id != row.id:
                 fail("Child completion evidence must be this task's child.", 403)
+            if proof["kind"] == "release":
+                from . import release_jobs
+
+                release = release_jobs.intent(db, owner, proof["id"])
+                if owned(db, owner, release.payload["task_id"]).root_id != row.root_id:
+                    fail("Release proof must come from this project goal.", 403)
         unfinished = db.scalar(
             select(AgentTask.id)
             .where(AgentTask.parent_id == row.id, AgentTask.status != "completed")
