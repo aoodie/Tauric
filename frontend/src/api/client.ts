@@ -374,6 +374,17 @@ export const api = {
       }),
     ),
   chatSettings: async () => unwrap(await client.GET("/api/v1/chat/settings")),
+  projectTasks: async () => unwrap(await client.GET("/api/v1/assistant/tasks")),
+  controlProjectTask: async (
+    task_id: string,
+    body: components["schemas"]["TaskControl"],
+  ) =>
+    unwrap(
+      await client.POST("/api/v1/assistant/tasks/{task_id}/control", {
+        params: { path: { task_id } },
+        body,
+      }),
+    ),
   assistant: async () => unwrap(await client.GET("/api/v1/assistant")),
   saveChatSettings: async (body: components["schemas"]["ChatConfigChange"]) =>
     unwrap(await client.PUT("/api/v1/chat/settings", { body })),

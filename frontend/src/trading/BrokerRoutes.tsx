@@ -165,10 +165,9 @@ export function BrokerRoutes({
   }
   const eligible = instruments.filter((item) =>
     provider === "oanda"
-      ? item.asset_type === "fx" &&
-        [item.base_currency, item.quote_currency].every((c) =>
-          ["USD", "EUR", "GBP", "JPY"].includes(c),
-        )
+      ? ["fx", "commodity", "cfd"].includes(item.asset_type) &&
+        (item.native_research_ready ||
+          item.classification_source === "provider_product")
       : ["equity", "etf"].includes(item.asset_type),
   );
   const routes =

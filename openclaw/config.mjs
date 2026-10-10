@@ -47,7 +47,7 @@ export function buildConfig(root, tokens, runtime) {
       name:"OpenClaw · Tauric assistant",workspace:`${root}/chat-workspace`,
       model:selected.model,modelPolicy:selected.modelPolicy,
       thinkingDefault:"off",reasoningDefault:"off",skills:[],
-      tools:{allow:["tauric_chat_context","tauric_request_research","tauric_research_status","tauric_portfolio_action","tauric_request_portfolio_research","tauric_project_read","tauric_project_action","tauric_market_data","tauric_open_research"]},
+      tools:{allow:["tauric_chat_context","tauric_request_research","tauric_research_status","tauric_portfolio_action","tauric_request_portfolio_research","tauric_project_read","tauric_project_action","tauric_market_data","tauric_open_research","tauric_task","tauric_engineering"]},
     };
     for(const key of ['telegram','discord']) {
       const channel = chat[key];
@@ -74,7 +74,7 @@ export function buildConfig(root, tokens, runtime) {
     channels,bindings,session:{dmScope:'per-account-channel-peer'},
     commands:{native:false,nativeSkills:false,text:false,config:false,debug:false,restart:false,bash:false,
       ownerAllowFrom:channelPlugins.map(key=>`${key}:${chat[key].owner_id}`)},
-    tools:{toolSearch:false,codeMode:false,allow:["tauric_paper_context","tauric_review_context","tauric_chat_context","tauric_request_research","tauric_research_status","tauric_portfolio_action","tauric_request_portfolio_research","tauric_broker_review_context","tauric_project_read","tauric_project_action","tauric_market_data","tauric_open_research"],loopDetection:{enabled:true}},
+    tools:{toolSearch:false,codeMode:false,allow:["tauric_paper_context","tauric_review_context","tauric_chat_context","tauric_request_research","tauric_research_status","tauric_portfolio_action","tauric_request_portfolio_research","tauric_broker_review_context","tauric_project_read","tauric_project_action","tauric_market_data","tauric_open_research","tauric_task","tauric_engineering"],loopDetection:{enabled:true}},
     plugins:{slots:{memory:"none"},allow:["tauric-governance-tools",...channelPlugins],load:{paths:["/app/plugin"]},
       entries:{"memory-core":{enabled:false},"tauric-governance-tools":{enabled:true,
         config:{platformUrl:"http://api:8000/",platformToken:tokens.platform_token}},

@@ -10,6 +10,19 @@ NY = ZoneInfo("America/New_York")
 
 
 def default_context(spec):
+    if spec.asset_type in {"commodity", "cfd"}:
+        return DataContext(
+            calendar_id="provider_observed",
+            timezone="UTC",
+            price_side="bid_ask",
+            volume_type="provider_ticks",
+            calendar_source="Observed OANDA closed intraday bars; no inferred product holiday calendar",
+            warnings=[
+                "Product trading hours and holiday exceptions are not inferred from Forex sessions.",
+                "Missing expected intraday bars remain gaps and block contiguous-signal evaluation.",
+                "Provider tick counts are activity, not exchange volume; CFDs are not exchange futures.",
+            ],
+        )
     return DataContext(
         calendar_id=spec.calendar_id,
         timezone="UTC" if spec.asset_type == "crypto_spot" else "America/New_York",
@@ -48,7 +61,7 @@ def periods(context, interval, start, end):
     if end < start or (end - start).days > 1500:
         raise ValueError("Calendar range must be ordered and bounded to 1,500 days")
     step = timedelta(seconds=SECONDS[interval])
-    if context.calendar_id == "crypto_24x7":
+    if context.calendar_id in {"crypto_24x7", "provider_observed"}:
         stamp = start
         while stamp <= end:
             if stamp >= start:

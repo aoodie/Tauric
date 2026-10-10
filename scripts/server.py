@@ -326,6 +326,41 @@ def volume_name(compose, service, destination):
     )
 
 
+def freeze_engineering(directory):
+    """Freeze isolated writes before copying private keys, receipts and bounded disks."""
+    values = read_env(directory / "server.env")
+    private = Path(values["TAURIC_SECRETS_DIR"]) / "engineering"
+    if not (private / "install.json").is_file():
+        return False
+    active = (
+        subprocess.run(
+            ["systemctl", "is-active", "--quiet", "tauric-engineering.service"],
+            check=False,
+        ).returncode
+        == 0
+    )
+    if active:
+        run(["systemctl", "stop", "tauric-engineering.service"], stdout=subprocess.PIPE)
+    executions = (
+        run(
+            ["docker", "ps", "-q", "--filter", "label=io.tauric.engineering=v1"],
+            stdout=subprocess.PIPE,
+        )
+        .stdout.decode()
+        .split()
+    )
+    if executions:
+        # Interrupted development is reconciled on resume; its stable identity is retained.
+        run(["docker", "kill", *executions], stdout=subprocess.PIPE)
+    for target in sorted((private / "workspaces").glob("*/mount")):
+        if (
+            subprocess.run(["mountpoint", "-q", str(target)], check=False).returncode
+            == 0
+        ):
+            run(["umount", str(target)], stdout=subprocess.PIPE)
+    return active
+
+
 def backup(directory, project, output, local=False):
     validate(directory, project, local)
     if output.exists():
@@ -344,11 +379,13 @@ def backup(directory, project, output, local=False):
     if "db" not in active:
         raise ValueError("The database must be running before backup.")
     stopped = [name for name in active if name != "db"]
+    engineering_active = False
     with tempfile.TemporaryDirectory(prefix="tauric-backup-") as folder:
         staging = Path(folder)
         try:
             if stopped:
                 run(compose + ["stop", *stopped], stdout=subprocess.PIPE)
+            engineering_active = freeze_engineering(directory)
             before = snapshot(compose)
             dump = staging / "database.dump"
             with dump.open("wb") as target:
@@ -428,6 +465,11 @@ def backup(directory, project, output, local=False):
                 for path in sorted(staging.iterdir()):
                     archive.add(path, arcname=path.name)
         finally:
+            if engineering_active:
+                run(
+                    ["systemctl", "start", "tauric-engineering.service"],
+                    stdout=subprocess.PIPE,
+                )
             if stopped:
                 run(compose + ["start", *stopped], stdout=subprocess.PIPE)
     return {
@@ -506,7 +548,11 @@ def restore_check(directory, project, archive, local=False):
             "".join(f"{key}={value}\n" for key, value in values.items()),
         )
         for path in (directory / "secrets").iterdir():
-            path.chmod(0o644)
+            path.chmod(0o644 if path.is_file() else 0o700)
+        for folder in ("requests", "cancel"):
+            target = directory / "secrets" / "engineering" / "spool" / folder
+            if target.is_dir():
+                os.chown(target, 10001, 10001)
         (directory / "secrets").chmod(0o700)
         validate(directory, project, local)
         compose = command(directory, project) + ["--profile", "*"]

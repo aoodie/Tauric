@@ -6,7 +6,7 @@ import { useMarket } from "./MarketContext";
 import "./discovery.css";
 
 type Discovery = components["schemas"]["DiscoveryView"];
-type Asset = "fx" | "equity" | "etf";
+type Asset = "fx" | "equity" | "etf" | "commodity" | "cfd";
 
 export function InstrumentDiscovery({
   onAdded,
@@ -193,7 +193,9 @@ export function InstrumentDiscovery({
             {result.items.map((item) => {
               const asset =
                 item.registered_asset_type ??
-                (provider === "oanda" ? "fx" : classes[item.symbol]);
+                (provider === "oanda"
+                  ? (item.category as Asset)
+                  : classes[item.symbol]);
               return (
                 <article
                   className="discovery-row"

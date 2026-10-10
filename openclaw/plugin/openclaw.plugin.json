@@ -1,7 +1,7 @@
 {
   "id": "tauric-governance-tools",
   "name": "Tauric governance and chat tools",
-  "description": "Serve owner requests with fresh market data, research, backtest-first governed paper workflows and audited code workspaces. Tauric controls evidence, policy, approval and release checks; no broker order or direct live-source authority.",
+  "description": "Serve owner requests with fresh market data, research, governed paper and broker workflows, durable goals and isolated engineering. Tauric broker services enforce evidence, account bindings, policy, approval and release checks; direct live-source changes are unavailable.",
   "version": "0.6.0",
   "configSchema": {
     "type": "object",
@@ -35,7 +35,9 @@
       "tauric_project_read",
       "tauric_project_action",
       "tauric_market_data",
-      "tauric_open_research"
+      "tauric_open_research",
+      "tauric_task",
+      "tauric_engineering"
     ]
   },
   "toolMetadata": {
@@ -73,6 +75,12 @@
       "optional": true
     },
     "tauric_open_research": {
+      "optional": true
+    },
+    "tauric_task": {
+      "optional": true
+    },
+    "tauric_engineering": {
       "optional": true
     }
   }

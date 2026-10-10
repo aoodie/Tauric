@@ -10,7 +10,7 @@ import {
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
-const kinds = ["api", "worker", "web", "openclaw"];
+const kinds = ["api", "worker", "web", "openclaw", "engineering"];
 const requireFact = (condition, message) => {
   if (!condition) throw new Error(message);
 };
@@ -38,8 +38,8 @@ export function validateRun(run, repository, revision) {
 
 export function validateImages(entries, repository, revision) {
   requireFact(
-    entries.length === kinds.length,
-    "Exactly four release images are required.",
+    entries.length === 4 || entries.length === 5,
+    "A complete core release image set is required.",
   );
   return entries.map((entry, index) => {
     const prefix = `ghcr.io/${repository.toLowerCase()}-${kinds[index]}@sha256:`;
@@ -163,11 +163,12 @@ async function main() {
   requireFact(response.ok, "Release run could not be verified.");
   validateRun(await response.json(), repository, revision);
   const entries = await Promise.all(
-    kinds.map(async (kind) =>
-      JSON.parse(await readFile(`image-digests/${kind}.json`, "utf8")),
-    ),
+    kinds.map(async (kind) => {
+      try { return JSON.parse(await readFile(`image-digests/${kind}.json`, "utf8")); }
+      catch (error) { if(kind === 'engineering' && error.code === 'ENOENT') return null; throw error; }
+    }),
   );
-  const images = validateImages(entries, repository, revision);
+  const images = validateImages(entries.filter(Boolean), repository, revision);
   const pulls = [];
   for (const image of images)
     pulls.push(await obtainPullToken(image, actor, credential));

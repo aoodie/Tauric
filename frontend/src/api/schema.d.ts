@@ -2332,6 +2332,228 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/assistant/tasks": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Tasks */
+    get: operations["tasks_api_v1_assistant_tasks_get"];
+    put?: never;
+    /** Create */
+    post: operations["create_api_v1_assistant_tasks_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/assistant/tasks/{task_id}/control": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Control */
+    post: operations["control_api_v1_assistant_tasks__task_id__control_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/assistant/tasks/{task_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Task */
+    get: operations["task_api_v1_assistant_tasks__task_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/internal/openclaw/task": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Task Tool */
+    post: operations["task_tool_internal_openclaw_task_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/internal/openclaw/engineering": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Engineering Tool */
+    post: operations["engineering_tool_internal_openclaw_engineering_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/assistant/engineering/{job_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Engineering Job */
+    get: operations["engineering_job_api_v1_assistant_engineering__job_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/assistant/engineering/{job_id}/source": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Engineering Source */
+    get: operations["engineering_source_api_v1_assistant_engineering__job_id__source_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/research/lab/datasets/history": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** History */
+    post: operations["history_api_v1_research_lab_datasets_history_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/research/lab": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** State */
+    get: operations["state_api_v1_research_lab_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/research/lab/reports": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Report */
+    post: operations["report_api_v1_research_lab_reports_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/research/lab/experiments": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Experiment */
+    post: operations["experiment_api_v1_research_lab_experiments_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/research/lab/records/{record_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Record */
+    get: operations["record_api_v1_research_lab_records__record_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/research/lab/experiments/{record_id}/cancel": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Cancel */
+    post: operations["cancel_api_v1_research_lab_experiments__record_id__cancel_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2626,6 +2848,9 @@ export interface components {
         | "revise_strategy"
         | "capture_dataset"
         | "run_backtest"
+        | "retrieve_history"
+        | "session_research"
+        | "quant_experiment"
         | "save_research_note"
         | "prepare_upgrade"
         | "stage_upgrade"
@@ -2634,7 +2859,22 @@ export interface components {
         | "request_paper_review"
         | "plan_paper_entry"
         | "execute_paper_plan"
-        | "close_paper_position";
+        | "close_paper_position"
+        | "capture_broker_valuation"
+        | "register_broker_forward"
+        | "evaluate_broker_forward"
+        | "check_broker_account"
+        | "save_broker_policy"
+        | "save_broker_route"
+        | "assess_broker_setup"
+        | "request_broker_review"
+        | "submit_broker_entry"
+        | "close_broker_position"
+        | "reconcile_broker_order"
+        | "cancel_broker_order"
+        | "refresh_broker_position"
+        | "reconcile_broker_close"
+        | "repair_broker_protection";
       /** Title */
       title: string;
       /**
@@ -4128,7 +4368,8 @@ export interface components {
        * Calendar Id
        * @enum {string}
        */
-      calendar_id: "crypto_24x7" | "oanda_fx" | "us_equity";
+      calendar_id:
+        "crypto_24x7" | "oanda_fx" | "us_equity" | "provider_observed";
       /**
        * Timezone
        * @enum {string}
@@ -4424,7 +4665,7 @@ export interface components {
        * Category
        * @enum {string}
        */
-      category: "fx" | "us_equity";
+      category: "fx" | "us_equity" | "commodity" | "cfd";
       /** Available */
       available: boolean;
       /** Unavailable Reason */
@@ -4432,7 +4673,8 @@ export interface components {
       /** Registered Id */
       registered_id?: string | null;
       /** Registered Asset Type */
-      registered_asset_type?: ("fx" | "equity" | "etf") | null;
+      registered_asset_type?:
+        ("fx" | "equity" | "etf" | "commodity" | "cfd") | null;
     };
     /** DiscoveryView */
     DiscoveryView: {
@@ -4695,7 +4937,7 @@ export interface components {
        * Asset Type
        * @enum {string}
        */
-      asset_type: "fx" | "equity" | "etf";
+      asset_type: "fx" | "equity" | "etf" | "commodity" | "cfd";
       /** Expected Connection Revision */
       expected_connection_revision: number;
     };
@@ -4715,7 +4957,7 @@ export interface components {
        * Asset Type
        * @enum {string}
        */
-      asset_type: "crypto_spot" | "fx" | "equity" | "etf";
+      asset_type: "crypto_spot" | "fx" | "equity" | "etf" | "commodity" | "cfd";
       /** Base Currency */
       base_currency: string;
       /** Quote Currency */
@@ -4731,7 +4973,7 @@ export interface components {
        * Native Asset Type
        * @enum {string}
        */
-      native_asset_type: "crypto" | "forex" | "stock";
+      native_asset_type: "crypto" | "forex" | "stock" | "none";
       /** Analysis Scope */
       analysis_scope: string;
       /**
@@ -4739,7 +4981,8 @@ export interface components {
        * @default crypto_24x7
        * @enum {string}
        */
-      calendar_id: "crypto_24x7" | "oanda_fx" | "us_equity";
+      calendar_id:
+        "crypto_24x7" | "oanda_fx" | "us_equity" | "provider_observed";
       /**
        * Price Side
        * @default trades
@@ -4764,9 +5007,15 @@ export interface components {
        * @enum {string}
        */
       classification_source:
-        "seed" | "owner_selection" | "provider_currency" | "unclassified";
+        | "seed"
+        | "owner_selection"
+        | "provider_currency"
+        | "provider_product"
+        | "unclassified";
       /** Native Research Ready */
       readonly native_research_ready: boolean;
+      /** Provider Product Type */
+      provider_product_type?: ("CURRENCY" | "METAL" | "CFD") | null;
     };
     /** IntelligenceCatalog */
     IntelligenceCatalog: {
@@ -4998,7 +5247,7 @@ export interface components {
        * Native Asset Type
        * @enum {string}
        */
-      native_asset_type: "crypto" | "forex" | "stock";
+      native_asset_type: "crypto" | "forex" | "stock" | "none";
       /** Analysis Scope */
       analysis_scope: string;
       /**
@@ -5006,7 +5255,8 @@ export interface components {
        * @default crypto_24x7
        * @enum {string}
        */
-      calendar_id: "crypto_24x7" | "oanda_fx" | "us_equity";
+      calendar_id:
+        "crypto_24x7" | "oanda_fx" | "us_equity" | "provider_observed";
       /**
        * Price Side
        * @default trades
@@ -5031,7 +5281,11 @@ export interface components {
        * @enum {string}
        */
       classification_source:
-        "seed" | "owner_selection" | "provider_currency" | "unclassified";
+        | "seed"
+        | "owner_selection"
+        | "provider_currency"
+        | "provider_product"
+        | "unclassified";
       /**
        * Registered
        * @default true
@@ -5041,6 +5295,8 @@ export interface components {
       catalog_id?: string | null;
       /** Native Research Ready */
       readonly native_research_ready: boolean;
+      /** Provider Product Type */
+      provider_product_type?: ("CURRENCY" | "METAL" | "CFD") | null;
     };
     /** IntelligenceWatchlistChange */
     IntelligenceWatchlistChange: {
@@ -7479,6 +7735,467 @@ export interface components {
       layout: {
         [key: string]: unknown;
       };
+    };
+    /** Criterion */
+    Criterion: {
+      /** Description */
+      description: string;
+      /**
+       * Proof
+       * @enum {string}
+       */
+      proof:
+        | "research_report"
+        | "source_evidence"
+        | "job_success"
+        | "command_success"
+        | "tests_passed"
+        | "child_complete";
+    };
+    /** EngineeringInvocation */
+    EngineeringInvocation: {
+      /**
+       * Channel
+       * @enum {string}
+       */
+      channel: "webchat" | "telegram" | "discord";
+      /**
+       * Agent Id
+       * @constant
+       */
+      agent_id: "tauric-chat";
+      /** Session Key */
+      session_key: string;
+      /**
+       * Sender Id
+       * @default
+       */
+      sender_id: string;
+      /** Sender Is Owner */
+      sender_is_owner: boolean;
+      /**
+       * Account Id
+       * @default default
+       */
+      account_id: string;
+      /** Tool Call Id */
+      tool_call_id: string;
+      /**
+       * Task Id
+       * Format: uuid
+       */
+      task_id: string;
+      /** Effect Key */
+      effect_key: string;
+      /** Script */
+      script: string;
+      /**
+       * Timeout Seconds
+       * @default 120
+       */
+      timeout_seconds: number;
+      /**
+       * Purpose
+       * @default develop
+       * @enum {string}
+       */
+      purpose: "inspect" | "develop" | "test";
+    };
+    /** EvidenceNote */
+    EvidenceNote: {
+      /** Title */
+      title: string;
+      /** Source */
+      source: string;
+      /** Content */
+      content: string;
+      /**
+       * Published At
+       * Format: date-time
+       */
+      published_at: string;
+      /**
+       * Available At
+       * Format: date-time
+       */
+      available_at: string;
+    };
+    /** ExperimentCreate */
+    ExperimentCreate: {
+      /**
+       * Request Id
+       * Format: uuid
+       */
+      request_id: string;
+      /**
+       * Dataset Id
+       * Format: uuid
+       */
+      dataset_id: string;
+      /** Name */
+      name: string;
+      /** Hypothesis */
+      hypothesis: string;
+      /** Reason */
+      reason: string;
+      /**
+       * Engine
+       * @enum {string}
+       */
+      engine: "lean" | "qlib";
+      session?: components["schemas"]["SessionWindow"];
+      /**
+       * Train End
+       * Format: date-time
+       */
+      train_end: string;
+      /**
+       * Validation End
+       * Format: date-time
+       */
+      validation_end: string;
+      /**
+       * Test End
+       * Format: date-time
+       */
+      test_end: string;
+      /**
+       * Horizon Bars
+       * @default 4
+       */
+      horizon_bars: number;
+      /**
+       * Lookback Bars
+       * @default 12
+       */
+      lookback_bars: number;
+      /**
+       * Fast Window
+       * @default 5
+       */
+      fast_window: number;
+      /**
+       * Slow Window
+       * @default 20
+       */
+      slow_window: number;
+      /**
+       * Starting Balance
+       * @default 10000
+       */
+      starting_balance: string;
+      /**
+       * Allocation Percent
+       * @default 25
+       */
+      allocation_percent: string;
+      /**
+       * Fee Bps
+       * @default 0
+       */
+      fee_bps: string;
+      /**
+       * Slippage Bps
+       * @default 5
+       */
+      slippage_bps: string;
+      asset_costs: components["schemas"]["AssetCosts"];
+      /** Model Run Id */
+      model_run_id?: string | null;
+    };
+    /** HistoricalDatasetCreate */
+    HistoricalDatasetCreate: {
+      /**
+       * Request Id
+       * Format: uuid
+       */
+      request_id: string;
+      /** Name */
+      name: string;
+      /** Instrument Id */
+      instrument_id: string;
+      /**
+       * Interval
+       * @enum {string}
+       */
+      interval: "1m" | "5m" | "15m" | "1h" | "4h" | "1d";
+      /**
+       * Start
+       * Format: date-time
+       */
+      start: string;
+      /**
+       * End
+       * Format: date-time
+       */
+      end: string;
+      /** Reason */
+      reason: string;
+    };
+    /** LabRecordView */
+    LabRecordView: {
+      /** Id */
+      id: string;
+      /** Kind */
+      kind: string;
+      /** Name */
+      name: string;
+      /** Checksum */
+      checksum: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Payload */
+      payload: {
+        [key: string]: unknown;
+      };
+    };
+    /** LabState */
+    LabState: {
+      /** Engines */
+      engines: {
+        [key: string]: unknown;
+      }[];
+      /** Sessions */
+      sessions: components["schemas"]["SessionWindow"][];
+      /** Records */
+      records: components["schemas"]["LabRecordView"][];
+      /**
+       * Authority
+       * @default research_only
+       * @constant
+       */
+      authority: "research_only";
+    };
+    /** SessionReportCreate */
+    SessionReportCreate: {
+      /**
+       * Request Id
+       * Format: uuid
+       */
+      request_id: string;
+      /**
+       * Dataset Id
+       * Format: uuid
+       */
+      dataset_id: string;
+      /** Name */
+      name: string;
+      /** Hypothesis */
+      hypothesis: string;
+      /** Reason */
+      reason: string;
+      /**
+       * Mode
+       * @default current
+       * @enum {string}
+       */
+      mode: "historical" | "current" | "forecast";
+      /**
+       * Start
+       * Format: date-time
+       */
+      start: string;
+      /**
+       * As Of
+       * Format: date-time
+       */
+      as_of: string;
+      session?: components["schemas"]["SessionWindow"];
+      /**
+       * Forecast Bars
+       * @default 4
+       */
+      forecast_bars: number;
+      /** Evidence */
+      evidence?: components["schemas"]["EvidenceNote"][];
+    };
+    /** SessionWindow */
+    SessionWindow: {
+      /**
+       * Name
+       * @default All trading hours
+       */
+      name: string;
+      /**
+       * Timezone
+       * @default UTC
+       */
+      timezone: string;
+      /**
+       * Opening
+       * @default 00:00
+       */
+      opening: string;
+      /**
+       * Closing
+       * @default 00:00
+       */
+      closing: string;
+      /** Weekdays */
+      weekdays?: number[];
+    };
+    /** TaskControl */
+    TaskControl: {
+      /** Expected Revision */
+      expected_revision: number;
+      /**
+       * Action
+       * @enum {string}
+       */
+      action: "pause" | "resume" | "cancel";
+      /** Reason */
+      reason: string;
+    };
+    /** TaskCreate */
+    TaskCreate: {
+      /**
+       * Request Id
+       * Format: uuid
+       */
+      request_id: string;
+      /** Objective */
+      objective: string;
+      /** Criteria */
+      criteria: components["schemas"]["Criterion"][];
+      /**
+       * Scope
+       * @default [
+       *       "research",
+       *       "engineering",
+       *       "operations"
+       *     ]
+       */
+      scope: ("research" | "engineering" | "operations")[];
+      /** Parent Id */
+      parent_id?: string | null;
+      /** Dependencies */
+      dependencies?: string[];
+      /**
+       * Max Wakes
+       * @default 12
+       */
+      max_wakes: number;
+      /**
+       * Max Attempts
+       * @default 3
+       */
+      max_attempts: number;
+      /**
+       * Deadline Hours
+       * @default 24
+       */
+      deadline_hours: number;
+      /** Conversation Id */
+      conversation_id?: string | null;
+    };
+    /** TaskInvocation */
+    TaskInvocation: {
+      /**
+       * Channel
+       * @enum {string}
+       */
+      channel: "webchat" | "telegram" | "discord";
+      /**
+       * Agent Id
+       * @constant
+       */
+      agent_id: "tauric-chat";
+      /** Session Key */
+      session_key: string;
+      /**
+       * Sender Id
+       * @default
+       */
+      sender_id: string;
+      /** Sender Is Owner */
+      sender_is_owner: boolean;
+      /**
+       * Account Id
+       * @default default
+       */
+      account_id: string;
+      /** Tool Call Id */
+      tool_call_id: string;
+      /**
+       * Action
+       * @enum {string}
+       */
+      action: "create" | "read" | "wait" | "complete" | "needs_owner";
+      /** Task Id */
+      task_id?: string | null;
+      /** Effect Key */
+      effect_key?: string | null;
+      /** Parameters */
+      parameters?: {
+        [key: string]: unknown;
+      };
+    };
+    /** TaskView */
+    TaskView: {
+      /** Id */
+      id: string;
+      /** Parent Id */
+      parent_id: string | null;
+      /** Root Id */
+      root_id: string;
+      /** Objective */
+      objective: string;
+      /** Criteria */
+      criteria: components["schemas"]["Criterion"][];
+      /** Dependencies */
+      dependencies: string[];
+      /** Scope */
+      scope: ("research" | "engineering" | "operations")[];
+      /** Status */
+      status: string;
+      /** Revision */
+      revision: number;
+      /** Attempts */
+      attempts: number;
+      /** Max Attempts */
+      max_attempts: number;
+      /** Max Wakes */
+      max_wakes: number;
+      /**
+       * Deadline
+       * Format: date-time
+       */
+      deadline: string;
+      /** Next Check At */
+      next_check_at: string | null;
+      /** Waiting */
+      waiting: {
+        [key: string]: unknown;
+      };
+      /** Result */
+      result: {
+        [key: string]: unknown;
+      };
+      /** Error */
+      error: string | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /** Executor */
+      executor: string;
+      /** Trace Id */
+      trace_id: string;
+      /** Active Turn Id */
+      active_turn_id: string | null;
+      /** Lease Id */
+      lease_id: string | null;
+      /** Heartbeat At */
+      heartbeat_at: string | null;
     };
   };
   responses: never;
@@ -12124,6 +12841,434 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["AnalyticsView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  tasks_api_v1_assistant_tasks_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TaskView"][];
+        };
+      };
+    };
+  };
+  create_api_v1_assistant_tasks_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TaskCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TaskView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  control_api_v1_assistant_tasks__task_id__control_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TaskControl"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TaskView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  task_api_v1_assistant_tasks__task_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  task_tool_internal_openclaw_task_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TaskInvocation"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  engineering_tool_internal_openclaw_engineering_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EngineeringInvocation"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  engineering_job_api_v1_assistant_engineering__job_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        job_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  engineering_source_api_v1_assistant_engineering__job_id__source_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        job_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  history_api_v1_research_lab_datasets_history_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["HistoricalDatasetCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DatasetView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  state_api_v1_research_lab_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LabState"];
+        };
+      };
+    };
+  };
+  report_api_v1_research_lab_reports_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SessionReportCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LabRecordView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  experiment_api_v1_research_lab_experiments_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ExperimentCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LabRecordView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  record_api_v1_research_lab_records__record_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        record_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LabRecordView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  cancel_api_v1_research_lab_experiments__record_id__cancel_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        record_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LabRecordView"];
         };
       };
       /** @description Validation Error */

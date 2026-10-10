@@ -1,0 +1,25 @@
+# OpenClaw ownership implementation
+
+Implementation started 9 October 2026, verification continued 10 October 2026. This is a release candidate; no production acceptance is implied by this document. The standing authority is [the project mandate](OPENCLAW_PROJECT_OWNERSHIP.md).
+
+## Implemented in this candidate
+
+- Durable owner goals, child work and dependencies use persisted identities, scope, criteria, deadlines, shared wake/recovery budgets, revision checks, append-only lifecycle history and existing chat leases. A cheap supervisor observes service jobs and queues model work only when actionable. Stable effect keys bind repeated research, management and engineering requests to their original inputs.
+- Completion checks inspect actual research artifacts, read-source evidence, sourced notes, completed children or separately signed engineering outcomes. Search snippets, prepared proposals, submissions, missing artifacts and forged signatures cannot prove completion.
+- General-chat owner controls display goals and descendants and allow revision-bound pause, resume and terminal cancellation. Inherited pauses propagate; independently paused children remain paused.
+- General shell, Python, local Git, file editing and tests run in a separate non-root, network-disabled, read-only container with a 512 MiB persistent workspace and bounded CPU, memory, processes, output and duration. Production credentials, signing keys and Docker access are absent. Eight workspaces and a host disk reserve bound total allocation.
+- A fixed root launcher reconciles original container identities after interruption. It signs outcomes and exact executed source artifacts outside the development environment. Test completion requires actual executed tests, rather than syntax validation, collection or a successful submission. Authenticated owners can retrieve the signed source artifact for subsequent release work.
+- Broker management tools call existing Tauric services and preserve their evidence, policy, review, reservation, idempotency and reconciliation controls. General project tools cannot change financial policy or activate broker routes. Scheduled general goals cannot perform financial actions.
+- OANDA account-confirmed METAL and CFD products have exact product identity and an explicit separate setup assessment. Provider-observed session gaps, intraday candle coverage, financing context and current account classification remain visible. They do not acquire a fabricated native daily BUY report, exchange-futures identity, live qualification or automatic trading authority.
+- Existing Research Lab APIs and runners are exposed. Optional Qlib/LEAN readiness remains false when those runtimes are absent.
+- The release publishes a fifth immutable engineering image, includes the fixed installer/launcher, and retains the normal application install and backup restoration checks. Linux executor acceptance executes code, real pytest, signed source export, reconciliation, cancellation and isolation checks against that image.
+
+## Production and acceptance boundaries
+
+Local verification on 10 October: 1,122 backend checks passed; two optional Qlib/LEAN checks skipped. Deployment/isolation unit checks passed (20), registry handoff checks passed (3), and frontend formatting/build plus OpenClaw plugin build/validation and contract checks passed. The actual browser verified parent/child pause, resume, cancellation and the 390px layout. A real network-disabled, non-root, read-only engineering container executed a backend/API test using its own disposable PostgreSQL database (one test passed). Linux host disk quotas, signed source export and recovery still require the mandatory hosted release acceptance; these local results do not prove production ownership.
+
+The candidate must pass CI, immutable image publication, restored-database rehearsal, recovery backup, migration, installation and post-install checks before these capabilities are described as deployed. Production model-driven multi-step ownership, restart/resume and asynchronous follow-up need separately recorded runtime evidence.
+
+The engineering environment has local source control but no production shell, GitHub write credential or release executor. Routine deployment and recovery are authorized by the standing mandate; the missing bridge is a capability/access gap. Until a fixed, separately credentialed, tested release/recovery bridge is installed, OpenClaw must preserve the verified source artifact and report the outstanding step. It cannot report full autonomous project ownership or deployed success from a patch, prompt, fixture, passing local test or signed development receipt.
+
+No account is enabled, no financial risk setting is changed, no paused strategy is resumed and no broker order is submitted by this implementation. Broad research scope does not make every broker product executable: account availability, current product evidence, strategy qualification and the existing execution controls still determine eligibility.

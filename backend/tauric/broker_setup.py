@@ -31,15 +31,10 @@ from .strategy_execution import snapshot_checked
 
 def capture(db, owner, body, *, route_context=None, risk_percent=None, intent_id=None):
     spec = market.instrument(db, body.instrument_id)
-    expected = (
-        "oanda"
-        if spec.asset_type == "fx"
-        else "alpaca"
-        if spec.asset_type in {"equity", "etf"}
-        else None
-    )
-    if body.provider != expected:
-        raise HTTPException(422, "Choose a matching OANDA Forex or Alpaca stock/ETF instrument.")
+    from . import execution_scope
+
+    if body.provider != execution_scope.provider(spec):
+        raise HTTPException(422, "Select an account-verified product for the matching broker.")
     version = strategies.version(db, owner, body.strategy_version_id)
     raw_rules = version.payload["parameters"].get("rules")
     if not raw_rules:
@@ -76,6 +71,13 @@ def capture(db, owner, body, *, route_context=None, risk_percent=None, intent_id
             ):
                 raise BrokerError("The verified demo account changed or is unavailable.")
             instrument = broker.instrument(spec.provider_symbol)
+            if (
+                spec.asset_type in {"commodity", "cfd"}
+                and instrument.product_type != spec.provider_product_type
+            ):
+                raise BrokerError(
+                    "The provider product classification changed; no entry is eligible."
+                )
             positions = broker.positions()
             quote, quote_error, planned, sizing = None, None, None, None
             ready = signal["action"] == "enter"
@@ -291,9 +293,12 @@ def report(db, owner, job_id):
     if artifact:
         payload = artifact.payload
         is_fx = evidence["instrument"]["asset_type"] == "fx"
+        is_product = evidence["instrument"]["asset_type"] in {"commodity", "cfd"}
         expected_runtime = (
             "Tauric Forex daily extension / TradingAgents LLM clients"
             if is_fx
+            else "Tauric exact OANDA product setup / TradingAgents LLM client"
+            if is_product
             else "TauricResearch/TradingAgents"
         )
         if (
@@ -330,7 +335,7 @@ def report(db, owner, job_id):
                 and (
                     not evidence["entry_evidence_ready"]
                     or assessment.model_invocations != 1
-                    or evidence["instrument"]["asset_type"] != "fx"
+                    or evidence["instrument"]["asset_type"] in {"equity", "etf"}
                     and str(payload.get("native_rating")).strip().upper() != "BUY"
                 )
             ):

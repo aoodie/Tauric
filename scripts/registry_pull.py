@@ -14,15 +14,15 @@ def validate(payload, expected):
     if (
         not re.fullmatch(r"[a-f0-9]{40}", expected)
         or payload["revision"] != expected
-        or len(payload["pulls"]) != 4
+        or len(payload["pulls"]) not in {4, 5}
     ):
         raise ValueError(
-            "A matching full release revision and four images are required."
+            "A matching full release revision and a complete release image set is required."
         )
     seen = set()
     for item in payload["pulls"]:
         match = re.fullmatch(
-            r"ghcr.io/aoodie/tauric-(api|worker|web|openclaw)@(sha256:[a-f0-9]{64})",
+            r"ghcr.io/aoodie/tauric-(api|worker|web|openclaw|engineering)@(sha256:[a-f0-9]{64})",
             item["image"],
         )
         if (
@@ -36,7 +36,10 @@ def validate(payload, expected):
         repository = item["image"].split("@", 1)[0].removeprefix("ghcr.io/")
         if item["scope"] != "repository:" + repository + ":pull":
             raise ValueError("Only an exact image repository pull scope is permitted.")
-    if seen != {"api", "worker", "web", "openclaw"}:
+    if seen not in (
+        {"api", "worker", "web", "openclaw"},
+        {"api", "worker", "web", "openclaw", "engineering"},
+    ):
         raise ValueError("The release image set is incomplete.")
 
 
@@ -64,7 +67,7 @@ def pull(payload, expected):
     seen = set()
     for item in payload["pulls"]:
         match = re.fullmatch(
-            r"ghcr.io/aoodie/tauric-(api|worker|web|openclaw)@(sha256:[a-f0-9]{64})",
+            r"ghcr.io/aoodie/tauric-(api|worker|web|openclaw|engineering)@(sha256:[a-f0-9]{64})",
             item["image"],
         )
         assert match and match[1] not in seen
@@ -142,7 +145,7 @@ def pull(payload, expected):
             "architecture": image["Architecture"],
         }
         print(json.dumps({"preloaded": match[1], "revision": expected}), flush=True)
-    assert seen == {"api", "worker", "web", "openclaw"}
+    assert len(seen) == len(payload["pulls"])
     output["persistent_credentials_saved"] = False
     output["ephemeral_ram_configuration_removed"] = True
     path = Path("/srv/private-backups") / (

@@ -608,7 +608,10 @@ def prices(db, body):
 
 def execute(db, owner, body):
     config, _ = chat.load_config(db)
-    chat_research.authorize(db, owner, body, config)
+    turn = chat_research.authorize(db, owner, body, config)
+    from . import agent_tasks
+
+    agent_tasks.for_turn(db, turn, operation="retrieve_history")
     if body.operation == "search":
         result = search(body.query)
     elif body.operation == "read":
@@ -620,7 +623,7 @@ def execute(db, owner, body):
     chat_research.authorize(db, owner, body, config)
     received = now().isoformat()
     checksum = hashlib.sha256(json.dumps(result, sort_keys=True).encode()).hexdigest()
-    services.audit(
+    record = services.audit(
         db,
         owner,
         "chat.open_research_observed",
@@ -643,6 +646,7 @@ def execute(db, owner, body):
     db.commit()
     return {
         "authority": "open_research_only",
+        "evidence_id": record.id,
         "received_at": received,
         "checksum": checksum,
         "result": result,

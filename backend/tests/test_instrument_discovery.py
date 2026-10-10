@@ -312,3 +312,29 @@ def test_short_provider_names_are_valid():
 
     assert discovery.normalize("alpaca", [asset("GE", name="GE")])[0].name == "GE"
     assert InstrumentView.model_validate({**INSTRUMENTS[-1], "name": "GE"}).name == "GE"
+
+
+def test_exact_provider_products_are_not_reclassified_as_fx(signed_in, discovery_transport):
+    from tauric.execution_scope import provider
+    from tauric.market_calendars import default_context
+    from tauric.market_contracts import InstrumentView
+
+    rows, _ = discovery_transport
+    rows["oanda"].append(fx("WTICO_USD", type="CFD"))
+    rows["oanda"].append(fx("LONGBASE_USD", type="CURRENCY"))
+    connect(signed_in, "oanda")
+    for symbol, asset_type, product in [
+        ("XAU_USD", "commodity", "METAL"),
+        ("WTICO_USD", "cfd", "CFD"),
+    ]:
+        response = add(signed_in, "oanda", symbol, asset_type)
+        assert response.status_code == 200, response.text
+        spec = InstrumentView.model_validate(
+            {k: v for k, v in response.json().items() if k != "native_research_ready"}
+        )
+        assert spec.provider_product_type == product and not spec.native_research_ready
+        assert provider(spec) == "oanda"
+        assert default_context(spec).calendar_id == "provider_observed"
+        assert "1d" not in spec.supported_intervals
+        assert add(signed_in, "oanda", symbol, "fx").status_code == 422
+    assert add(signed_in, "oanda", "LONGBASE_USD", "fx").status_code == 422

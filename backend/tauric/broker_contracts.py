@@ -34,6 +34,7 @@ class BrokerAccountView(Contract):
 
 class BrokerInstrumentView(Contract):
     symbol: str
+    product_type: Literal["CURRENCY", "METAL", "CFD"] | None = None
     tradable: bool
     quantity_step: str
     minimum_quantity: str

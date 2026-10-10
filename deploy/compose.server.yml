@@ -71,7 +71,45 @@
         "ALL"
       ],
       "stop_grace_period": "60s",
-      "user": "10001:10001"
+      "user": "10001:10001",
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "${TAURIC_SECRETS_DIR}/engineering/spool/requests",
+          "target": "/run/tauric-engineering/requests",
+          "read_only": false,
+          "bind": {
+            "create_host_path": true
+          }
+        },
+        {
+          "type": "bind",
+          "source": "${TAURIC_SECRETS_DIR}/engineering/spool/cancel",
+          "target": "/run/tauric-engineering/cancel",
+          "read_only": false,
+          "bind": {
+            "create_host_path": true
+          }
+        },
+        {
+          "type": "bind",
+          "source": "${TAURIC_SECRETS_DIR}/engineering/spool/receipts",
+          "target": "/run/tauric-engineering/receipts",
+          "read_only": true,
+          "bind": {
+            "create_host_path": true
+          }
+        },
+        {
+          "type": "bind",
+          "source": "${TAURIC_SECRETS_DIR}/engineering/public",
+          "target": "/run/tauric-engineering/public",
+          "read_only": true,
+          "bind": {
+            "create_host_path": true
+          }
+        }
+      ]
     },
     "autonomous_paper": {
       "command": [
@@ -1063,6 +1101,114 @@
       ],
       "stop_grace_period": "60s",
       "user": "10001:10001"
+    },
+    "agent_tasks": {
+      "command": [
+        "python",
+        "-m",
+        "tauric.agent_worker"
+      ],
+      "depends_on": {
+        "openclaw": {
+          "condition": "service_healthy",
+          "required": true
+        }
+      },
+      "entrypoint": null,
+      "mem_limit": "201326592",
+      "networks": {
+        "default": null
+      },
+      "restart": "unless-stopped",
+      "init": true,
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      },
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "image": "${TAURIC_API_IMAGE:?Set a digest-pinned API image}",
+      "environment": {
+        "TAURIC_DB_PASSWORD_FILE": "/run/secrets/database-app",
+        "TAURIC_DB_USER": "tauric_app"
+      },
+      "secrets": [
+        "database-app",
+        {
+          "source": "models",
+          "target": "/run/tauric/model-profiles.json"
+        },
+        {
+          "source": "openclaw-tokens",
+          "target": "/run/tauric/openclaw-private.json"
+        }
+      ],
+      "read_only": true,
+      "tmpfs": [
+        "/tmp:mode=1777,size=128m"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "profiles": [
+        "governance"
+      ],
+      "stop_grace_period": "60s",
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "python",
+          "-c",
+          "from sqlalchemy import text; from tauric.database import engine; c=engine().connect(); assert c.scalar(text(\"SELECT heartbeat_at <= now() AND heartbeat_at > now() - (:max_age * interval '1 second') FROM worker_status WHERE id = :worker\"), {'worker': 'agent_tasks', 'max_age': 90}) is True"
+        ],
+        "interval": "15s",
+        "timeout": "10s",
+        "retries": 6,
+        "start_period": "90s"
+      },
+      "user": "10001:10001",
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "${TAURIC_SECRETS_DIR}/engineering/spool/requests",
+          "target": "/run/tauric-engineering/requests",
+          "read_only": false,
+          "bind": {
+            "create_host_path": true
+          }
+        },
+        {
+          "type": "bind",
+          "source": "${TAURIC_SECRETS_DIR}/engineering/spool/cancel",
+          "target": "/run/tauric-engineering/cancel",
+          "read_only": false,
+          "bind": {
+            "create_host_path": true
+          }
+        },
+        {
+          "type": "bind",
+          "source": "${TAURIC_SECRETS_DIR}/engineering/spool/receipts",
+          "target": "/run/tauric-engineering/receipts",
+          "read_only": true,
+          "bind": {
+            "create_host_path": true
+          }
+        },
+        {
+          "type": "bind",
+          "source": "${TAURIC_SECRETS_DIR}/engineering/public",
+          "target": "/run/tauric-engineering/public",
+          "read_only": true,
+          "bind": {
+            "create_host_path": true
+          }
+        }
+      ]
     }
   },
   "secrets": {

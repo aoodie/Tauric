@@ -1,4 +1,4 @@
-"""Create a server-only release bundle from four published image digests."""
+"""Create a server release bundle from source-bound published image digests."""
 
 import argparse
 import hashlib
@@ -14,6 +14,7 @@ FILES = (
     "README.md",
     "backend/tauric/chat_instructions.txt",
     "docs/OPENCLAW_PROJECT_OWNERSHIP.md",
+    "docs/OPENCLAW_OWNERSHIP_IMPLEMENTATION.md",
     "docs/OPEN_COMMODITY_RESEARCH.md",
     "docs/TRADER_DASHBOARD_IMPLEMENTATION.md",
     "docs/AUDIT_TRADER_DASHBOARD_2026-10-09.md",
@@ -32,6 +33,9 @@ FILES = (
     "deploy/model-profiles.example.json",
     "deploy/market-data.example.json",
     "scripts/server.py",
+    "scripts/engineering_host.py",
+    "scripts/project_tree.py",
+    "scripts/engineering_install.py",
     "scripts/registry_pull.py",
     "scripts/server_soak.py",
     "scripts/acceptance_research.py",
@@ -59,6 +63,19 @@ def build(images_dir, output, repository, revision):
         values[key] = entry["image"]
     validate_images(values)
     output.mkdir(parents=True)
+    engineering = json.loads((images_dir / "engineering.json").read_text())
+    if (
+        engineering["revision"] != revision
+        or engineering["repository"] != repository.lower()
+        or not re.fullmatch(
+            r"ghcr.io/[a-z0-9./_-]+-engineering@sha256:[a-f0-9]{64}",
+            engineering["image"],
+        )
+    ):
+        raise ValueError("Engineering image must belong to the exact verified release.")
+    (output / "engineering-image.json").write_text(
+        json.dumps(engineering, sort_keys=True) + "\n"
+    )
     for name in FILES:
         target = output / name
         target.parent.mkdir(parents=True, exist_ok=True)

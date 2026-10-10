@@ -194,6 +194,15 @@ class ServerControls(unittest.TestCase):
                     }
                 )
             )
+        (images / "engineering.json").write_text(
+            json.dumps(
+                {
+                    "image": "ghcr.io/owner/tauric-engineering@sha256:" + "c" * 64,
+                    "revision": revision,
+                    "repository": "owner/tauric",
+                }
+            )
+        )
         archive = release_bundle.build(
             images, self.root / "release", "owner/tauric", revision
         )
@@ -204,7 +213,9 @@ class ServerControls(unittest.TestCase):
                 if member.isfile()
             }
         self.assertEqual(
-            names, set(release_bundle.FILES) | {"images.env", "release-manifest.json"}
+            names,
+            set(release_bundle.FILES)
+            | {"images.env", "release-manifest.json", "engineering-image.json"},
         )
         self.assertFalse(
             any(".env." in name or "database.dump" in name for name in names)
