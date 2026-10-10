@@ -140,3 +140,26 @@ const publishedSchema=JSON.parse(readFileSync(new URL('../backend/openapi.json',
 const advertisedOperations=tools[9](trusted).parameters.properties.operation.anyOf.map(value=>value.const);
 assert.deepEqual(advertisedOperations.sort(),publishedSchema.components.schemas.AssistantReceipt.properties.operation.enum.sort());
 console.log('Registered management operations exactly match the released backend contract.');
+
+const taskTool=tools[12](trusted);
+assert.equal(taskTool.parameters.type,'object');
+const nested=taskTool.parameters.properties.parameters.anyOf;
+const createFields=nested.find(value=>value.properties.objective);
+assert.equal(createFields.additionalProperties,false);
+assert.equal(createFields.properties.reason,undefined);
+assert.ok(createFields.properties.criteria.items.properties.proof.anyOf.some(value=>value.const==='tests_passed'));
+for(const [status,body] of [[500,'Internal Server Error private-input'],[503,JSON.stringify({detail:'private-input'})],[200,'unreadable private-input'],[200,'null']]) {
+  let requests=0;
+  globalThis.fetch=async()=>{requests++;return new Response(body,{status});};
+  const uncertain=(await taskTool.execute('uncertain-original',{action:'create',effect_key:'stable-child',parameters:{objective:'Bounded child'}})).details;
+  assert.equal(uncertain.applied,false);assert.equal(uncertain.outcome_unknown,true);
+  assert.match(uncertain.error,/Reconcile.*same identity/);
+  assert.equal(JSON.stringify(uncertain).includes('private-input'),false);
+  assert.equal(requests,1);
+}
+globalThis.fetch=async()=>Response.json({detail:'Check these task fields: reason: Extra inputs are not permitted'},{status:422});
+const corrected=(await taskTool.execute('bad-child-fields',{action:'create',effect_key:'stable-child',parameters:{reason:'private-input'}})).details;
+assert.match(corrected.error,/reason: Extra inputs/);assert.equal(corrected.outcome_unknown,undefined);
+assert.equal(JSON.stringify(corrected).includes('private-input'),false);
+globalThis.fetch=originalFetch;
+console.log('Typed task arguments and safe validation/unknown-outcome feedback passed without replaying effects.');

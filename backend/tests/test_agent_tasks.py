@@ -14,6 +14,8 @@ from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from test_chat import ready as ready
+from test_chat import send
 
 from tauric import agent_tasks, engineering, paper
 from tauric.agent_contracts import (
@@ -475,6 +477,17 @@ def test_child_creation_reconciles_stable_effect_across_tool_calls(database):
                 ],
             },
         ).model_copy(update={"effect_key": "bounded-child"})
+        # A malformed model argument must be correctable without consuming the
+        # stable identity or creating a child with partial inputs.
+        with pytest.raises(HTTPException) as rejected:
+            agent_tasks.invoke(
+                db, owner, turn,
+                body.model_copy(update={"parameters": {**body.parameters, "reason": "private-input"}}),
+            )
+        assert rejected.value.status_code == 422
+        assert "reason: Extra inputs" in rejected.value.detail
+        assert "private-input" not in rejected.value.detail
+        assert not db.scalar(select(AgentTask.id).where(AgentTask.parent_id == root["id"]))
         first = agent_tasks.invoke(db, owner, turn, body)
         second = agent_tasks.invoke(
             db, owner, turn, body.model_copy(update={"tool_call_id": "new-call"})
@@ -483,6 +496,42 @@ def test_child_creation_reconciles_stable_effect_across_tool_calls(database):
         assert first["scope"] == ["engineering"]
         with pytest.raises(HTTPException, match="stable effect_key"):
             agent_tasks.invoke(db, owner, turn, body.model_copy(update={"effect_key": None}))
+
+
+@pytest.mark.parametrize(
+    "action,parameters,field",
+    [
+        ("create", {"objective": "A bounded child", "criteria": [{"description": "Run tests", "proof": "tests_passed"}], "reason": "private-input"}, "reason"),
+        ("wait", {"job": {"kind": "engineering", "id": "private-input"}, "reason": "Follow original job"}, "job.id"),
+        ("complete", {"evidence": [], "summary": {"secret": "private-input"}}, "summary"),
+    ],
+)
+def test_nested_tool_validation_returns_json_without_effects(ready, database, action, parameters, field):
+    turn = send(ready, "Run a bounded engineering task").json()
+    with Session(database[0]) as db:
+        chat_turn = agent_tasks.chat.claim(db)
+        assert chat_turn
+        owner = db.scalar(select(Owner))
+        task = create(db, owner)
+        owner_id = owner.id
+    response = ready.post(
+        "/internal/openclaw/task",
+        headers={"Authorization": "Bearer fixture-private-" + "x" * 50},
+        json={
+            "action": action, "task_id": task["id"], "parameters": parameters,
+            "effect_key": "correctable-effect", "channel": "webchat", "agent_id": "tauric-chat",
+            "sender_is_owner": True, "account_id": "default", "tool_call_id": "bad-fields",
+            "session_key": f"agent:tauric-chat:openai-user:tauric-web-{owner_id}-{turn['conversation_id']}",
+        },
+    )
+    assert response.status_code == 422, response.text
+    assert field in response.json()["detail"]
+    assert "private-input" not in response.text
+    with Session(database[0]) as db:
+        assert list(db.scalars(select(AgentTask.id))) == [task["id"]]
+        row = db.get(AgentTask, task["id"])
+        assert row.status == "queued" and row.revision == 1 and not row.result and not row.waiting
+        assert not db.scalar(select(EngineeringJob.id))
 
 
 def test_async_research_observation_survives_a_supervisor_restart(database, monkeypatch):

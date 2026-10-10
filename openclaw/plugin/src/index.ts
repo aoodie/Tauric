@@ -42,7 +42,21 @@ const projectActionParameters=Type.Object({operation:managerOperation,effect_key
 type TrustedContext={agentId?:string;senderIsOwner?:boolean;sessionKey?:string;
   messageChannel?:string;requesterSenderId?:string;agentAccountId?:string;
   assertInvocationCurrent?:()=>void};
-const taskDescription='Manage durable owner-authorized project work. action=create requires parameters={objective,criteria:[{description,proof}],scope(optional)} and a stable effect_key; the server supplies request identity and parent lineage. Children inherit the current scope when omitted and cannot broaden it. proof is research_report, source_evidence, job_success, command_success, tests_passed or child_complete. action=read takes task_id. action=wait takes task_id and parameters={job:{kind,id},reason}; kind is analysis,quant,open_research,engineering,assistant_receipt or task. After wait, return immediately so the supervisor follows it. action=complete takes task_id and parameters={evidence:[{kind,id}],summary}; supply one authoritative proof per criterion. action=needs_owner takes task_id and parameters={reason}. Read existing task state before repeating a stable effect. Tasks never grant financial policy, trading or external-message authority.';
+const taskReference=Type.Object({kind:Type.Union(['analysis','quant','open_research','engineering','assistant_receipt','task'].map(v=>Type.Literal(v))),id:Type.String({format:'uuid'})},{additionalProperties:false});
+const taskParameters=Type.Object({
+  action:Type.Union(['create','read','wait','complete','needs_owner'].map(v=>Type.Literal(v))),
+  task_id:Type.Optional(Type.String({format:'uuid'})),effect_key:Type.Optional(Type.String({minLength:3,maxLength:80,pattern:'^[a-zA-Z0-9_.:-]+$'})),
+  parameters:Type.Optional(Type.Union([
+    Type.Object({objective:Type.String({minLength:3,maxLength:4000}),criteria:Type.Array(Type.Object({description:Type.String({minLength:3,maxLength:500}),proof:Type.Union(['research_report','source_evidence','job_success','command_success','tests_passed','child_complete'].map(v=>Type.Literal(v)))},{additionalProperties:false}),{minItems:1,maxItems:12}),
+      scope:Type.Optional(Type.Array(Type.Union(['research','engineering','operations'].map(v=>Type.Literal(v))),{minItems:1})),dependencies:Type.Optional(Type.Array(Type.String({format:'uuid'}),{maxItems:12})),
+      max_wakes:Type.Optional(Type.Integer({minimum:1,maximum:40})),max_attempts:Type.Optional(Type.Integer({minimum:1,maximum:5})),deadline_hours:Type.Optional(Type.Integer({minimum:1,maximum:168}))},{additionalProperties:false}),
+    Type.Object({job:taskReference,reason:Type.String({minLength:3,maxLength:500})},{additionalProperties:false}),
+    Type.Object({evidence:Type.Array(taskReference,{minItems:1,maxItems:12}),summary:Type.String({minLength:3,maxLength:4000})},{additionalProperties:false}),
+    Type.Object({reason:Type.String({minLength:3,maxLength:2000})},{additionalProperties:false}),
+    Type.Object({},{additionalProperties:false}),
+  ])),
+},{additionalProperties:false});
+const taskDescription='Manage durable owner-authorized project work. action=create requires parameters={objective,criteria:[{description,proof}],scope(optional)} and a stable effect_key; do not add reason to create parameters. The server supplies request identity and parent lineage. Children inherit the current scope when omitted and cannot broaden it. proof is research_report, source_evidence, job_success, command_success, tests_passed or child_complete. action=read takes task_id. action=wait takes task_id and parameters={job:{kind,id},reason}; kind is analysis,quant,open_research,engineering,assistant_receipt or task. After wait, return immediately so the supervisor follows it. action=complete takes task_id and parameters={evidence:[{kind,id}],summary}; supply one authoritative proof per criterion. action=needs_owner takes task_id and parameters={reason}. Correct any stated validation error using the same effect_key. Read existing task state before repeating a stable effect. Tasks never grant financial policy, trading or external-message authority.';
 function boundTool(config:{platformUrl:string;platformToken:string},ctx:TrustedContext,
   name:string,description:string,parameters:ReturnType<typeof Type.Object>,endpoint:string,keys:string[]) {
   if(ctx.agentId!=='tauric-chat' || ctx.senderIsOwner!==true || !ctx.sessionKey ||
@@ -63,7 +77,11 @@ function boundTool(config:{platformUrl:string;platformToken:string},ctx:TrustedC
         signal:AbortSignal.any([AbortSignal.timeout(90000),...(signal?[signal]:[])])});
       const raw=await response.text();
       if(Buffer.byteLength(raw)>1500000) throw new Error('Context exceeded its limit');
-      const data=JSON.parse(raw);
+      const uncertain=()=>jsonResult({applied:false,outcome_unknown:true,error:`Tauric returned an unreadable or unavailable response (HTTP ${response.status}). Reconcile the original task or request using the same identity before attempting another effect.`});
+      if(response.status>=500) return uncertain();
+      let data;
+      try {data=JSON.parse(raw);} catch {return uncertain();}
+      if(!data || typeof data!=='object' || Array.isArray(data)) return uncertain();
       const validation=Array.isArray(data.detail)?data.detail.slice(0,10).map((item:{loc?:unknown[];msg?:unknown})=>({field:(item.loc??[]).slice(1).join('.'),message:typeof item.msg==='string'?item.msg:'Invalid argument'})):undefined;
       return jsonResult(response.ok?data:{applied:false,error:typeof data.detail==='string'?data.detail:validation?.map((item:{field:string;message:string})=>`${item.field}: ${item.message}`).join('; ')||'Tauric rejected this request.',...(validation?{validation_errors:validation}:{})});
     }};
@@ -239,10 +257,10 @@ export default defineToolPlugin({
   }), tool({
     name:'tauric_task',label:'Continue project work',optional:true,
     description:taskDescription,
-    parameters:Type.Object({action:Type.Union(['create','read','wait','complete','needs_owner'].map(v=>Type.Literal(v))),task_id:Type.Optional(Type.String({format:'uuid'})),effect_key:Type.Optional(Type.String({minLength:3,maxLength:80})),parameters:Type.Optional(Type.Object({},{additionalProperties:true}))},{additionalProperties:false}),
+    parameters:taskParameters,
     factory({config,toolContext}) {
       return boundTool(config,toolContext,'tauric_task',taskDescription,
-        Type.Object({action:Type.Union(['create','read','wait','complete','needs_owner'].map(v=>Type.Literal(v))),task_id:Type.Optional(Type.String({format:'uuid'})),effect_key:Type.Optional(Type.String({minLength:3,maxLength:80})),parameters:Type.Optional(Type.Object({},{additionalProperties:true}))},{additionalProperties:false}),
+        taskParameters,
         '/internal/openclaw/task',['action','task_id','effect_key','parameters']);
     },
   }), tool({

@@ -6,6 +6,7 @@ from datetime import timedelta
 from uuid import NAMESPACE_URL, uuid5
 
 from fastapi import HTTPException
+from pydantic import ValidationError
 from sqlalchemy import func, select, update
 
 from . import chat, governance, paper
@@ -34,6 +35,18 @@ PROJECT_OPERATIONS = {
 
 def fail(message, status=409):
     raise HTTPException(status, message)
+
+
+def parameters(contract, values):
+    """Tool arguments receive actionable errors without echoing rejected input."""
+    try:
+        return contract.model_validate(values)
+    except ValidationError as exc:
+        problems = "; ".join(
+            ".".join(map(str, error["loc"])) + ": " + error["msg"]
+            for error in exc.errors(include_input=False)
+        )
+        raise HTTPException(422, "Check these task fields: " + problems) from exc
 
 
 def owned(db, owner, task_id, *, lock=False):
@@ -432,7 +445,7 @@ def invoke(db, owner, turn, body):
         return create(
             db,
             owner,
-            TaskCreate.model_validate(values),
+            parameters(TaskCreate, values),
             conversation_id=turn.conversation_id if turn else None,
             parent=task,
         )
@@ -448,7 +461,7 @@ def invoke(db, owner, turn, body):
     if row.status not in {"running", "queued"}:
         fail("This task is not accepting progress changes.")
     if body.action == "wait":
-        params = TaskWait.model_validate(body.parameters)
+        params = parameters(TaskWait, body.parameters)
         observation = reference(db, owner, params.job)
         if observation["status"] == "prepared":
             fail("A prepared receipt is not an asynchronous job to follow.", 422)
@@ -456,7 +469,7 @@ def invoke(db, owner, turn, body):
         row.status, row.next_check_at = "waiting", now() + timedelta(seconds=10)
         event(db, row, "waiting", {"observation": observation, "reason": params.reason})
     elif body.action == "complete":
-        params = TaskComplete.model_validate(body.parameters)
+        params = parameters(TaskComplete, body.parameters)
         if len(params.evidence) != len(row.criteria):
             fail("Supply one independently checked result for every completion criterion.", 422)
         observed = [reference(db, owner, ref) for ref in params.evidence]
