@@ -270,6 +270,29 @@ def test_finished_wake_is_followed_after_supervisor_restart(database):
         assert resumed.get(AgentTaskWake, turn_id).processed
 
 
+def test_unavailable_saved_chat_configuration_uses_persisted_recovery_budget(database, monkeypatch):
+    def unavailable(*_):
+        raise HTTPException(503, "Chat settings cannot be unlocked.")
+
+    monkeypatch.setattr(agent_tasks.chat, "config_view", unavailable)
+    with Session(database[0]) as db:
+        owner = db.scalar(select(Owner))
+        task = create(db, owner, max_attempts=1)
+        assert agent_tasks.tick(db)
+        row = db.get(AgentTask, task["id"])
+        assert row.attempts == 1 and "connection unavailable" in row.error.lower()
+        assert row.next_check_at > now()
+        assert not db.scalar(select(ChatTurn.id))
+        row.next_check_at = now() - timedelta(seconds=1)
+        db.commit()
+    with Session(database[0]) as resumed:
+        assert agent_tasks.tick(resumed)
+        row = resumed.get(AgentTask, task["id"])
+        assert row.status == "requires_owner" and row.attempts == 1
+        assert "budget" in row.error.lower()
+        assert not resumed.scalar(select(ChatTurn.id))
+
+
 def test_deadline_and_unfinished_child_prevent_false_completion(database):
     with Session(database[0]) as db:
         owner = db.scalar(select(Owner))

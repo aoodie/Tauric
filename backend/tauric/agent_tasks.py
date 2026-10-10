@@ -661,8 +661,12 @@ def tick(db):
         task.next_check_at = now() + timedelta(seconds=10)
         db.commit()
         return False
-    state = chat.config_view(db, owner)
-    if not (state.gateway_ready and state.route_ready and state.worker_ready):
+    try:
+        state = chat.config_view(db, owner)
+        connection_ready = state.gateway_ready and state.route_ready and state.worker_ready
+    except HTTPException:
+        connection_ready = False
+    if not connection_ready:
         root.attempts += 1
         task.error = "OpenClaw connection unavailable; bounded recovery scheduled."
         task.next_check_at = now() + timedelta(seconds=min(300, 30 * 2**root.attempts))

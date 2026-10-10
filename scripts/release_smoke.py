@@ -199,6 +199,42 @@ def rehearse(images, output, local=False, ai=True, emit_failure_diagnostics=Fals
                 "POST",
             )
             csrf = session["csrf_token"]
+            if ai:
+                saved_chat = request(
+                    opener,
+                    origin,
+                    "/api/v1/chat/settings",
+                    {
+                        "expected_revision": 0,
+                        "profile": "local",
+                        "daily_research_allowance": 0,
+                        **{
+                            channel: {
+                                "enabled": False,
+                                "owner_id": "",
+                                "token_action": "clear",
+                                "token": "",
+                            }
+                            for channel in ("telegram", "discord")
+                        },
+                    },
+                    "PUT",
+                    csrf,
+                )
+                assert saved_chat["revision"] == 1
+                server.run(
+                    compose
+                    + [
+                        "exec",
+                        "-T",
+                        "agent_tasks",
+                        "python",
+                        "-c",
+                        "from sqlalchemy import select; from sqlalchemy.orm import Session; from tauric.database import engine; from tauric.models import Owner; from tauric import chat; db=Session(engine()); owner=db.scalar(select(Owner)); value,revision=chat.load_config(db); assert revision==1 and value.daily_research_allowance==0; assert chat.config_view(db,owner).storage_ready; db.close()",
+                    ],
+                    stdout=subprocess.PIPE,
+                )
+                result["supervisor_saved_chat_configuration"] = True
             changed = request(
                 opener,
                 origin,

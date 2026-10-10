@@ -1143,6 +1143,10 @@
           "target": "/run/tauric/model-profiles.json"
         },
         {
+          "source": "model-key",
+          "target": "/run/tauric/model-key"
+        },
+        {
           "source": "openclaw-tokens",
           "target": "/run/tauric/openclaw-private.json"
         }
