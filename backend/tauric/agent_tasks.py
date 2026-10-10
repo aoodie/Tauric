@@ -428,6 +428,7 @@ def invoke(db, owner, turn, body):
         }
         if task:
             values["parent_id"] = task.id
+            values.setdefault("scope", task.scope)
         return create(
             db,
             owner,

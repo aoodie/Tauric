@@ -35,6 +35,14 @@ def checksum(value):
     return hashlib.sha256(canonical(value)).hexdigest()
 
 
+def request_checksum(value):
+    # Requests use Tauric's compact canonical record encoding; signed source
+    # artifacts retain their existing separate serialization contract.
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+
+
 def docker(*args, **kwargs):
     return subprocess.run(
         ["docker", *args], check=True, capture_output=True, **kwargs
@@ -226,7 +234,7 @@ def process(path, root, image, key):
         for name in ("script", "timeout_seconds", "purpose", "workspace_id", "task_id")
     }
     if (
-        checksum(values) != job["checksum"]
+        request_checksum(values) != job["checksum"]
         or type(job["timeout_seconds"]) is not int
         or not 1 <= job["timeout_seconds"] <= 600
         or job["purpose"] not in {"inspect", "develop", "test"}

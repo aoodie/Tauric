@@ -4,6 +4,7 @@ import base64
 import hashlib
 import json
 from datetime import timedelta
+from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -16,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from tauric import agent_tasks, engineering, paper
 from tauric.agent_contracts import (
+    EngineeringInvocation,
     JobReference,
     TaskComplete,
     TaskControl,
@@ -86,6 +88,44 @@ def test_queued_command_is_not_completed_evidence(database):
                     ).model_dump(mode="json"),
                 ),
             )
+
+
+def test_api_spooled_request_passes_real_host_integrity_validation(database, tmp_path, monkeypatch):
+    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[2] / "scripts"))
+    import engineering_host
+
+    public = tmp_path / "public.pem"
+    public.write_text("Presence is sufficient for the API handoff; execution validates the host key")
+    public.with_name("identity.json").write_text('{"images":{}}')
+    (tmp_path / "requests").mkdir()
+    monkeypatch.setenv("TAURIC_ENGINEERING_PUBLIC_KEY_FILE", str(public))
+    monkeypatch.setenv("TAURIC_ENGINEERING_SPOOL_DIRECTORY", str(tmp_path))
+    runtime_config.cache_clear()
+
+    class IntegrityPassed(Exception):
+        pass
+
+    def stop_before_docker(*_):
+        raise IntegrityPassed()
+
+    monkeypatch.setattr(engineering_host, "docker", stop_before_docker)
+    with Session(database[0]) as db:
+        owner = db.scalar(select(Owner))
+        task = create(db, owner)
+        job = engineering.enqueue(
+            db,
+            owner,
+            None,
+            EngineeringInvocation(
+                task_id=task["id"], effect_key="real-api-host-handoff", script="printf 'actual request\\n'",
+                purpose="inspect", agent_id="tauric-chat", channel="webchat", sender_is_owner=True,
+                account_id="default", session_key="handoff", tool_call_id="handoff",
+            ),
+        )
+        request = tmp_path / "requests" / (job["id"] + ".json")
+        with pytest.raises(IntegrityPassed):
+            engineering_host.process(request, tmp_path, "sha256:" + "a" * 64, tmp_path / "host-key")
+    runtime_config.cache_clear()
 
 
 def test_signed_actual_result_and_tampered_receipt(database, tmp_path, monkeypatch):
@@ -407,7 +447,7 @@ def test_task_owner_controls_require_login_and_csrf(signed_in):
 def test_child_creation_reconciles_stable_effect_across_tool_calls(database):
     with Session(database[0]) as db:
         owner = db.scalar(select(Owner))
-        root = create(db, owner)
+        root = create(db, owner, scope=["engineering"])
         row = db.get(AgentTask, root["id"])
         row.status = "running"
         turn = ChatTurn(
@@ -440,6 +480,7 @@ def test_child_creation_reconciles_stable_effect_across_tool_calls(database):
             db, owner, turn, body.model_copy(update={"tool_call_id": "new-call"})
         )
         assert first["id"] == second["id"] and first["root_id"] == root["id"]
+        assert first["scope"] == ["engineering"]
         with pytest.raises(HTTPException, match="stable effect_key"):
             agent_tasks.invoke(db, owner, turn, body.model_copy(update={"effect_key": None}))
 

@@ -42,6 +42,7 @@ const projectActionParameters=Type.Object({operation:managerOperation,effect_key
 type TrustedContext={agentId?:string;senderIsOwner?:boolean;sessionKey?:string;
   messageChannel?:string;requesterSenderId?:string;agentAccountId?:string;
   assertInvocationCurrent?:()=>void};
+const taskDescription='Manage durable owner-authorized project work. action=create requires parameters={objective,criteria:[{description,proof}],scope(optional)} and a stable effect_key; the server supplies request identity and parent lineage. Children inherit the current scope when omitted and cannot broaden it. proof is research_report, source_evidence, job_success, command_success, tests_passed or child_complete. action=read takes task_id. action=wait takes task_id and parameters={job:{kind,id},reason}; kind is analysis,quant,open_research,engineering,assistant_receipt or task. After wait, return immediately so the supervisor follows it. action=complete takes task_id and parameters={evidence:[{kind,id}],summary}; supply one authoritative proof per criterion. action=needs_owner takes task_id and parameters={reason}. Read existing task state before repeating a stable effect. Tasks never grant financial policy, trading or external-message authority.';
 function boundTool(config:{platformUrl:string;platformToken:string},ctx:TrustedContext,
   name:string,description:string,parameters:ReturnType<typeof Type.Object>,endpoint:string,keys:string[]) {
   if(ctx.agentId!=='tauric-chat' || ctx.senderIsOwner!==true || !ctx.sessionKey ||
@@ -237,10 +238,10 @@ export default defineToolPlugin({
     },
   }), tool({
     name:'tauric_task',label:'Continue project work',optional:true,
-    description:'Create or read durable owner-authorized project work, wait for an existing service job, submit independently checkable completion evidence, or report a concrete owner decision needed. Use one proof per saved completion criterion. A submission receipt is not completion. Children inherit scope, deadline and shared budgets. These tasks never authorize financial policies, trading actions or external messages.',
+    description:taskDescription,
     parameters:Type.Object({action:Type.Union(['create','read','wait','complete','needs_owner'].map(v=>Type.Literal(v))),task_id:Type.Optional(Type.String({format:'uuid'})),effect_key:Type.Optional(Type.String({minLength:3,maxLength:80})),parameters:Type.Optional(Type.Object({},{additionalProperties:true}))},{additionalProperties:false}),
     factory({config,toolContext}) {
-      return boundTool(config,toolContext,'tauric_task','Manage durable project work.',
+      return boundTool(config,toolContext,'tauric_task',taskDescription,
         Type.Object({action:Type.Union(['create','read','wait','complete','needs_owner'].map(v=>Type.Literal(v))),task_id:Type.Optional(Type.String({format:'uuid'})),effect_key:Type.Optional(Type.String({minLength:3,maxLength:80})),parameters:Type.Optional(Type.Object({},{additionalProperties:true}))},{additionalProperties:false}),
         '/internal/openclaw/task',['action','task_id','effect_key','parameters']);
     },
@@ -249,7 +250,7 @@ export default defineToolPlugin({
     description:'Run shell, Python, Git and real tests in a persistent project workspace separated from production. The container has no network, broker credentials, production files or Docker socket. Supply a current authorized task_id and a stable effect_key; repeating the same key reconciles the original execution instead of running it again. purpose=test requires a direct python -m pytest, node --test invocation. Execution is asynchronous: use tauric_task wait with kind=engineering and the returned job ID. Results have independently signed host receipts. This edits an isolated workspace, never the running source or financial settings.',
     parameters:Type.Object({task_id:Type.String({format:'uuid'}),effect_key:Type.String({minLength:3,maxLength:80,pattern:'^[a-zA-Z0-9_.:-]+$'}),script:Type.String({minLength:1,maxLength:30000}),timeout_seconds:Type.Optional(Type.Integer({minimum:1,maximum:600})),purpose:Type.Optional(Type.Union(['inspect','develop','test'].map(v=>Type.Literal(v))))},{additionalProperties:false}),
     factory({config,toolContext}) {
-      return boundTool(config,toolContext,'tauric_engineering','Queue isolated project engineering.',
+      return boundTool(config,toolContext,'tauric_engineering','Run shell, Python, Git or real tests asynchronously in the isolated persistent project workspace. Supply the current task_id and a stable effect_key. purpose=test requires direct python -m pytest or node --test. Repeating the same key reconciles its original execution. After submission, call tauric_task action=wait with parameters={job:{kind:"engineering",id:returned_job_id},reason:"Follow the isolated command"}, then return. A signed successful execution and source artifact are required for completion. No network, production secrets or financial authority is available in the workspace.',
         Type.Object({task_id:Type.String({format:'uuid'}),effect_key:Type.String({minLength:3,maxLength:80}),script:Type.String({minLength:1,maxLength:30000}),timeout_seconds:Type.Optional(Type.Integer({minimum:1,maximum:600})),purpose:Type.Optional(Type.Union(['inspect','develop','test'].map(v=>Type.Literal(v))))},{additionalProperties:false}),
         '/internal/openclaw/engineering',['task_id','effect_key','script','timeout_seconds','purpose']);
     },

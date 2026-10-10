@@ -45,7 +45,7 @@ def run(image, output):
                 "workspace_id": workspace,
                 "task_id": workspace,
             }
-            data = {"id": str(uuid4()), "checksum": host.checksum(values), **values}
+            data = {"id": str(uuid4()), "checksum": host.request_checksum(values), **values}
             request = root / "requests" / (data["id"] + ".json")
             request.write_text(json.dumps(data))
             if cancelled:
