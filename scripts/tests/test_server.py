@@ -1,5 +1,6 @@
 """Deployment controls that can be checked without Docker or application data."""
 
+import hashlib
 import io
 import json
 import os
@@ -19,6 +20,53 @@ import server
 
 
 class ServerControls(unittest.TestCase):
+    def test_runtime_restore_streams_large_files_and_preserves_content_and_metadata(
+        self,
+    ):
+        data = b"saved runtime data" * 180000
+        stream = io.BytesIO()
+        with tarfile.open(fileobj=stream, mode="w") as archive:
+            member = tarfile.TarInfo("large-runtime-file")
+            member.size, member.mode, member.uid, member.gid = (
+                len(data),
+                0o640,
+                10001,
+                10001,
+            )
+            archive.addfile(member, io.BytesIO(data))
+        stream.seek(0)
+        with tarfile.open(fileobj=stream) as archive:
+            original = archive.extractfile
+            reads = []
+
+            class BoundedReader:
+                def __init__(self, member):
+                    self.source = original(member)
+
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *_):
+                    self.source.close()
+
+                def read(self, size=-1):
+                    self.assert_bounded(size)
+                    reads.append(size)
+                    return self.source.read(size)
+
+                @staticmethod
+                def assert_bounded(size):
+                    if not 0 < size <= 1024 * 1024:
+                        raise AssertionError("Restoration must bound each file read")
+
+            with patch.object(archive, "extractfile", side_effect=BoundedReader):
+                result = server.runtime_inventory(archive)
+        self.assertGreater(len(reads), 3)
+        self.assertEqual(
+            result["large-runtime-file"],
+            (tarfile.REGTYPE, 0o640, 10001, 10001, hashlib.sha256(data).hexdigest()),
+        )
+
     def setUp(self):
         self.folder = tempfile.TemporaryDirectory()
         self.root = Path(self.folder.name)

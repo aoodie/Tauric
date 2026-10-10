@@ -294,12 +294,37 @@ def snapshot(compose):
     )
 
 
-def checksum(path):
+def stream_checksum(source):
     digest = hashlib.sha256()
-    with path.open("rb") as source:
-        for block in iter(lambda: source.read(1024 * 1024), b""):
-            digest.update(block)
+    for block in iter(lambda: source.read(1024 * 1024), b""):
+        digest.update(block)
     return digest.hexdigest()
+
+
+def checksum(path):
+    with path.open("rb") as source:
+        return stream_checksum(source)
+
+
+def runtime_inventory(archive):
+    """Verify file bytes and metadata without loading a whole saved file into RAM."""
+    result = {}
+    for member in archive:
+        if member.isfile():
+            with archive.extractfile(member) as source:
+                content = stream_checksum(source)
+        else:
+            content = member.linkname
+        if member.name in result:
+            raise ValueError("Runtime backup contains duplicate entries.")
+        result[member.name] = (
+            member.type,
+            member.mode,
+            member.uid,
+            member.gid,
+            content,
+        )
+    return result
 
 
 def volume_name(compose, service, destination):
@@ -662,22 +687,7 @@ def restore_check(directory, project, archive, local=False):
                     tarfile.open(staging / filename) as a,
                     tarfile.open(fileobj=recaptured) as b,
                 ):
-
-                    def inventory(tar):
-                        return {
-                            m.name: (
-                                m.type,
-                                m.mode,
-                                m.uid,
-                                m.gid,
-                                hashlib.sha256(tar.extractfile(m).read()).hexdigest()
-                                if m.isfile()
-                                else m.linkname,
-                            )
-                            for m in tar.getmembers()
-                        }
-
-                    if inventory(a) != inventory(b):
+                    if runtime_inventory(a) != runtime_inventory(b):
                         raise ValueError("Restored runtime volume differs from backup.")
         return {
             "database_restored": True,
