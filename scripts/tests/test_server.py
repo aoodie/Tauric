@@ -88,6 +88,20 @@ class ServerControls(unittest.TestCase):
         )
         self.assertEqual(set(before), set(server.PRIVATE_FILES))
 
+    def test_engineering_restore_requires_root_before_creating_target_state(self):
+        def extracted(_archive, staging):
+            (staging / "secrets" / "engineering").mkdir(parents=True)
+            return {}
+
+        state = self.root / "restored"
+        with (
+            patch("server.extract_backup", side_effect=extracted),
+            patch("server.os.geteuid", return_value=1000),
+            self.assertRaisesRegex(ValueError, "requires root"),
+        ):
+            server.restore_check(state, "tauric_restore", self.root / "backup.tar.gz")
+        self.assertFalse(state.exists())
+
     def test_public_origin_and_cookie_settings(self):
         state = self.root / "state"
         server.setup(state, self.images, "trade.example.com")

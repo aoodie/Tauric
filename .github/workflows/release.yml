@@ -164,7 +164,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Rehearse clean install and complete backup restoration
-        run: python scripts/release_smoke.py --images artifacts/tauric-release/images.env --output artifacts/release-smoke.json --emit-failure-diagnostics
+        run: DOCKER_CONFIG="${DOCKER_CONFIG:-$HOME/.docker}" sudo --preserve-env=DOCKER_CONFIG python3 scripts/release_smoke.py --images artifacts/tauric-release/images.env --output artifacts/release-smoke.json --emit-failure-diagnostics
       - name: Verify isolated engineering with real code and executed tests
         run: |
           python -m venv /tmp/tauric-engineering-check

@@ -535,6 +535,10 @@ def restore_check(directory, project, archive, local=False):
     with tempfile.TemporaryDirectory(prefix="tauric-restore-") as folder:
         staging = Path(folder)
         manifest = extract_backup(archive, staging)
+        if (staging / "secrets" / "engineering").exists() and os.geteuid() != 0:
+            raise ValueError(
+                "Restoring engineering queue ownership requires root on the Linux host."
+            )
         directory.mkdir(mode=0o700, parents=True)
         private_write(
             directory / "RESTORED_REVIEW_REQUIRED",
