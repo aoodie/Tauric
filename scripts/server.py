@@ -390,6 +390,11 @@ def backup(directory, project, output, local=False):
     validate(directory, project, local)
     if output.exists():
         raise ValueError("Backup output exists; it will not be overwritten.")
+    private = Path(read_env(directory / "server.env")["TAURIC_SECRETS_DIR"])
+    if output.resolve().is_relative_to(private.resolve()):
+        raise ValueError(
+            "Backup staging must be outside the private files being copied."
+        )
     compose = command(directory, project) + ["--profile", "*"]
     # Preserve exactly which services were running, and freeze all application
     # writes before capturing the database plus filesystem state.
@@ -405,7 +410,12 @@ def backup(directory, project, output, local=False):
         raise ValueError("The database must be running before backup.")
     stopped = [name for name in active if name != "db"]
     engineering_active = False
-    with tempfile.TemporaryDirectory(prefix="tauric-backup-") as folder:
+    # Hosts may mount /tmp in RAM. Saved engineering disks must use the backup
+    # filesystem rather than competing with production services for memory.
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(
+        prefix="tauric-backup-", dir=output.parent
+    ) as folder:
         staging = Path(folder)
         try:
             if stopped:
@@ -557,7 +567,10 @@ def restore_check(directory, project, archive, local=False):
     # It never starts API/background services against restored trading policies.
     if directory.exists():
         raise ValueError("Restore requires a new state directory.")
-    with tempfile.TemporaryDirectory(prefix="tauric-restore-") as folder:
+    directory.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(
+        prefix="tauric-restore-", dir=directory.parent
+    ) as folder:
         staging = Path(folder)
         manifest = extract_backup(archive, staging)
         if (staging / "secrets" / "engineering").exists() and os.geteuid() != 0:
@@ -658,7 +671,7 @@ def restore_check(directory, project, archive, local=False):
                     stdin=original,
                     stdout=subprocess.PIPE,
                 )
-            with tempfile.TemporaryFile() as recaptured:
+            with tempfile.TemporaryFile(dir=staging) as recaptured:
                 run(
                     [
                         "docker",

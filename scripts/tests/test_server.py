@@ -150,6 +150,56 @@ class ServerControls(unittest.TestCase):
             server.restore_check(state, "tauric_restore", self.root / "backup.tar.gz")
         self.assertFalse(state.exists())
 
+    def test_backup_and_restore_do_not_require_system_temporary_storage(self):
+        state = self.root / "state"
+        server.setup(state, self.images)
+        disk = state / "secrets" / "engineering" / "workspaces" / "disk.ext4"
+        disk.parent.mkdir(parents=True)
+        disk.write_bytes(b"saved workspace" * 10000)
+        archive = self.root / "backups" / "backup.tar.gz"
+        snapshot = {"tables": {}, "schema": "fixture"}
+
+        def docker(args, **kwargs):
+            if "pg_dump" in args:
+                kwargs["stdout"].write(b"database fixture")
+            return subprocess.CompletedProcess(
+                args, 0, stdout=b"db\n" if "ps" in args else b""
+            )
+
+        # A RAM-backed /tmp can fill independently of the backup filesystem.
+        # Both operations must still extract and verify the real private archive.
+        with (
+            patch("server.tempfile.tempdir", str(self.root / "unavailable-tmp")),
+            patch("server.validate"),
+            patch("server.run", side_effect=docker),
+            patch("server.snapshot", return_value=snapshot),
+            patch("server.freeze_engineering", return_value=False),
+            patch("server.volume_name", return_value=None),
+        ):
+            result = server.backup(state, "tauric_fixture", archive)
+            self.assertTrue(result["backup_created"])
+            self.assertEqual(result["sha256"], server.checksum(archive))
+            with (
+                patch("server.os.geteuid", return_value=1000),
+                self.assertRaisesRegex(ValueError, "requires root"),
+            ):
+                server.restore_check(
+                    self.root / "restorations" / "state", "tauric_restore", archive
+                )
+        self.assertFalse((self.root / "restorations" / "state").exists())
+
+    def test_backup_refuses_staging_inside_the_private_tree_before_stopping_services(
+        self,
+    ):
+        state = self.root / "state"
+        server.setup(state, self.images)
+        with patch("server.validate"), patch("server.run") as run:
+            with self.assertRaisesRegex(ValueError, "outside the private files"):
+                server.backup(
+                    state, "tauric_fixture", state / "secrets" / "backup.tar.gz"
+                )
+            run.assert_not_called()
+
     def test_public_origin_and_cookie_settings(self):
         state = self.root / "state"
         server.setup(state, self.images, "trade.example.com")
