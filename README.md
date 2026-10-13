@@ -1,5 +1,7 @@
 # Tauric trading workstation
 
+All Tauric work belongs in the private [aoodie/Tauric repository](https://github.com/aoodie/Tauric). Keep separate pull requests for separate workstreams; see the [GitHub work index and current deployment status](docs/GITHUB_WORKSTREAMS.md).
+
 OpenClaw is the intended general autonomous project owner. The owner's standing mandate includes planning, engineering, research, follow-up, operations, and routine tested deployments and recovery under the existing release process. See [project ownership, authority and acceptance](docs/OPENCLAW_PROJECT_OWNERSHIP.md); the mandate is recorded, while the full persistent ownership runtime still requires implementation and verification.
 
 Monitoring deployment (8 October 2026): tested source `18b3d34` is deployed on IONOS with all 15 services healthy. Hosted checks passed 1,004 backend tests and full installation/restoration; [the validation record](docs/VALIDATION_RESULT_2026-10-08.md) records the failed EUR/USD research trial and remaining acceptance gates.
