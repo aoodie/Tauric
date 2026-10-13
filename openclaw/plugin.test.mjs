@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { getToolPluginMetadata } from 'openclaw/plugin-sdk/tool-plugin';
 import entry from './plugin/dist/index.js';
@@ -143,11 +144,6 @@ console.log('Registered management operations exactly match the released backend
 
 const taskTool=tools[12](trusted);
 assert.equal(taskTool.parameters.type,'object');
-const nested=taskTool.parameters.properties.parameters.anyOf;
-const createFields=nested.find(value=>value.properties.objective);
-assert.equal(createFields.additionalProperties,false);
-assert.equal(createFields.properties.reason,undefined);
-assert.ok(createFields.properties.criteria.items.properties.proof.anyOf.some(value=>value.const==='tests_passed'));
 for(const [status,body] of [[500,'Internal Server Error private-input'],[503,JSON.stringify({detail:'private-input'})],[200,'unreadable private-input'],[200,'null']]) {
   let requests=0;
   globalThis.fetch=async()=>{requests++;return new Response(body,{status});};
@@ -163,3 +159,45 @@ assert.match(corrected.error,/reason: Extra inputs/);assert.equal(corrected.outc
 assert.equal(JSON.stringify(corrected).includes('private-input'),false);
 globalThis.fetch=originalFetch;
 console.log('Typed task arguments and safe validation/unknown-outcome feedback passed without replaying effects.');
+
+
+test('task actions remain expressible without nested schema alternatives',()=>{
+  const schema=taskTool.parameters;
+  function visit(value) {
+    if(!value || typeof value!=='object') return;
+    assert.equal(value.anyOf,undefined);assert.equal(value.oneOf,undefined);
+    for(const child of Object.values(value)) visit(child);
+  }
+  visit(schema);
+  assert.deepEqual(schema.properties.action.enum,['create','read','wait','complete','needs_owner']);
+  const parameters=schema.properties.parameters;
+  assert.equal(parameters.additionalProperties,false);
+  for(const key of ['objective','criteria','job','reason','evidence','summary']) assert.ok(parameters.properties[key]);
+  assert.ok(parameters.properties.criteria.items.properties.proof.enum.includes('tests_passed'));
+  assert.equal(parameters.required,undefined);
+  const purpose=tools[13](trusted).parameters.properties.purpose;
+  assert.deepEqual(purpose.enum,['develop','inspect','test']);assert.equal(purpose.default,'develop');
+});
+
+test('completion and wait preserve the original evidence without creating work',async()=>{
+  const id='1b3d1382-4827-4c16-bb23-6c9d00c6ea61';
+  const cases=[
+    {action:'complete',task_id:id,parameters:{evidence:[{kind:'engineering',id}],summary:'Existing signed tests passed'}},
+    {action:'wait',task_id:id,parameters:{job:{kind:'engineering',id},reason:'Follow original job'}},
+    {action:'read',task_id:id},
+    {action:'needs_owner',task_id:id,parameters:{reason:'Original recovery budget exhausted'}},
+  ];
+  try {
+    for(const input of cases) {
+      let count=0;
+      globalThis.fetch=async(url,options)=>{
+        count++;assert.equal(new URL(url).pathname,'/internal/openclaw/task');
+        const body=JSON.parse(options.body);
+        assert.equal(body.action,input.action);assert.equal(body.task_id,id);
+        assert.deepEqual(body.parameters,input.parameters);assert.equal(body.effect_key,undefined);
+        return Response.json({id,status:input.action==='complete'?'completed':'waiting'});
+      };
+      await taskTool.execute('same-original-call',input);assert.equal(count,1);
+    }
+  } finally {globalThis.fetch=originalFetch;}
+});
