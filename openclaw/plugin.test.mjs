@@ -153,9 +153,12 @@ for(const [status,body] of [[500,'Internal Server Error private-input'],[503,JSO
   assert.equal(JSON.stringify(uncertain).includes('private-input'),false);
   assert.equal(requests,1);
 }
-globalThis.fetch=async()=>Response.json({detail:'Check these task fields: reason: Extra inputs are not permitted'},{status:422});
-const corrected=(await taskTool.execute('bad-child-fields',{action:'create',effect_key:'stable-child',parameters:{reason:'private-input'}})).details;
-assert.match(corrected.error,/reason: Extra inputs/);assert.equal(corrected.outcome_unknown,undefined);
+globalThis.fetch=async(_url,options)=>{
+  assert.equal(JSON.parse(options.body).parameters.unsupported_field,'private-input');
+  return Response.json({detail:'Check these task fields: unsupported_field: Extra inputs are not permitted'},{status:422});
+};
+const corrected=(await taskTool.execute('bad-child-fields',{action:'create',effect_key:'stable-child',parameters:{unsupported_field:'private-input'}})).details;
+assert.match(corrected.error,/unsupported_field: Extra inputs/);assert.equal(corrected.outcome_unknown,undefined);
 assert.equal(JSON.stringify(corrected).includes('private-input'),false);
 globalThis.fetch=originalFetch;
 console.log('Typed task arguments and safe validation/unknown-outcome feedback passed without replaying effects.');
@@ -198,6 +201,55 @@ test('completion and wait preserve the original evidence without creating work',
         return Response.json({id,status:input.action==='complete'?'completed':'waiting'});
       };
       await taskTool.execute('same-original-call',input);assert.equal(count,1);
+    }
+  } finally {globalThis.fetch=originalFetch;}
+});
+
+test('populated shared task fields reach only their selected action contract',async()=>{
+  // Captured provider behavior: create included all eleven shared fields and
+  // the server rejected job, reason, evidence and summary on every attempt.
+  const id='1b3d1382-4827-4c16-bb23-6c9d00c6ea61';
+  const parameters={objective:'Run the authorized isolated test',criteria:[{description:'Existing tests passed',proof:'tests_passed'}],scope:['engineering'],dependencies:[],max_wakes:8,max_attempts:2,deadline_hours:24,
+    job:{kind:'engineering',id},reason:'Follow the original job',evidence:[{kind:'engineering',id}],summary:'Existing signed tests passed'};
+  const before=structuredClone(parameters);
+  const cases=[
+    ['create',['objective','criteria','scope','dependencies','max_wakes','max_attempts','deadline_hours']],
+    ['read',[]],['wait',['job','reason']],['complete',['evidence','summary']],['needs_owner',['reason']],
+  ];
+  try {
+    for(const [action,fields] of cases) {
+      let count=0;
+      globalThis.fetch=async(_url,options)=>{
+        count++;const body=JSON.parse(options.body);
+        assert.equal(body.action,action);
+        assert.deepEqual(body.parameters,Object.fromEntries(fields.map(key=>[key,parameters[key]])));
+        assert.equal(body.task_id,action==='create'?undefined:id);
+        assert.equal(body.effect_key,action==='create'?'same-original-effect':undefined);
+        return Response.json({applied:true});
+      };
+      await taskTool.execute('original-call',{action,task_id:id,effect_key:'same-original-effect',parameters});
+      assert.equal(count,1);assert.deepEqual(parameters,before);
+    }
+  } finally {globalThis.fetch=originalFetch;}
+});
+
+test('action alignment preserves unknown and malformed inputs for server rejection',async()=>{
+  const cases=[
+    {action:'create',parameters:{summary:'Irrelevant populated field',unsupported_field:'must reject'},expected:{unsupported_field:'must reject'}},
+    {action:'wait',parameters:{job:null,reason:'Original job is missing',criteria:[]},expected:{job:null,reason:'Original job is missing'}},
+    {action:'complete',parameters:['malformed'],expected:['malformed']},
+    {action:'__proto__',parameters:{summary:'Invalid action'},expected:{summary:'Invalid action'}},
+  ];
+  try {
+    for(const {action,parameters,expected} of cases) {
+      let count=0;
+      globalThis.fetch=async(_url,options)=>{
+        count++;const body=JSON.parse(options.body);assert.equal(body.action,action);
+        assert.deepEqual(body.parameters,expected);
+        return Response.json({detail:'Task input is invalid; no effect recorded'},{status:422});
+      };
+      const result=(await taskTool.execute('original-rejected-call',{action,effect_key:'original-effect',parameters})).details;
+      assert.equal(result.applied,false);assert.equal(count,1);assert.equal(result.outcome_unknown,undefined);
     }
   } finally {globalThis.fetch=originalFetch;}
 });

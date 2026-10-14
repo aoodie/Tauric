@@ -59,6 +59,25 @@ const taskParameters=Type.Object({
   },{additionalProperties:false})),
 },{additionalProperties:false});
 const taskDescription='Manage durable owner-authorized project work. action=create requires parameters={objective,criteria:[{description,proof}],scope(optional)} and a stable effect_key; do not add reason to create parameters. The server supplies request identity and parent lineage. Children inherit the current scope when omitted and cannot broaden it. proof is research_report, source_evidence, job_success, command_success, tests_passed, child_complete or deployment_verified. action=read takes task_id. action=wait takes task_id and parameters={job:{kind,id},reason}; kind is analysis,quant,open_research,engineering,assistant_receipt, task or release. After wait, return immediately so the supervisor follows it. action=complete takes task_id and parameters={evidence:[{kind,id}],summary}; supply one authoritative proof per criterion using existing successful jobs. Never create dummy tasks or substitute new evidence to complete an existing task. action=needs_owner takes task_id and parameters={reason}. Correct any stated validation error using the same effect_key. Read existing task state before repeating a stable effect. Tasks never grant financial policy, trading or external-message authority.';
+const taskActionFields=new Map<string,readonly string[]>([
+  ['create',['objective','criteria','scope','dependencies','max_wakes','max_attempts','deadline_hours']],
+  ['read',[]],['wait',['job','reason']],['complete',['evidence','summary']],['needs_owner',['reason']],
+]);
+const sharedTaskFields=new Set([...taskActionFields.values()].flat());
+function alignTaskFields(body:Record<string,unknown>) {
+  if(typeof body.action!=='string') return;
+  const fields=taskActionFields.get(body.action);
+  if(!fields) return;
+  // Compatible providers may populate every optional field in the shared schema.
+  // Send only the selected action's known fields, without inventing missing input
+  // or discarding unknown fields that the server must validate independently.
+  if(body.action==='create') delete body.task_id;
+  else delete body.effect_key;
+  if(body.parameters && typeof body.parameters==='object' && !Array.isArray(body.parameters)) {
+    const allowed=new Set(fields);
+    body.parameters=Object.fromEntries(Object.entries(body.parameters).filter(([key])=>!sharedTaskFields.has(key)||allowed.has(key)));
+  }
+}
 function boundTool(config:{platformUrl:string;platformToken:string},ctx:TrustedContext,
   name:string,description:string,parameters:ReturnType<typeof Type.Object>,endpoint:string,keys:string[]) {
   if(ctx.agentId!=='tauric-chat' || ctx.senderIsOwner!==true || !ctx.sessionKey ||
@@ -68,10 +87,11 @@ function boundTool(config:{platformUrl:string;platformToken:string},ctx:TrustedC
       signal?.throwIfAborted();
       const root=new URL(config.platformUrl);
       if(root.protocol!=='http:' || root.hostname!=='api' || root.port!=='8000' || root.pathname!=='/') throw new Error('Unsupported private Tauric endpoint');
-      const body={...Object.fromEntries(keys.filter(k=>params[k]!==undefined).map(k=>[k,params[k]])),
+      const body:Record<string,unknown>={...Object.fromEntries(keys.filter(k=>params[k]!==undefined).map(k=>[k,params[k]])),
         agent_id:ctx.agentId,session_key:ctx.sessionKey,channel:ctx.messageChannel,
         sender_id:ctx.requesterSenderId??'',sender_is_owner:true,
         account_id:ctx.agentAccountId??'default',tool_call_id:toolCallId};
+      if(endpoint==='/internal/openclaw/task') alignTaskFields(body);
       ctx.assertInvocationCurrent!();
       const response=await fetch(new URL(endpoint,root),{method:'POST',
         headers:{Authorization:`Bearer ${config.platformToken}`,'Content-Type':'application/json'},
