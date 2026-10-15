@@ -97,6 +97,9 @@ def authorize(db, owner, body, config):
         )
         if not turn or turn.heartbeat_at < now() - timedelta(seconds=45):
             raise HTTPException(409, "The requesting chat turn is no longer active.")
+        from . import agent_tasks
+
+        agent_tasks.for_turn(db, turn)
         return turn
     channel = getattr(config, body.channel)
     sender = body.sender_id.removeprefix(body.channel + ":")
@@ -139,6 +142,11 @@ def request(db, owner, body):
     db.execute(select(func.pg_advisory_xact_lock(chat.LOCK)))
     config, revision = chat.load_config(db)
     turn = authorize(db, owner, body, config)
+    from . import agent_tasks
+
+    task = agent_tasks.for_turn(db, turn, effect=True, operation="research_candidate")
+    if task and not body.effect_key:
+        raise HTTPException(422, "Delegated research requires a stable effect_key.")
     spec = market.instrument(db, body.instrument_id)
     if not native_scope.supported(spec):
         raise HTTPException(
@@ -157,7 +165,10 @@ def request(db, owner, body):
             raise HTTPException(
                 403, "Research must concern an instrument deployed in this portfolio."
             )
-    request_key = hashlib.sha256((body.session_key + "\0" + body.tool_call_id).encode()).hexdigest()
+    identity = (
+        task.id + ":" + body.effect_key if task else body.session_key + "\0" + body.tool_call_id
+    )
+    request_key = hashlib.sha256(identity.encode()).hexdigest()
     old = db.scalar(
         select(ChatResearch).where(
             ChatResearch.owner_id == owner.id, ChatResearch.request_key == request_key

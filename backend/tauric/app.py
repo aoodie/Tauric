@@ -5,6 +5,7 @@ from sqlalchemy import select, text
 from sqlalchemy.exc import SQLAlchemyError
 
 from . import services
+from .agent_api import router as agent_router
 from .assistant_api import router as assistant_router
 from .auth import COOKIE_NAME, CurrentOwner, Db, csrf, login
 from .broker_api import router as broker_router
@@ -28,6 +29,7 @@ from .owner_settings import router as owner_settings_router
 from .portfolio_api import router as portfolio_router
 from .portfolio_research_api import router as portfolio_research_router
 from .qualification_api import router as qualification_router
+from .quant_api import router as quant_router
 from .research_api import resource as research_resource
 from .research_api import router as research_router
 from .scanner_api import resource as scanner_resource
@@ -61,10 +63,12 @@ app.include_router(live_router)
 app.include_router(intelligence_router)
 app.include_router(chat_router)
 app.include_router(assistant_router)
+app.include_router(agent_router)
 app.include_router(knowledge_router)
 app.include_router(portfolio_router)
 app.include_router(portfolio_research_router)
 app.include_router(qualification_router)
+app.include_router(quant_router)
 app.include_router(market_connections_router)
 
 app.include_router(forex_connection_router)

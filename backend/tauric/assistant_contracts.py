@@ -8,6 +8,7 @@ from pydantic import Field, model_validator
 
 from .governance_contracts import GovernanceEnqueue
 from .portfolio_contracts import ChatIdentity
+from .quant_contracts import ExperimentCreate, HistoricalDatasetCreate, SessionReportCreate
 from .research_contracts import DatasetCapture, ReplayCreate
 from .scanner_contracts import CandidateAction, CandidateEscalate
 from .schemas import Contract
@@ -24,6 +25,9 @@ Operation = Literal[
     "revise_strategy",
     "capture_dataset",
     "run_backtest",
+    "retrieve_history",
+    "session_research",
+    "quant_experiment",
     "save_research_note",
     "prepare_upgrade",
     "stage_upgrade",
@@ -33,6 +37,21 @@ Operation = Literal[
     "plan_paper_entry",
     "execute_paper_plan",
     "close_paper_position",
+    "capture_broker_valuation",
+    "register_broker_forward",
+    "evaluate_broker_forward",
+    "check_broker_account",
+    "save_broker_policy",
+    "save_broker_route",
+    "assess_broker_setup",
+    "request_broker_review",
+    "submit_broker_entry",
+    "close_broker_position",
+    "reconcile_broker_order",
+    "cancel_broker_order",
+    "refresh_broker_position",
+    "reconcile_broker_close",
+    "repair_broker_protection",
 ]
 
 
@@ -92,6 +111,7 @@ class ResearchNote(Contract):
     title: str = Field(min_length=3, max_length=120)
     hypothesis: str = Field(min_length=3, max_length=2000)
     evidence: list[str] = Field(min_length=1, max_length=20)
+    source_evidence_ids: list[UUID] = Field(default_factory=list, max_length=20)
     counter_evidence: list[str] = Field(min_length=1, max_length=20)
     test_plan: list[str] = Field(min_length=1, max_length=20)
     decision: Literal["test", "reject", "needs_data"]
@@ -126,6 +146,7 @@ class AssistantInvocation(ChatIdentity):
     operation: Operation
     parameters: dict = Field(default_factory=dict, max_length=40)
     reason: str = Field(min_length=3, max_length=500)
+    effect_key: str | None = Field(default=None, min_length=3, max_length=80)
 
 
 class AssistantRead(ChatIdentity):
@@ -146,6 +167,14 @@ class AssistantRead(ChatIdentity):
         "paper_state",
         "paper_record",
         "paper_review",
+        "research_lab",
+        "lab_record",
+        "broker_readiness",
+        "broker_state",
+        "broker_routes",
+        "broker_journal",
+        "broker_reviews",
+        "broker_setups",
     ] = "overview"
     operation: Operation | None = None
     resource_id: UUID | None = None
@@ -174,10 +203,6 @@ class AssistantState(Contract):
     )
     code_changes_applied: Literal[False] = False
     receipts: list[AssistantReceipt]
-
-
-# Re-exported here so schema discovery always describes the actual service contracts.
-RESEARCH_CONTRACTS = {"capture_dataset": DatasetCapture, "run_backtest": ReplayCreate}
 
 
 ActivityStatus = Literal[
@@ -240,3 +265,13 @@ class AssistantActivityFeed(Contract):
 
 class ActivityObservationRequest(Contract):
     identities: list[str] = Field(min_length=1, max_length=100)
+
+
+# Re-exported here so schema discovery always describes the actual service contracts.
+RESEARCH_CONTRACTS = {
+    "capture_dataset": DatasetCapture,
+    "run_backtest": ReplayCreate,
+    "retrieve_history": HistoricalDatasetCreate,
+    "session_research": SessionReportCreate,
+    "quant_experiment": ExperimentCreate,
+}

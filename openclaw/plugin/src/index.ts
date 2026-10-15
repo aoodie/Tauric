@@ -26,22 +26,58 @@ const actionParameters=Type.Object({
   reason:Type.String({minLength:3,maxLength:500}),
 },{additionalProperties:false});
 const managerOperation=Type.Union(['save_scanner','run_scanner','candidate_action','research_candidate','propose_high_conviction_candidates',
-  'create_strategy','revise_strategy','capture_dataset','run_backtest','save_research_note','prepare_upgrade','stage_upgrade','evaluate_paper_strategy','propose_paper_strategy','request_paper_review','plan_paper_entry','execute_paper_plan','close_paper_position'].map(v=>Type.Literal(v)));
+  'create_strategy','revise_strategy','capture_dataset','run_backtest','retrieve_history','session_research','quant_experiment','save_research_note','prepare_upgrade','stage_upgrade','evaluate_paper_strategy','propose_paper_strategy','request_paper_review','plan_paper_entry','execute_paper_plan','close_paper_position','capture_broker_valuation','register_broker_forward','evaluate_broker_forward','check_broker_account','save_broker_policy','save_broker_route','assess_broker_setup','request_broker_review','submit_broker_entry','close_broker_position','reconcile_broker_order','cancel_broker_order','refresh_broker_position','reconcile_broker_close','repair_broker_protection'].map(v=>Type.Literal(v)));
 const projectReadParameters=Type.Object({
-  resource:Type.Optional(Type.Union(['overview','performance','schemas','scanner','strategy','candidate','dataset','backtest','source','receipt','knowledge','user_memory','paper_deployment','paper_state','paper_record','paper_review'].map(v=>Type.Literal(v)))),
+  resource:Type.Optional(Type.Union(['overview','performance','schemas','scanner','strategy','candidate','dataset','backtest','source','receipt','knowledge','user_memory','paper_deployment','paper_state','paper_record','paper_review','research_lab','lab_record','broker_readiness','broker_state','broker_routes','broker_journal','broker_reviews','broker_setups'].map(v=>Type.Literal(v)))),
   operation:Type.Optional(managerOperation),resource_id:Type.Optional(Type.String({format:'uuid'})),
   query:Type.Optional(Type.String({maxLength:300})),kind:Type.Optional(Type.Union(['strategy','chat','research','preference','wiki'].map(v=>Type.Literal(v)))),
   path:Type.Optional(Type.String({minLength:3,maxLength:240})),
   start_line:Type.Optional(Type.Integer({minimum:1,maximum:100000})),
   line_count:Type.Optional(Type.Integer({minimum:1,maximum:250})),
 },{additionalProperties:false});
-const projectActionParameters=Type.Object({operation:managerOperation,
+const projectActionParameters=Type.Object({operation:managerOperation,effect_key:Type.Optional(Type.String({minLength:3,maxLength:80})),
   parameters:Type.Object({},{additionalProperties:true}),reason:Type.String({minLength:3,maxLength:500}),
 },{additionalProperties:false});
 
 type TrustedContext={agentId?:string;senderIsOwner?:boolean;sessionKey?:string;
   messageChannel?:string;requesterSenderId?:string;agentAccountId?:string;
   assertInvocationCurrent?:()=>void};
+const taskReference=Type.Object({kind:Type.String({enum:['analysis','quant','open_research','engineering','assistant_receipt','task','release']}),id:Type.String({format:'uuid'})},{additionalProperties:false});
+const taskParameters=Type.Object({
+  action:Type.String({enum:['create','read','wait','complete','needs_owner']}),
+  task_id:Type.Optional(Type.String({format:'uuid'})),effect_key:Type.Optional(Type.String({minLength:3,maxLength:80,pattern:'^[a-zA-Z0-9_.:-]+$'})),
+  // A flat model-facing object keeps every action expressible on compatible
+  // providers that simplify nested object unions. The API validates each action
+  // against its own strict contract before recording any effect.
+  parameters:Type.Optional(Type.Object({
+    objective:Type.Optional(Type.String({minLength:3,maxLength:4000})),
+    criteria:Type.Optional(Type.Array(Type.Object({description:Type.String({minLength:3,maxLength:500}),proof:Type.String({enum:['research_report','source_evidence','job_success','command_success','tests_passed','child_complete','deployment_verified']})},{additionalProperties:false}),{minItems:1,maxItems:12})),
+    scope:Type.Optional(Type.Array(Type.String({enum:['research','engineering','operations']}),{minItems:1})),dependencies:Type.Optional(Type.Array(Type.String({format:'uuid'}),{maxItems:12})),
+    max_wakes:Type.Optional(Type.Integer({minimum:1,maximum:40})),max_attempts:Type.Optional(Type.Integer({minimum:1,maximum:5})),deadline_hours:Type.Optional(Type.Integer({minimum:1,maximum:168})),
+    job:Type.Optional(taskReference),reason:Type.Optional(Type.String({minLength:3,maxLength:2000})),
+    evidence:Type.Optional(Type.Array(taskReference,{minItems:1,maxItems:12})),summary:Type.Optional(Type.String({minLength:3,maxLength:4000})),
+  },{additionalProperties:false})),
+},{additionalProperties:false});
+const taskDescription='Manage durable owner-authorized project work. action=create requires parameters={objective,criteria:[{description,proof}],scope(optional)} and a stable effect_key; do not add reason to create parameters. The server supplies request identity and parent lineage. Children inherit the current scope when omitted and cannot broaden it. proof is research_report, source_evidence, job_success, command_success, tests_passed, child_complete or deployment_verified. action=read takes task_id. action=wait takes task_id and parameters={job:{kind,id},reason}; kind is analysis,quant,open_research,engineering,assistant_receipt, task or release. After wait, return immediately so the supervisor follows it. action=complete takes task_id and parameters={evidence:[{kind,id}],summary}; supply one authoritative proof per criterion using existing successful jobs. Never create dummy tasks or substitute new evidence to complete an existing task. action=needs_owner takes task_id and parameters={reason}. Correct any stated validation error using the same effect_key. Read existing task state before repeating a stable effect. Tasks never grant financial policy, trading or external-message authority.';
+const taskActionFields=new Map<string,readonly string[]>([
+  ['create',['objective','criteria','scope','dependencies','max_wakes','max_attempts','deadline_hours']],
+  ['read',[]],['wait',['job','reason']],['complete',['evidence','summary']],['needs_owner',['reason']],
+]);
+const sharedTaskFields=new Set([...taskActionFields.values()].flat());
+function alignTaskFields(body:Record<string,unknown>) {
+  if(typeof body.action!=='string') return;
+  const fields=taskActionFields.get(body.action);
+  if(!fields) return;
+  // Compatible providers may populate every optional field in the shared schema.
+  // Send only the selected action's known fields, without inventing missing input
+  // or discarding unknown fields that the server must validate independently.
+  if(body.action==='create') delete body.task_id;
+  else delete body.effect_key;
+  if(body.parameters && typeof body.parameters==='object' && !Array.isArray(body.parameters)) {
+    const allowed=new Set(fields);
+    body.parameters=Object.fromEntries(Object.entries(body.parameters).filter(([key])=>!sharedTaskFields.has(key)||allowed.has(key)));
+  }
+}
 function boundTool(config:{platformUrl:string;platformToken:string},ctx:TrustedContext,
   name:string,description:string,parameters:ReturnType<typeof Type.Object>,endpoint:string,keys:string[]) {
   if(ctx.agentId!=='tauric-chat' || ctx.senderIsOwner!==true || !ctx.sessionKey ||
@@ -51,10 +87,11 @@ function boundTool(config:{platformUrl:string;platformToken:string},ctx:TrustedC
       signal?.throwIfAborted();
       const root=new URL(config.platformUrl);
       if(root.protocol!=='http:' || root.hostname!=='api' || root.port!=='8000' || root.pathname!=='/') throw new Error('Unsupported private Tauric endpoint');
-      const body={...Object.fromEntries(keys.filter(k=>params[k]!==undefined).map(k=>[k,params[k]])),
+      const body:Record<string,unknown>={...Object.fromEntries(keys.filter(k=>params[k]!==undefined).map(k=>[k,params[k]])),
         agent_id:ctx.agentId,session_key:ctx.sessionKey,channel:ctx.messageChannel,
         sender_id:ctx.requesterSenderId??'',sender_is_owner:true,
         account_id:ctx.agentAccountId??'default',tool_call_id:toolCallId};
+      if(endpoint==='/internal/openclaw/task') alignTaskFields(body);
       ctx.assertInvocationCurrent!();
       const response=await fetch(new URL(endpoint,root),{method:'POST',
         headers:{Authorization:`Bearer ${config.platformToken}`,'Content-Type':'application/json'},
@@ -62,17 +99,24 @@ function boundTool(config:{platformUrl:string;platformToken:string},ctx:TrustedC
         signal:AbortSignal.any([AbortSignal.timeout(90000),...(signal?[signal]:[])])});
       const raw=await response.text();
       if(Buffer.byteLength(raw)>1500000) throw new Error('Context exceeded its limit');
-      const data=JSON.parse(raw);
+      const uncertain=()=>jsonResult({applied:false,outcome_unknown:true,error:`Tauric returned an unreadable or unavailable response (HTTP ${response.status}). Reconcile the original task or request using the same identity before attempting another effect.`});
+      if(response.status>=500) return uncertain();
+      let data;
+      try {data=JSON.parse(raw);} catch {return uncertain();}
+      if(!data || typeof data!=='object' || Array.isArray(data)) return uncertain();
       const validation=Array.isArray(data.detail)?data.detail.slice(0,10).map((item:{loc?:unknown[];msg?:unknown})=>({field:(item.loc??[]).slice(1).join('.'),message:typeof item.msg==='string'?item.msg:'Invalid argument'})):undefined;
       return jsonResult(response.ok?data:{applied:false,error:typeof data.detail==='string'?data.detail:validation?.map((item:{field:string;message:string})=>`${item.field}: ${item.message}`).join('; ')||'Tauric rejected this request.',...(validation?{validation_errors:validation}:{})});
     }};
 }
 
-// Owner management and upgrade drafts; no order, shell, source-write or report-write authority.
+const releaseParameters=Type.Object({task_id:Type.String({format:'uuid'}),test_job_id:Type.String({format:'uuid'}),effect_key:Type.String({minLength:3,maxLength:80,pattern:'^[a-zA-Z0-9_.:-]+$'})},{additionalProperties:false});
+const releaseDescription='Publish and deploy existing signed successful engineering test source for an owner-authorized engineering and operations task. Supply the original test_job_id and a stable effect_key. The separate host bridge verifies current task controls, exact source/base, one repository, full CI, five immutable images, recovery backup restoration, migration and installed source/service readiness. Execution is asynchronous: use tauric_task wait with kind=release and the returned job ID, then return. Only a signed deployment_verified result can prove installation. Repeated identities reconcile the original release. Fixed host executors and workflow changes require the trusted installation path. No broker order, risk-limit, financial approval or account activation authority is granted.';
+
+// Owner-bound project tools; financial effects remain inside Tauric services.
 export default defineToolPlugin({
   id: "tauric-governance-tools",
   name: "Tauric governance and chat tools",
-  description: "Serve owner requests with fresh market data, research, backtest-first governed paper workflows and audited code workspaces. Tauric controls evidence, policy, approval and release checks; no broker order or direct live-source authority.",
+  description: "Serve owner requests with fresh market data, research, governed paper and broker workflows, durable goals and isolated engineering. Tauric broker services enforce evidence, account bindings, policy, approval and release checks; direct live-source changes are unavailable.",
   configSchema: Type.Object({
     platformUrl: Type.String(),
     platformToken: Type.String(),
@@ -132,17 +176,17 @@ export default defineToolPlugin({
     label: "Request current daily Tauric research",
     description: "Only when the owner explicitly asks to run research: queue current daily research for supported registered crypto, stocks, ETFs or Forex currency pairs in the unchanged native Tauric graph. Uses the owner's configured chat AI route and daily allowance. Repeated identical daily research reuses the original run, including failed runs. Returns the real job ID after checking and freezing evidence; no orders or governance authority. Read fresh tauric_chat_context for instrument IDs and scope. Forex daily research requires recent closed OANDA prices; missing currency policy/economic sources remain explicit. This tool creates only native daily reports. For open research on commodities or any timeframe/history, use tauric_open_research; registration is unnecessary there.",
     optional: true,
-    parameters: Type.Object({instrument_id: Type.String({minLength:3,maxLength:100})},{additionalProperties:false}),
+    parameters: Type.Object({instrument_id: Type.String({minLength:3,maxLength:100}),effect_key:Type.Optional(Type.String({minLength:3,maxLength:80}))},{additionalProperties:false}),
     factory({config,toolContext}) {
       if(toolContext.agentId !== 'tauric-chat' || toolContext.senderIsOwner !== true || !toolContext.sessionKey || !['webchat','telegram','discord'].includes(toolContext.messageChannel ?? '') || typeof toolContext.assertInvocationCurrent !== 'function') return null;
-      const parameters=Type.Object({instrument_id: Type.String({minLength:3,maxLength:100})},{additionalProperties:false});
+      const parameters=Type.Object({instrument_id: Type.String({minLength:3,maxLength:100}),effect_key:Type.Optional(Type.String({minLength:3,maxLength:80}))},{additionalProperties:false});
       return {
         name:'tauric_request_research',label:'Request daily Tauric research',description:'Queue bounded native daily research only on an explicit owner request.',parameters,
         async execute(toolCallId,params,signal) {
           signal?.throwIfAborted();
           const root=new URL(config.platformUrl);
           if(root.protocol !== 'http:' || root.hostname !== 'api' || root.port !== '8000' || root.pathname !== '/') throw new Error('Unsupported private Tauric endpoint');
-          const body={instrument_id:(params as {instrument_id:string}).instrument_id,
+          const body={instrument_id:(params as {instrument_id:string}).instrument_id,effect_key:(params as {effect_key?:string}).effect_key,
             agent_id:toolContext.agentId,session_key:toolContext.sessionKey,channel:toolContext.messageChannel,
             sender_id:toolContext.requesterSenderId ?? '',sender_is_owner:toolContext.senderIsOwner === true,
             account_id:toolContext.agentAccountId ?? 'default',tool_call_id:toolCallId};
@@ -211,11 +255,11 @@ export default defineToolPlugin({
     },
   }), tool({
     name:'tauric_project_action',label:'Manage Tauric workflows and code workspaces',optional:true,
-    description:'Carry out owner-requested scanner, candidate, strategy-version and retrospective research management using the exact schemas from tauric_project_read. Save research notes with hypotheses, evidence, counter-evidence and test plans. Audit source and prepare upgrade proposals. Use stage_upgrade with an exact-context unified patch and current source checksums to create a real immutable code-change workspace; Tauric validates Python syntax and records its release requirements. Evaluate an existing paper strategy only after a matching version/instrument/interval backtest using evaluate_paper_strategy. After a matching backtest, use propose_paper_strategy with original native research and a real rule signal, request_paper_review, then plan_paper_entry and execute_paper_plan only when Tauric approves. All simulated fills go through Tauric ledger, evidence, policy and freshness checks. close_paper_position uses its attributed exit service. No broker order authority exists. Tauric assigns idempotent request identities. No broker orders, native-report edits, governance bypass, permission changes, shell or automatic live code application exist. Paper proposals, reviews, plans and fills use Tauric services and immutable receipts. Enabling automatic research or increasing allowances requires an explicit owner request. Strategy versions never alter existing deployments.',
+    description:'Carry out owner-requested scanner, candidate, strategy-version and retrospective research management using the exact schemas from tauric_project_read. Save research notes with hypotheses, evidence, counter-evidence and test plans. Audit source and prepare upgrade proposals. Use stage_upgrade with an exact-context unified patch and current source checksums to create a real immutable code-change workspace; Tauric validates Python syntax and records its release requirements. Evaluate an existing paper strategy only after a matching version/instrument/interval backtest using evaluate_paper_strategy. After a matching backtest, use propose_paper_strategy with original native research and a real rule signal, request_paper_review, then plan_paper_entry and execute_paper_plan only when Tauric approves. All simulated fills go through Tauric ledger, evidence, policy and freshness checks. close_paper_position uses its attributed exit service. Owner-authorized broker management supports both OANDA and Alpaca: inspect broker_state, broker_routes, broker_journal, broker_setups and broker_reviews, then read operation schemas. Capture broker valuation, register/evaluate prospective forward protocols, check accounts, prepare disabled routes, request exact strategy assessments/reviews, submit approved entries, reconcile/cancel orders, refresh/close attributed positions and repair protection through their existing services. Broker services enforce live account identity, policy revision, qualification, evidence freshness and review permission. A saved request is not proof of a fill. Tauric assigns idempotent request identities. Native-report edits, governance bypass, credential changes, financial-policy changes, route activation and automatic live code application are unavailable through this tool. Use tauric_engineering for isolated code and shell work without production credentials. Preserve owner settings and pauses. Paper proposals, reviews, plans and fills use Tauric services and immutable receipts. Enabling automatic research or increasing allowances requires an explicit owner request. Strategy versions never alter existing deployments.',
     parameters:projectActionParameters,
     factory({config,toolContext}) {
       return boundTool(config,toolContext,'tauric_project_action','Apply owner management through Tauric checks or save an upgrade draft for review.',
-        projectActionParameters,'/internal/openclaw/project-action',['operation','parameters','reason']);
+        projectActionParameters,'/internal/openclaw/project-action',['operation','parameters','reason','effect_key']);
     },
   }), tool({
     name:'tauric_market_data',label:'Read fresh market candles',optional:true,
@@ -234,6 +278,31 @@ export default defineToolPlugin({
       return boundTool(config,toolContext,'tauric_open_research','Research any commodity/timeframe. For a supplied original source URL, use operation=read with url, and omit query; this reads the actual page. operation=search with query only returns unverified discovery snippets and cannot read a page. operation=discover finds exact product symbols; operation=prices reads available bars/history. Cite actual read-tool source text; if validation fails, correct the stated argument and retry the read. No native-report or order authority.',
         Type.Object({operation:Type.Union(['search','read','discover','prices'].map(v=>Type.Literal(v))),query:Type.Optional(Type.String({minLength:1,maxLength:300})),url:Type.Optional(Type.String({minLength:1,maxLength:2048})),symbol:Type.Optional(Type.String({minLength:1,maxLength:120})),provider:Type.Optional(Type.Union(['auto','oanda','yahoo'].map(v=>Type.Literal(v)))),interval:Type.Optional(Type.String({pattern:'^[1-9][0-9]{0,3}(mo|s|m|h|d|w|y)$'})),start:Type.Optional(Type.String({format:'date-time'})),end:Type.Optional(Type.String({format:'date-time'})),count:Type.Optional(Type.Integer({minimum:1,maximum:500}))},{additionalProperties:false}),
         '/internal/openclaw/open-research',['operation','query','url','symbol','provider','interval','start','end','count']);
+    },
+  }), tool({
+    name:'tauric_task',label:'Continue project work',optional:true,
+    description:taskDescription,
+    parameters:taskParameters,
+    factory({config,toolContext}) {
+      return boundTool(config,toolContext,'tauric_task',taskDescription,
+        taskParameters,
+        '/internal/openclaw/task',['action','task_id','effect_key','parameters']);
+    },
+  }), tool({
+    name:'tauric_engineering',label:'Develop and test in an isolated workspace',optional:true,
+    description:'Run shell, Python, Git and real tests in a persistent project workspace separated from production. The container has no network, broker credentials, production files or Docker socket. Supply a current authorized task_id and a stable effect_key; repeating the same key reconciles the original execution instead of running it again. purpose=test requires a direct python -m pytest, node --test invocation. Execution is asynchronous: use tauric_task wait with kind=engineering and the returned job ID. Results have independently signed host receipts. This edits an isolated workspace, never the running source or financial settings.',
+    parameters:Type.Object({task_id:Type.String({format:'uuid'}),effect_key:Type.String({minLength:3,maxLength:80,pattern:'^[a-zA-Z0-9_.:-]+$'}),script:Type.String({minLength:1,maxLength:30000}),timeout_seconds:Type.Optional(Type.Integer({minimum:1,maximum:600})),purpose:Type.Optional(Type.String({enum:['develop','inspect','test'],default:'develop',description:'Use develop for source edits, inspect for reads, and test for direct executed test commands.'}))},{additionalProperties:false}),
+    factory({config,toolContext}) {
+      return boundTool(config,toolContext,'tauric_engineering','Run shell, Python, Git or real tests asynchronously in the isolated persistent project workspace. Supply the current task_id and a stable effect_key. purpose=test requires direct python -m pytest or node --test. Repeating the same key reconciles its original execution. After submission, call tauric_task action=wait with parameters={job:{kind:"engineering",id:returned_job_id},reason:"Follow the isolated command"}, then return. A signed successful execution and source artifact are required for completion. No network, production secrets or financial authority is available in the workspace.',
+        Type.Object({task_id:Type.String({format:'uuid'}),effect_key:Type.String({minLength:3,maxLength:80}),script:Type.String({minLength:1,maxLength:30000}),timeout_seconds:Type.Optional(Type.Integer({minimum:1,maximum:600})),purpose:Type.Optional(Type.String({enum:['develop','inspect','test'],default:'develop',description:'Use develop for source edits, inspect for reads, and test for direct executed test commands.'}))},{additionalProperties:false}),
+        '/internal/openclaw/engineering',['task_id','effect_key','script','timeout_seconds','purpose']);
+    },
+  }), tool({
+    name:'tauric_release',label:'Publish and verify a project release',optional:true,
+    description:releaseDescription,parameters:releaseParameters,
+    factory({config,toolContext}) {
+      return boundTool(config,toolContext,'tauric_release',releaseDescription,releaseParameters,
+        '/internal/openclaw/release',['task_id','test_job_id','effect_key']);
     },
   })],
 });

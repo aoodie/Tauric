@@ -31,11 +31,11 @@ class DiscoveredInstrument(Contract):
     symbol: str
     name: str
     exchange: str
-    category: Literal["fx", "us_equity"]
+    category: Literal["fx", "us_equity", "commodity", "cfd"]
     available: bool
     unavailable_reason: str | None = None
     registered_id: str | None = None
-    registered_asset_type: Literal["fx", "equity", "etf"] | None = None
+    registered_asset_type: Literal["fx", "equity", "etf", "commodity", "cfd"] | None = None
 
     @field_validator("name")
     @classmethod
@@ -60,7 +60,7 @@ class DiscoveryView(Contract):
 class InstrumentAdd(Contract):
     provider: Provider
     symbol: str = Field(min_length=1, max_length=30, pattern=r"^[A-Z][A-Z0-9_.-]*$")
-    asset_type: Literal["fx", "equity", "etf"]
+    asset_type: Literal["fx", "equity", "etf", "commodity", "cfd"]
     expected_connection_revision: int = Field(ge=0, strict=True)
 
 
@@ -135,14 +135,20 @@ def normalize(provider, payload):
         if not isinstance(row, dict):
             raise HTTPException(502, "The provider returned an invalid instrument catalog.")
         if provider == "oanda":
-            if row.get("type") != "CURRENCY":
+            if row.get("type") not in {"CURRENCY", "METAL", "CFD"}:
                 continue
             symbol = row.get("name")
-            valid = isinstance(symbol, str) and re.fullmatch(r"[A-Z]{3}_[A-Z]{3}", symbol)
+            pattern = (
+                r"[A-Z]{3}_[A-Z]{3}" if row["type"] == "CURRENCY" else r"[A-Z0-9]{1,20}_[A-Z]{3}"
+            )
+            valid = isinstance(symbol, str) and re.fullmatch(pattern, symbol)
             name = row.get("displayName", symbol)
-            available = bool(valid and symbol[:3] != symbol[4:])
-            reason = None if available else "This currency-pair format is not supported."
-            exchange, category = "OANDA", "fx"
+            available = bool(valid and symbol.split("_")[0] != symbol.split("_")[-1])
+            reason = None if available else "This provider product format is not supported."
+            exchange, category = (
+                "OANDA",
+                {"CURRENCY": "fx", "METAL": "commodity", "CFD": "cfd"}[row["type"]],
+            )
         else:
             if row.get("class") != "us_equity":
                 continue
@@ -279,12 +285,17 @@ def register(db, owner, body):
         raise HTTPException(
             409, "The provider connection changed. Search again before adding a symbol."
         )
-    if (body.provider == "oanda") != (body.asset_type == "fx"):
+    if (body.provider == "oanda") != (body.asset_type in {"fx", "commodity", "cfd"}):
         raise HTTPException(422, "Choose Forex for OANDA or Stock/ETF for Alpaca.")
     rows = fetch(body.provider, config, body.symbol)
     if len(rows) != 1 or rows[0].symbol != body.symbol or not rows[0].available:
         raise HTTPException(
             422, "This symbol is unavailable or unsupported for the selected provider."
+        )
+    if body.provider == "oanda" and rows[0].category != body.asset_type:
+        raise HTTPException(
+            422,
+            "Use the provider-verified product classification; metals and CFDs are not currency pairs.",
         )
     existing = [
         InstrumentView.model_validate(row.definition) for row in db.scalars(select(Instrument))
@@ -315,11 +326,20 @@ def register(db, owner, body):
         quote_currency=quote,
         volume_type="provider_ticks" if is_fx else "feed_shares",
         native_symbol=base + quote + "=X" if is_fx else body.symbol.replace(".", "-"),
-        native_asset_type="forex" if is_fx else "stock",
+        native_asset_type=("forex" if body.asset_type == "fx" else "none") if is_fx else "stock",
+        provider_product_type={"fx": "CURRENCY", "commodity": "METAL", "cfd": "CFD"}.get(
+            body.asset_type
+        ),
         analysis_scope="",
-        calendar_id="oanda_fx" if is_fx else "us_equity",
+        calendar_id=("oanda_fx" if body.asset_type == "fx" else "provider_observed")
+        if is_fx
+        else "us_equity",
         price_side="bid_ask" if is_fx else "trades",
-        classification_source="provider_currency" if is_fx else "owner_selection",
+        classification_source=(
+            "provider_currency" if body.asset_type == "fx" else "provider_product"
+        )
+        if is_fx
+        else "owner_selection",
     )
     db.add(
         Instrument(

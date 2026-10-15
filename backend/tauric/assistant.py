@@ -1,4 +1,4 @@
-"""Bounded manager operations; native reports, approvals, orders and source stay read-only.
+"""Owner manager operations through existing research, paper and broker services.
 
 Effects use the existing owner services. Stable request IDs recover a lost
 receipt without repeating an effect. Receipts are immutable database history.
@@ -16,11 +16,13 @@ from sqlalchemy.exc import IntegrityError
 
 from . import (
     analytics,
+    assistant_brokers,
     candidate_research,
     chat,
     chat_research,
     knowledge,
     paper,
+    quant_research,
     research,
     scanner,
     services,
@@ -60,6 +62,7 @@ from .scanner_contracts import CandidateAction, CandidateEscalate, ScannerRunReq
 from .strategy_contracts import StrategyCreate, StrategyRevise
 
 CONTRACTS = {
+    **assistant_brokers.CONTRACTS,
     "save_scanner": ScannerSave,
     "run_scanner": ScannerRunRequest,
     "candidate_action": CandidateManagement,
@@ -79,6 +82,7 @@ CONTRACTS = {
     "close_paper_position": PaperCloseRequest,
 }
 TITLES = {
+    **assistant_brokers.TITLES,
     "save_scanner": "Scanner saved",
     "run_scanner": "Scan completed",
     "candidate_action": "Opportunity updated",
@@ -88,6 +92,9 @@ TITLES = {
     "revise_strategy": "Strategy version saved",
     "capture_dataset": "Dataset saved",
     "run_backtest": "Backtest completed",
+    "retrieve_history": "Historical dataset saved",
+    "session_research": "Session research saved",
+    "quant_experiment": "Research experiment queued",
     "save_research_note": "Research note saved",
     "prepare_upgrade": "Upgrade ready for review",
     "stage_upgrade": "Code changes staged and source-checked",
@@ -101,6 +108,7 @@ TITLES = {
 SOURCE_PREFIXES = (
     "frontend/src/",
     "backend/tauric/",
+    "backend/runners/",
     "backend/tests/",
     "docs/",
     "openclaw/plugin/src/",
@@ -158,6 +166,12 @@ def history(db, owner_id, turn_id=None):
 
 def state(db, owner):
     return AssistantState(receipts=history(db, owner.id))
+
+
+def activity_stream(db, owner, limit=50, cursor=None):
+    from .assistant_activity import stream
+
+    return stream(db, owner, limit, cursor)
 
 
 def source_root():
@@ -297,6 +311,8 @@ def native_paper_evidence(db, owner, dep, artifact_id):
 
 def read(db, owner, body):
     authorize(db, owner, body)
+    if body.resource in assistant_brokers.READS:
+        return assistant_brokers.read(db, owner, body.resource, body.resource_id)
     if body.resource in {"knowledge", "user_memory"}:
         allowed, detail = knowledge.recall_allowed(db, owner)
         if not allowed:
@@ -356,6 +372,37 @@ def read(db, owner, body):
             "lines": lines[body.start_line - 1 : body.start_line - 1 + body.line_count],
             "authority": "read_only",
         }
+    if body.resource == "research_lab":
+        value = quant_research.state(db, owner).model_dump(mode="json")
+        value["records"] = [
+            {k: r[k] for k in ("id", "kind", "name", "checksum", "created_at")}
+            | {
+                "engine": r["payload"].get("engine"),
+                "status": r["payload"].get("status"),
+                "dataset_id": r["payload"]["request"]["dataset_id"],
+            }
+            for r in value["records"]
+        ]
+        return value
+    if body.resource == "lab_record":
+        from .quant_models import QuantRecord
+
+        row = db.get(QuantRecord, str(body.resource_id))
+        kind = row.kind if row and row.kind in quant_research.KINDS else "session_report"
+        value = quant_research.view(
+            quant_research.owned(db, owner, body.resource_id, kind)
+        ).model_dump(mode="json")
+        value["payload"].pop("features", None)
+        value["payload"].pop("model_predictions", None)
+        result = value["payload"].get("result")
+        if result:
+            result = dict(result)
+            for key in ("predictions", "equity_curve", "fills"):
+                if key in result:
+                    result[key + "_count"] = len(result[key])
+                    result[key] = result[key][:30]
+            value["payload"]["result"] = result
+        return value
     if body.resource in {"dataset", "backtest"}:
         if not body.resource_id:
             raise HTTPException(422, "Choose a saved research resource.")
@@ -502,6 +549,8 @@ def read(db, owner, body):
         ],
         "source_reading_available": bool(source_index()),
         "execution_authority": False,
+        "broker_execution_authority": "configured_owner_policy_and_native_review",
+        "broker_resources": sorted(assistant_brokers.READS),
         "strategy_request_default": "matching_backtest_then_paper_evaluation; entries and fills require Tauric governance",
         "code_change_scope": "isolated_source_checked_workspace; release checks govern runtime deployment",
         "native_reports_writable": False,
@@ -511,6 +560,11 @@ def read(db, owner, body):
 
 def execute(db, owner, body):
     turn = authorize(db, owner, body)
+    from . import agent_tasks
+
+    task = agent_tasks.for_turn(db, turn, effect=True, operation=body.operation)
+    if task and not body.effect_key:
+        raise HTTPException(422, "A delegated effect needs a stable effect_key.")
     if len(json.dumps(body.parameters)) > 100000:
         raise HTTPException(422, "Keep management requests below 100 KB.")
     if {"request_id", "reason"} & body.parameters.keys():
@@ -518,7 +572,14 @@ def execute(db, owner, body):
     request_id = str(
         uuid5(
             NAMESPACE_URL,
-            "tauric-manager:" + owner.id + ":" + body.session_key + ":" + body.tool_call_id,
+            "tauric-manager:"
+            + owner.id
+            + ":"
+            + (
+                task.id + ":" + body.effect_key
+                if task
+                else body.session_key + ":" + body.tool_call_id
+            ),
         )
     )
     inputs = {"operation": body.operation, "parameters": body.parameters, "reason": body.reason}
@@ -576,7 +637,10 @@ def execute(db, owner, body):
             "assistant_request",
             intent_id,
             body.reason,
-            {"operation": operation, "execution_authority": False},
+            {
+                "operation": operation,
+                "execution_authority": operation in assistant_brokers.EXECUTION_OPERATIONS,
+            },
         )
         try:
             db.commit()
@@ -587,7 +651,9 @@ def execute(db, owner, body):
                 raise
     # Recheck the lease after reserving the request and immediately before effect.
     turn = authorize(db, owner, body)
-    if operation == "save_scanner":
+    if operation in assistant_brokers.CONTRACTS:
+        result = summary_result(assistant_brokers.execute(db, owner, operation, params))
+    elif operation == "save_scanner":
         result = summary_result(scanner.save(db, owner, params))
     elif operation == "run_scanner":
         if params.trigger != "manual":
@@ -654,6 +720,19 @@ def execute(db, owner, body):
         result = summary_result(research.capture(db, owner, params))
     elif operation == "run_backtest":
         result = summary_result(research.run(db, owner, params))
+    elif operation == "retrieve_history":
+        result = summary_result(quant_research.historical_dataset(db, owner, params))
+    elif operation == "session_research":
+        result = summary_result(quant_research.report(db, owner, params))
+    elif operation == "quant_experiment":
+        record = quant_research.enqueue(db, owner, params)
+        result = {
+            "id": record.id,
+            "engine": record.payload["engine"],
+            "status": "queued",
+            "checksum": record.checksum,
+            "authority": "research_only",
+        }
     elif operation == "evaluate_paper_strategy":
         from . import strategy_execution
         from .strategy_contracts import StrategyRunRequest
@@ -763,6 +842,20 @@ def execute(db, owner, body):
             )
         else:
             result["evidence_status"] = "assistant_research_note: does not replace native evidence"
+            if operation == "save_research_note" and params.source_evidence_ids:
+                from . import agent_tasks
+                from .agent_contracts import JobReference
+
+                sources = [
+                    agent_tasks.reference(db, owner, JobReference(kind="open_research", id=key))
+                    for key in params.source_evidence_ids
+                ]
+                if any("source_evidence" not in item["proofs"] for item in sources):
+                    raise HTTPException(
+                        409,
+                        "A sourced research note needs actual page reads or observed prices; search snippets cannot verify its claims.",
+                    )
+                result["verified_sources"] = sources
     row = AssistantRecord(
         id=request_id,
         request_id=request_id,
@@ -783,7 +876,11 @@ def execute(db, owner, body):
         "assistant_receipt",
         row.id,
         body.reason,
-        {"checksum": row.checksum, "execution_authority": False, "source_applied": False},
+        {
+            "checksum": row.checksum,
+            "execution_authority": operation in assistant_brokers.EXECUTION_OPERATIONS,
+            "source_applied": False,
+        },
     )
     try:
         db.commit()
@@ -800,9 +897,3 @@ def execute(db, owner, body):
             raise
         return receipt(previous)
     return receipt(row)
-
-
-def activity_stream(db, owner, limit=50, cursor=None):
-    from .assistant_activity import stream
-
-    return stream(db, owner, limit, cursor)

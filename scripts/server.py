@@ -294,12 +294,37 @@ def snapshot(compose):
     )
 
 
-def checksum(path):
+def stream_checksum(source):
     digest = hashlib.sha256()
-    with path.open("rb") as source:
-        for block in iter(lambda: source.read(1024 * 1024), b""):
-            digest.update(block)
+    for block in iter(lambda: source.read(1024 * 1024), b""):
+        digest.update(block)
     return digest.hexdigest()
+
+
+def checksum(path):
+    with path.open("rb") as source:
+        return stream_checksum(source)
+
+
+def runtime_inventory(archive):
+    """Verify file bytes and metadata without loading a whole saved file into RAM."""
+    result = {}
+    for member in archive:
+        if member.isfile():
+            with archive.extractfile(member) as source:
+                content = stream_checksum(source)
+        else:
+            content = member.linkname
+        if member.name in result:
+            raise ValueError("Runtime backup contains duplicate entries.")
+        result[member.name] = (
+            member.type,
+            member.mode,
+            member.uid,
+            member.gid,
+            content,
+        )
+    return result
 
 
 def volume_name(compose, service, destination):
@@ -326,10 +351,50 @@ def volume_name(compose, service, destination):
     )
 
 
+def freeze_engineering(directory):
+    """Freeze isolated writes before copying private keys, receipts and bounded disks."""
+    values = read_env(directory / "server.env")
+    private = Path(values["TAURIC_SECRETS_DIR"]) / "engineering"
+    if not (private / "install.json").is_file():
+        return False
+    active = (
+        subprocess.run(
+            ["systemctl", "is-active", "--quiet", "tauric-engineering.service"],
+            check=False,
+        ).returncode
+        == 0
+    )
+    if active:
+        run(["systemctl", "stop", "tauric-engineering.service"], stdout=subprocess.PIPE)
+    executions = (
+        run(
+            ["docker", "ps", "-q", "--filter", "label=io.tauric.engineering=v1"],
+            stdout=subprocess.PIPE,
+        )
+        .stdout.decode()
+        .split()
+    )
+    if executions:
+        # Interrupted development is reconciled on resume; its stable identity is retained.
+        run(["docker", "kill", *executions], stdout=subprocess.PIPE)
+    for target in sorted((private / "workspaces").glob("*/mount")):
+        if (
+            subprocess.run(["mountpoint", "-q", str(target)], check=False).returncode
+            == 0
+        ):
+            run(["umount", str(target)], stdout=subprocess.PIPE)
+    return active
+
+
 def backup(directory, project, output, local=False):
     validate(directory, project, local)
     if output.exists():
         raise ValueError("Backup output exists; it will not be overwritten.")
+    private = Path(read_env(directory / "server.env")["TAURIC_SECRETS_DIR"])
+    if output.resolve().is_relative_to(private.resolve()):
+        raise ValueError(
+            "Backup staging must be outside the private files being copied."
+        )
     compose = command(directory, project) + ["--profile", "*"]
     # Preserve exactly which services were running, and freeze all application
     # writes before capturing the database plus filesystem state.
@@ -344,11 +409,18 @@ def backup(directory, project, output, local=False):
     if "db" not in active:
         raise ValueError("The database must be running before backup.")
     stopped = [name for name in active if name != "db"]
-    with tempfile.TemporaryDirectory(prefix="tauric-backup-") as folder:
+    engineering_active = False
+    # Hosts may mount /tmp in RAM. Saved engineering disks must use the backup
+    # filesystem rather than competing with production services for memory.
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(
+        prefix="tauric-backup-", dir=output.parent
+    ) as folder:
         staging = Path(folder)
         try:
             if stopped:
                 run(compose + ["stop", *stopped], stdout=subprocess.PIPE)
+            engineering_active = freeze_engineering(directory)
             before = snapshot(compose)
             dump = staging / "database.dump"
             with dump.open("wb") as target:
@@ -428,6 +500,11 @@ def backup(directory, project, output, local=False):
                 for path in sorted(staging.iterdir()):
                     archive.add(path, arcname=path.name)
         finally:
+            if engineering_active:
+                run(
+                    ["systemctl", "start", "tauric-engineering.service"],
+                    stdout=subprocess.PIPE,
+                )
             if stopped:
                 run(compose + ["start", *stopped], stdout=subprocess.PIPE)
     return {
@@ -490,9 +567,16 @@ def restore_check(directory, project, archive, local=False):
     # It never starts API/background services against restored trading policies.
     if directory.exists():
         raise ValueError("Restore requires a new state directory.")
-    with tempfile.TemporaryDirectory(prefix="tauric-restore-") as folder:
+    directory.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(
+        prefix="tauric-restore-", dir=directory.parent
+    ) as folder:
         staging = Path(folder)
         manifest = extract_backup(archive, staging)
+        if (staging / "secrets" / "engineering").exists() and os.geteuid() != 0:
+            raise ValueError(
+                "Restoring engineering queue ownership requires root on the Linux host."
+            )
         directory.mkdir(mode=0o700, parents=True)
         private_write(
             directory / "RESTORED_REVIEW_REQUIRED",
@@ -506,7 +590,14 @@ def restore_check(directory, project, archive, local=False):
             "".join(f"{key}={value}\n" for key, value in values.items()),
         )
         for path in (directory / "secrets").iterdir():
-            path.chmod(0o644)
+            path.chmod(0o644 if path.is_file() else 0o700)
+        for folder in ("requests", "cancel"):
+            target = directory / "secrets" / "engineering" / "spool" / folder
+            if target.is_dir():
+                os.chown(target, 10001, 10001)
+        release_requests = directory / "secrets" / "operations/spool/requests"
+        if release_requests.is_dir():
+            os.chown(release_requests, 10001, 10001)
         (directory / "secrets").chmod(0o700)
         validate(directory, project, local)
         compose = command(directory, project) + ["--profile", "*"]
@@ -580,7 +671,7 @@ def restore_check(directory, project, archive, local=False):
                     stdin=original,
                     stdout=subprocess.PIPE,
                 )
-            with tempfile.TemporaryFile() as recaptured:
+            with tempfile.TemporaryFile(dir=staging) as recaptured:
                 run(
                     [
                         "docker",
@@ -609,22 +700,7 @@ def restore_check(directory, project, archive, local=False):
                     tarfile.open(staging / filename) as a,
                     tarfile.open(fileobj=recaptured) as b,
                 ):
-
-                    def inventory(tar):
-                        return {
-                            m.name: (
-                                m.type,
-                                m.mode,
-                                m.uid,
-                                m.gid,
-                                hashlib.sha256(tar.extractfile(m).read()).hexdigest()
-                                if m.isfile()
-                                else m.linkname,
-                            )
-                            for m in tar.getmembers()
-                        }
-
-                    if inventory(a) != inventory(b):
+                    if runtime_inventory(a) != runtime_inventory(b):
                         raise ValueError("Restored runtime volume differs from backup.")
         return {
             "database_restored": True,

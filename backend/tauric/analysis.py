@@ -79,7 +79,10 @@ def enqueue(
     ):
         raise HTTPException(422, "A broker setup assessment requires its own research context.")
     spec = market.instrument(db, body.instrument_id)
-    if not native_scope.supported(spec):
+    from . import execution_scope
+
+    separate_setup = broker_context is not None and execution_scope.provider(spec) is not None
+    if not native_scope.supported(spec) and not separate_setup:
         raise HTTPException(
             422,
             "Native research for this asset is not enabled; chart data and retrospective replay are available separately.",

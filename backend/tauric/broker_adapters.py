@@ -53,7 +53,7 @@ def identifier(value):
 
 
 def symbol(value, provider):
-    pattern = r"[A-Z]{3}_[A-Z]{3}" if provider == "oanda" else r"[A-Z][A-Z0-9.-]{0,31}"
+    pattern = r"[A-Z0-9]{1,20}_[A-Z]{3}" if provider == "oanda" else r"[A-Z][A-Z0-9.-]{0,31}"
     if not isinstance(value, str) or not re.fullmatch(pattern, value):
         raise BrokerError("This broker instrument symbol is unsupported.")
     return value
@@ -215,10 +215,11 @@ class OandaPractice(DemoBroker):
                 "instruments"
             ]
             row = next(r for r in rows if r["name"] == name)
-            if row["type"] != "CURRENCY":
-                raise ValueError("Only currency pairs are supported")
+            if row["type"] not in {"CURRENCY", "METAL", "CFD"}:
+                raise ValueError("Unknown OANDA product type")
             return BrokerInstrumentView(
                 symbol=name,
+                product_type=row["type"],
                 tradable=True,
                 quantity_step=format(Decimal(10) ** -int(row["tradeUnitsPrecision"]), "f"),
                 minimum_quantity=amount(row["minimumTradeSize"], nonnegative=True),

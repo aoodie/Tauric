@@ -10,7 +10,7 @@ on:
         type: string
         required: false
       registry_run:
-        description: Successful release run containing the four image digest artifacts
+        description: Successful release run containing the verified image digest artifacts
         type: string
         required: false
       registry_recipient:
@@ -81,6 +81,8 @@ jobs:
             dockerfile: deploy/Dockerfile.web
           - kind: openclaw
             dockerfile: deploy/Dockerfile.openclaw
+          - kind: engineering
+            dockerfile: deploy/Dockerfile.engineering
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
@@ -162,7 +164,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Rehearse clean install and complete backup restoration
-        run: python scripts/release_smoke.py --images artifacts/tauric-release/images.env --output artifacts/release-smoke.json --emit-failure-diagnostics
+        run: DOCKER_CONFIG="${DOCKER_CONFIG:-$HOME/.docker}" sudo --preserve-env=DOCKER_CONFIG python3 scripts/release_smoke.py --images artifacts/tauric-release/images.env --output artifacts/release-smoke.json --emit-failure-diagnostics
+      - name: Verify isolated engineering with real code and executed tests
+        run: |
+          python -m venv /tmp/tauric-engineering-check
+          /tmp/tauric-engineering-check/bin/pip install cryptography==46.0.5
+          image=$(python -c 'import json; print(json.load(open("artifacts/tauric-release/engineering-image.json"))["image"])')
+          docker pull "$image"
+          sudo /tmp/tauric-engineering-check/bin/python scripts/engineering_smoke.py --image "$image" --output artifacts/engineering-smoke.json
       - name: Preserve redacted installation failure evidence
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -177,4 +186,5 @@ jobs:
           path: |
             artifacts/tauric-release.tar.gz
             artifacts/release-smoke.json
+            artifacts/engineering-smoke.json
           retention-days: 90

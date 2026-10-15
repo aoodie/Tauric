@@ -34,6 +34,7 @@ def signature():
         "broker_positions.py",
         "broker_lifecycle_adapters.py",
         "broker_setup.py",
+        "execution_scope.py",
         "broker_review.py",
         "broker_risk.py",
         "strategy_rules.py",

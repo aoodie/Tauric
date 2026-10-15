@@ -30,6 +30,9 @@ class RuntimeConfig(BaseSettings):
     memory_private_file: str = "/run/tauric/memory-private.json"
     knowledge_vault_directory: str = "/data/knowledge"
     knowledge_vault_display: str = ""
+    engineering_spool_directory: str = "/run/tauric-engineering"
+    engineering_public_key_file: str = "/run/tauric-engineering/public/public.pem"
+    release_spool_directory: str = "/run/tauric-release"
 
     @model_validator(mode="after")
     def private_database_password(self):
@@ -44,7 +47,7 @@ class RuntimeConfig(BaseSettings):
         return self
 
 
-SCHEMA_REVISION = "0035_scanner_budget"
+SCHEMA_REVISION = "0036_agent_tasks"
 
 
 @lru_cache

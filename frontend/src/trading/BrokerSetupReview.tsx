@@ -151,7 +151,7 @@ export function BrokerSetupReview({
   }
   const eligible = instruments.filter((item) =>
     provider === "oanda"
-      ? item.asset_type === "fx"
+      ? ["fx", "commodity", "cfd"].includes(item.asset_type)
       : ["equity", "etf"].includes(item.asset_type),
   );
   return (

@@ -11,6 +11,7 @@ import { api, type Resource } from "../api/client";
 import type { components } from "../api/schema";
 import { PortfolioPanel, PortfolioSelector } from "./Portfolios";
 import "./chat.css";
+import { ProjectTasks } from "./ProjectTasks";
 import { AssistantControls, AssistantReceiptCard } from "./AssistantControls";
 import { ReportText } from "../research/NativeReport";
 
@@ -421,6 +422,7 @@ function ConversationChat({
         </button>
       </div>
       {picker}
+      {!portfolioId && <ProjectTasks />}
       {!portfolioId && <AssistantControls draft={setText} />}
       <div className="chat-workspace">
         <aside className="chat-history">

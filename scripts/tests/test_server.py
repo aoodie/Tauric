@@ -1,5 +1,6 @@
 """Deployment controls that can be checked without Docker or application data."""
 
+import hashlib
 import io
 import json
 import os
@@ -19,6 +20,53 @@ import server
 
 
 class ServerControls(unittest.TestCase):
+    def test_runtime_restore_streams_large_files_and_preserves_content_and_metadata(
+        self,
+    ):
+        data = b"saved runtime data" * 180000
+        stream = io.BytesIO()
+        with tarfile.open(fileobj=stream, mode="w") as archive:
+            member = tarfile.TarInfo("large-runtime-file")
+            member.size, member.mode, member.uid, member.gid = (
+                len(data),
+                0o640,
+                10001,
+                10001,
+            )
+            archive.addfile(member, io.BytesIO(data))
+        stream.seek(0)
+        with tarfile.open(fileobj=stream) as archive:
+            original = archive.extractfile
+            reads = []
+
+            class BoundedReader:
+                def __init__(self, member):
+                    self.source = original(member)
+
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *_):
+                    self.source.close()
+
+                def read(self, size=-1):
+                    self.assert_bounded(size)
+                    reads.append(size)
+                    return self.source.read(size)
+
+                @staticmethod
+                def assert_bounded(size):
+                    if not 0 < size <= 1024 * 1024:
+                        raise AssertionError("Restoration must bound each file read")
+
+            with patch.object(archive, "extractfile", side_effect=BoundedReader):
+                result = server.runtime_inventory(archive)
+        self.assertGreater(len(reads), 3)
+        self.assertEqual(
+            result["large-runtime-file"],
+            (tarfile.REGTYPE, 0o640, 10001, 10001, hashlib.sha256(data).hexdigest()),
+        )
+
     def setUp(self):
         self.folder = tempfile.TemporaryDirectory()
         self.root = Path(self.folder.name)
@@ -87,6 +135,70 @@ class ServerControls(unittest.TestCase):
             json.loads(values["TAURIC_ALLOWED_ORIGINS"]), ["http://localhost:8080"]
         )
         self.assertEqual(set(before), set(server.PRIVATE_FILES))
+
+    def test_engineering_restore_requires_root_before_creating_target_state(self):
+        def extracted(_archive, staging):
+            (staging / "secrets" / "engineering").mkdir(parents=True)
+            return {}
+
+        state = self.root / "restored"
+        with (
+            patch("server.extract_backup", side_effect=extracted),
+            patch("server.os.geteuid", return_value=1000),
+            self.assertRaisesRegex(ValueError, "requires root"),
+        ):
+            server.restore_check(state, "tauric_restore", self.root / "backup.tar.gz")
+        self.assertFalse(state.exists())
+
+    def test_backup_and_restore_do_not_require_system_temporary_storage(self):
+        state = self.root / "state"
+        server.setup(state, self.images)
+        disk = state / "secrets" / "engineering" / "workspaces" / "disk.ext4"
+        disk.parent.mkdir(parents=True)
+        disk.write_bytes(b"saved workspace" * 10000)
+        archive = self.root / "backups" / "backup.tar.gz"
+        snapshot = {"tables": {}, "schema": "fixture"}
+
+        def docker(args, **kwargs):
+            if "pg_dump" in args:
+                kwargs["stdout"].write(b"database fixture")
+            return subprocess.CompletedProcess(
+                args, 0, stdout=b"db\n" if "ps" in args else b""
+            )
+
+        # A RAM-backed /tmp can fill independently of the backup filesystem.
+        # Both operations must still extract and verify the real private archive.
+        with (
+            patch("server.tempfile.tempdir", str(self.root / "unavailable-tmp")),
+            patch("server.validate"),
+            patch("server.run", side_effect=docker),
+            patch("server.snapshot", return_value=snapshot),
+            patch("server.freeze_engineering", return_value=False),
+            patch("server.volume_name", return_value=None),
+        ):
+            result = server.backup(state, "tauric_fixture", archive)
+            self.assertTrue(result["backup_created"])
+            self.assertEqual(result["sha256"], server.checksum(archive))
+            with (
+                patch("server.os.geteuid", return_value=1000),
+                self.assertRaisesRegex(ValueError, "requires root"),
+            ):
+                server.restore_check(
+                    self.root / "restorations" / "state", "tauric_restore", archive
+                )
+        self.assertFalse((self.root / "restorations" / "state").exists())
+
+    def test_backup_refuses_staging_inside_the_private_tree_before_stopping_services(
+        self,
+    ):
+        state = self.root / "state"
+        server.setup(state, self.images)
+        with patch("server.validate"), patch("server.run") as run:
+            with self.assertRaisesRegex(ValueError, "outside the private files"):
+                server.backup(
+                    state, "tauric_fixture", state / "secrets" / "backup.tar.gz"
+                )
+            run.assert_not_called()
 
     def test_public_origin_and_cookie_settings(self):
         state = self.root / "state"
@@ -194,6 +306,15 @@ class ServerControls(unittest.TestCase):
                     }
                 )
             )
+        (images / "engineering.json").write_text(
+            json.dumps(
+                {
+                    "image": "ghcr.io/owner/tauric-engineering@sha256:" + "c" * 64,
+                    "revision": revision,
+                    "repository": "owner/tauric",
+                }
+            )
+        )
         archive = release_bundle.build(
             images, self.root / "release", "owner/tauric", revision
         )
@@ -204,7 +325,9 @@ class ServerControls(unittest.TestCase):
                 if member.isfile()
             }
         self.assertEqual(
-            names, set(release_bundle.FILES) | {"images.env", "release-manifest.json"}
+            names,
+            set(release_bundle.FILES)
+            | {"images.env", "release-manifest.json", "engineering-image.json"},
         )
         self.assertFalse(
             any(".env." in name or "database.dump" in name for name in names)

@@ -102,6 +102,9 @@ class ChatTurnView(Contract):
 
 class ResearchInvocation(Contract):
     instrument_id: str = Field(min_length=3, max_length=100)
+    effect_key: str | None = Field(
+        default=None, min_length=3, max_length=80, pattern=r"^[a-zA-Z0-9_.:-]+$"
+    )
     channel: Literal["webchat", "telegram", "discord"]
     agent_id: Literal["tauric-chat"]
     session_key: str = Field(min_length=1, max_length=400)
