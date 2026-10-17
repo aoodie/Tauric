@@ -12,3 +12,5 @@ artifacts
 .runtime-src
 .runtime-venv
 .runtime-honcho
+private/
+latest-source/

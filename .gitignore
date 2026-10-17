@@ -23,3 +23,5 @@ openclaw/node_modules/
 openclaw/plugin/dist/
 
 openclaw/dist/
+private/
+latest-source/
