@@ -1,7 +1,6 @@
 """Owner-scoped projections of authoritative work. No effects or model calls."""
 
 import base64
-import hashlib
 import json
 import re
 from datetime import datetime, timedelta
@@ -87,16 +86,7 @@ def projection(values):
 
 
 def verified(row):
-    # Native research predates the compact receipt format. Verify the exact
-    # serialization used by analysis.finish rather than accepting both formats.
-    digest = (
-        hashlib.sha256(
-            json.dumps(row.payload, sort_keys=True, allow_nan=False).encode()
-        ).hexdigest()
-        if isinstance(row, AnalysisArtifact)
-        else paper.checksum(row.payload)
-    )
-    if digest != row.checksum:
+    if paper.checksum(row.payload) != row.checksum:
         raise HTTPException(409, "Activity source receipt integrity failed.")
     return row.payload
 

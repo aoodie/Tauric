@@ -38,7 +38,8 @@
       "tauric_open_research",
       "tauric_task",
       "tauric_engineering",
-      "tauric_release"
+      "tauric_release",
+      "tauric_heartbeat_status"
     ]
   },
   "toolMetadata": {
@@ -85,6 +86,9 @@
       "optional": true
     },
     "tauric_release": {
+      "optional": true
+    },
+    "tauric_heartbeat_status": {
       "optional": true
     }
   }

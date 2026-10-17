@@ -304,5 +304,25 @@ export default defineToolPlugin({
       return boundTool(config,toolContext,'tauric_release',releaseDescription,releaseParameters,
         '/internal/openclaw/release',['task_id','test_job_id','effect_key']);
     },
+  }), tool({
+    name:'tauric_heartbeat_status',label:'Read Tauric service readiness',optional:true,
+    description:'Read current API and migrated-storage readiness once. Read-only. Does not prove worker health, research success or trading readiness.',
+    parameters:Type.Object({},{additionalProperties:false}),
+    factory({config,toolContext}) {
+      if(toolContext.agentId !== 'tauric-heartbeat') return null;
+      return {name:'tauric_heartbeat_status',label:'Read Tauric service readiness',
+        description:'Read API and storage readiness; no changes or financial authority.',
+        parameters:Type.Object({},{additionalProperties:false}),
+        async execute(_toolCallId:string,_params:Record<string,unknown>,signal?:AbortSignal) {
+          signal?.throwIfAborted();
+          const root=new URL(config.platformUrl);
+          if(root.protocol!=='http:' || root.hostname!=='api' || root.port!=='8000' || root.pathname!=='/') throw new Error('Unsupported private Tauric endpoint');
+          const response=await fetch(new URL('/health/ready',root),{redirect:'error',
+            signal:AbortSignal.any([AbortSignal.timeout(10000),...(signal?[signal]:[])])});
+          const body=await response.json();
+          return jsonResult({checked_at:new Date().toISOString(),ready:response.ok && body.status==='ok',
+            http_status:response.status,scope:'api_and_migrated_storage',execution_authority:false});
+        }};
+    },
   })],
 });

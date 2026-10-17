@@ -1415,6 +1415,24 @@
         }
       }
     },
+    "/api/v1/chat/heartbeat": {
+      "get": {
+        "summary": "Heartbeat",
+        "operationId": "heartbeat_api_v1_chat_heartbeat_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeartbeatStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/chat/settings": {
       "get": {
         "summary": "Settings",
@@ -1731,6 +1749,404 @@
                   "type": "array",
                   "title": "Response Observe Api V1 Assistant Activities Observe Post"
                 }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assistant/tasks": {
+      "get": {
+        "tags": [
+          "OpenClaw project work"
+        ],
+        "summary": "Tasks",
+        "operationId": "tasks_api_v1_assistant_tasks_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TaskView"
+                  },
+                  "type": "array",
+                  "title": "Response Tasks Api V1 Assistant Tasks Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "OpenClaw project work"
+        ],
+        "summary": "Create",
+        "operationId": "create_api_v1_assistant_tasks_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assistant/tasks/{task_id}/control": {
+      "post": {
+        "tags": [
+          "OpenClaw project work"
+        ],
+        "summary": "Control",
+        "operationId": "control_api_v1_assistant_tasks__task_id__control_post",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskControl"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assistant/tasks/{task_id}": {
+      "get": {
+        "tags": [
+          "OpenClaw project work"
+        ],
+        "summary": "Task",
+        "operationId": "task_api_v1_assistant_tasks__task_id__get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/openclaw/task": {
+      "post": {
+        "tags": [
+          "OpenClaw project work"
+        ],
+        "summary": "Task Tool",
+        "operationId": "task_tool_internal_openclaw_task_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskInvocation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/openclaw/engineering": {
+      "post": {
+        "tags": [
+          "OpenClaw project work"
+        ],
+        "summary": "Engineering Tool",
+        "operationId": "engineering_tool_internal_openclaw_engineering_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EngineeringInvocation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assistant/engineering/{job_id}": {
+      "get": {
+        "tags": [
+          "OpenClaw project work"
+        ],
+        "summary": "Engineering Job",
+        "operationId": "engineering_job_api_v1_assistant_engineering__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assistant/engineering/{job_id}/source": {
+      "get": {
+        "tags": [
+          "OpenClaw project work"
+        ],
+        "summary": "Engineering Source",
+        "operationId": "engineering_source_api_v1_assistant_engineering__job_id__source_get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/openclaw/release": {
+      "post": {
+        "tags": [
+          "OpenClaw project work"
+        ],
+        "summary": "Release Tool",
+        "operationId": "release_tool_internal_openclaw_release_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseInvocation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assistant/releases/{job_id}": {
+      "get": {
+        "tags": [
+          "OpenClaw project work"
+        ],
+        "summary": "Release Job",
+        "operationId": "release_job_api_v1_assistant_releases__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
               }
             }
           },
@@ -2789,6 +3205,236 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/QualificationView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/research/lab/datasets/history": {
+      "post": {
+        "tags": [
+          "session research and machine learning"
+        ],
+        "summary": "History",
+        "operationId": "history_api_v1_research_lab_datasets_history_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HistoricalDatasetCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/research/lab": {
+      "get": {
+        "tags": [
+          "session research and machine learning"
+        ],
+        "summary": "State",
+        "operationId": "state_api_v1_research_lab_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/research/lab/reports": {
+      "post": {
+        "tags": [
+          "session research and machine learning"
+        ],
+        "summary": "Report",
+        "operationId": "report_api_v1_research_lab_reports_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionReportCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRecordView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/research/lab/experiments": {
+      "post": {
+        "tags": [
+          "session research and machine learning"
+        ],
+        "summary": "Experiment",
+        "operationId": "experiment_api_v1_research_lab_experiments_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExperimentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRecordView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/research/lab/records/{record_id}": {
+      "get": {
+        "tags": [
+          "session research and machine learning"
+        ],
+        "summary": "Record",
+        "operationId": "record_api_v1_research_lab_records__record_id__get",
+        "parameters": [
+          {
+            "name": "record_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Record Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRecordView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/research/lab/experiments/{record_id}/cancel": {
+      "post": {
+        "tags": [
+          "session research and machine learning"
+        ],
+        "summary": "Cancel",
+        "operationId": "cancel_api_v1_research_lab_experiments__record_id__cancel_post",
+        "parameters": [
+          {
+            "name": "record_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Record Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRecordView"
                 }
               }
             }
@@ -6400,634 +7046,6 @@
           }
         }
       }
-    },
-    "/api/v1/assistant/tasks": {
-      "get": {
-        "tags": [
-          "OpenClaw project work"
-        ],
-        "summary": "Tasks",
-        "operationId": "tasks_api_v1_assistant_tasks_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/TaskView"
-                  },
-                  "type": "array",
-                  "title": "Response Tasks Api V1 Assistant Tasks Get"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "OpenClaw project work"
-        ],
-        "summary": "Create",
-        "operationId": "create_api_v1_assistant_tasks_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TaskCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TaskView"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/assistant/tasks/{task_id}/control": {
-      "post": {
-        "tags": [
-          "OpenClaw project work"
-        ],
-        "summary": "Control",
-        "operationId": "control_api_v1_assistant_tasks__task_id__control_post",
-        "parameters": [
-          {
-            "name": "task_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Task Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TaskControl"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TaskView"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/assistant/tasks/{task_id}": {
-      "get": {
-        "tags": [
-          "OpenClaw project work"
-        ],
-        "summary": "Task",
-        "operationId": "task_api_v1_assistant_tasks__task_id__get",
-        "parameters": [
-          {
-            "name": "task_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Task Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/internal/openclaw/task": {
-      "post": {
-        "tags": [
-          "OpenClaw project work"
-        ],
-        "summary": "Task Tool",
-        "operationId": "task_tool_internal_openclaw_task_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TaskInvocation"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/internal/openclaw/engineering": {
-      "post": {
-        "tags": [
-          "OpenClaw project work"
-        ],
-        "summary": "Engineering Tool",
-        "operationId": "engineering_tool_internal_openclaw_engineering_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EngineeringInvocation"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/assistant/engineering/{job_id}": {
-      "get": {
-        "tags": [
-          "OpenClaw project work"
-        ],
-        "summary": "Engineering Job",
-        "operationId": "engineering_job_api_v1_assistant_engineering__job_id__get",
-        "parameters": [
-          {
-            "name": "job_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Job Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/assistant/engineering/{job_id}/source": {
-      "get": {
-        "tags": [
-          "OpenClaw project work"
-        ],
-        "summary": "Engineering Source",
-        "operationId": "engineering_source_api_v1_assistant_engineering__job_id__source_get",
-        "parameters": [
-          {
-            "name": "job_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Job Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/research/lab/datasets/history": {
-      "post": {
-        "tags": [
-          "session research and machine learning"
-        ],
-        "summary": "History",
-        "operationId": "history_api_v1_research_lab_datasets_history_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/HistoricalDatasetCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DatasetView"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/research/lab": {
-      "get": {
-        "tags": [
-          "session research and machine learning"
-        ],
-        "summary": "State",
-        "operationId": "state_api_v1_research_lab_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LabState"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/research/lab/reports": {
-      "post": {
-        "tags": [
-          "session research and machine learning"
-        ],
-        "summary": "Report",
-        "operationId": "report_api_v1_research_lab_reports_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SessionReportCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LabRecordView"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/research/lab/experiments": {
-      "post": {
-        "tags": [
-          "session research and machine learning"
-        ],
-        "summary": "Experiment",
-        "operationId": "experiment_api_v1_research_lab_experiments_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ExperimentCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LabRecordView"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/research/lab/records/{record_id}": {
-      "get": {
-        "tags": [
-          "session research and machine learning"
-        ],
-        "summary": "Record",
-        "operationId": "record_api_v1_research_lab_records__record_id__get",
-        "parameters": [
-          {
-            "name": "record_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Record Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LabRecordView"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/research/lab/experiments/{record_id}/cancel": {
-      "post": {
-        "tags": [
-          "session research and machine learning"
-        ],
-        "summary": "Cancel",
-        "operationId": "cancel_api_v1_research_lab_experiments__record_id__cancel_post",
-        "parameters": [
-          {
-            "name": "record_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Record Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LabRecordView"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/internal/openclaw/release": {
-      "post": {
-        "tags": [
-          "OpenClaw project work"
-        ],
-        "summary": "Release Tool",
-        "operationId": "release_tool_internal_openclaw_release_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReleaseInvocation"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/assistant/releases/{job_id}": {
-      "get": {
-        "tags": [
-          "OpenClaw project work"
-        ],
-        "summary": "Release Job",
-        "operationId": "release_job_api_v1_assistant_releases__job_id__get",
-        "parameters": [
-          {
-            "name": "job_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Job Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
@@ -9403,9 +9421,30 @@
           },
           "no_owner_limits": {
             "type": "boolean",
-            "const": true,
             "title": "No Owner Limits",
             "default": true
+          },
+          "maximum_risk_percent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maximum Risk Percent"
+          },
+          "maximum_drawdown_percent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maximum Drawdown Percent"
           },
           "live_acknowledged": {
             "type": "boolean",
@@ -11531,6 +11570,36 @@
         ],
         "title": "CostStress"
       },
+      "Criterion": {
+        "properties": {
+          "description": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Description"
+          },
+          "proof": {
+            "type": "string",
+            "enum": [
+              "research_report",
+              "source_evidence",
+              "job_success",
+              "command_success",
+              "tests_passed",
+              "child_complete",
+              "deployment_verified"
+            ],
+            "title": "Proof"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "description",
+          "proof"
+        ],
+        "title": "Criterion"
+      },
       "DataContext": {
         "properties": {
           "calendar_id": {
@@ -12386,6 +12455,100 @@
         ],
         "title": "DiscoveryView"
       },
+      "EngineeringInvocation": {
+        "properties": {
+          "channel": {
+            "type": "string",
+            "enum": [
+              "webchat",
+              "telegram",
+              "discord"
+            ],
+            "title": "Channel"
+          },
+          "agent_id": {
+            "type": "string",
+            "const": "tauric-chat",
+            "title": "Agent Id"
+          },
+          "session_key": {
+            "type": "string",
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Session Key"
+          },
+          "sender_id": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Sender Id",
+            "default": ""
+          },
+          "sender_is_owner": {
+            "type": "boolean",
+            "title": "Sender Is Owner"
+          },
+          "account_id": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Account Id",
+            "default": "default"
+          },
+          "tool_call_id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Tool Call Id"
+          },
+          "task_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Task Id"
+          },
+          "effect_key": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 3,
+            "pattern": "^[a-zA-Z0-9_.:-]+$",
+            "title": "Effect Key"
+          },
+          "script": {
+            "type": "string",
+            "maxLength": 30000,
+            "minLength": 1,
+            "title": "Script"
+          },
+          "timeout_seconds": {
+            "type": "integer",
+            "maximum": 600.0,
+            "minimum": 1.0,
+            "title": "Timeout Seconds",
+            "default": 120
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "inspect",
+              "develop",
+              "test"
+            ],
+            "title": "Purpose",
+            "default": "develop"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "channel",
+          "agent_id",
+          "session_key",
+          "sender_is_owner",
+          "tool_call_id",
+          "task_id",
+          "effect_key",
+          "script"
+        ],
+        "title": "EngineeringInvocation"
+      },
       "EquityPoint": {
         "properties": {
           "time": {
@@ -12410,6 +12573,184 @@
           "drawdown_percent"
         ],
         "title": "EquityPoint"
+      },
+      "EvidenceNote": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 180,
+            "minLength": 3,
+            "title": "Title"
+          },
+          "source": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Source"
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 3,
+            "title": "Content"
+          },
+          "published_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Published At"
+          },
+          "available_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Available At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "source",
+          "content",
+          "published_at",
+          "available_at"
+        ],
+        "title": "EvidenceNote"
+      },
+      "ExperimentCreate": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "dataset_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Dataset Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 3,
+            "title": "Name"
+          },
+          "hypothesis": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 3,
+            "title": "Hypothesis"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason"
+          },
+          "engine": {
+            "type": "string",
+            "enum": [
+              "lean",
+              "qlib"
+            ],
+            "title": "Engine"
+          },
+          "session": {
+            "$ref": "#/components/schemas/SessionWindow"
+          },
+          "train_end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Train End"
+          },
+          "validation_end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Validation End"
+          },
+          "test_end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Test End"
+          },
+          "horizon_bars": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Horizon Bars",
+            "default": 4
+          },
+          "lookback_bars": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 3.0,
+            "title": "Lookback Bars",
+            "default": 12
+          },
+          "fast_window": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Fast Window",
+            "default": 5
+          },
+          "slow_window": {
+            "type": "integer",
+            "maximum": 300.0,
+            "minimum": 2.0,
+            "title": "Slow Window",
+            "default": 20
+          },
+          "starting_balance": {
+            "type": "string",
+            "title": "Starting Balance",
+            "default": "10000"
+          },
+          "allocation_percent": {
+            "type": "string",
+            "title": "Allocation Percent",
+            "default": "25"
+          },
+          "fee_bps": {
+            "type": "string",
+            "title": "Fee Bps",
+            "default": "0"
+          },
+          "slippage_bps": {
+            "type": "string",
+            "title": "Slippage Bps",
+            "default": "5"
+          },
+          "asset_costs": {
+            "$ref": "#/components/schemas/AssetCosts"
+          },
+          "model_run_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Run Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "dataset_id",
+          "name",
+          "hypothesis",
+          "reason",
+          "engine",
+          "train_end",
+          "validation_end",
+          "test_end",
+          "asset_costs"
+        ],
+        "title": "ExperimentCreate"
       },
       "ExperimentPlan": {
         "properties": {
@@ -12895,6 +13236,229 @@
         ],
         "title": "HealthView"
       },
+      "HeartbeatStatus": {
+        "properties": {
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Observed At"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "disabled",
+              "paused",
+              "waiting",
+              "running",
+              "healthy",
+              "failed",
+              "stale",
+              "unavailable",
+              "unverified"
+            ],
+            "title": "Status"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "tauric-heartbeat:4b"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "interval_seconds": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interval Seconds"
+          },
+          "last_started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Started At"
+          },
+          "last_finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Finished At"
+          },
+          "next_check_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Check At"
+          },
+          "last_check_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Check At"
+          },
+          "ready": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ready"
+          },
+          "http_status": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 599.0,
+                "minimum": 100.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Http Status"
+          },
+          "last_run_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "running",
+                  "ok",
+                  "error",
+                  "skipped",
+                  "interrupted",
+                  "superseded"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Run Status"
+          },
+          "automatic": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Automatic"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "observed_at",
+          "enabled",
+          "status"
+        ],
+        "title": "HeartbeatStatus"
+      },
+      "HistoricalDatasetCreate": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 3,
+            "title": "Name"
+          },
+          "instrument_id": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Instrument Id"
+          },
+          "interval": {
+            "type": "string",
+            "enum": [
+              "1m",
+              "5m",
+              "15m",
+              "1h",
+              "4h",
+              "1d"
+            ],
+            "title": "Interval"
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "End"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "name",
+          "instrument_id",
+          "interval",
+          "start",
+          "end",
+          "reason"
+        ],
+        "title": "HistoricalDatasetCreate"
+      },
       "InstrumentAdd": {
         "properties": {
           "provider": {
@@ -13004,6 +13568,22 @@
             ],
             "title": "Native Asset Type"
           },
+          "provider_product_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "CURRENCY",
+                  "METAL",
+                  "CFD"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Product Type"
+          },
           "analysis_scope": {
             "type": "string",
             "title": "Analysis Scope"
@@ -13068,22 +13648,6 @@
             "type": "boolean",
             "title": "Native Research Ready",
             "readOnly": true
-          },
-          "provider_product_type": {
-            "anyOf": [
-              {
-                "type": "string",
-                "enum": [
-                  "CURRENCY",
-                  "METAL",
-                  "CFD"
-                ]
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Provider Product Type"
           }
         },
         "additionalProperties": false,
@@ -13736,6 +14300,22 @@
             ],
             "title": "Native Asset Type"
           },
+          "provider_product_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "CURRENCY",
+                  "METAL",
+                  "CFD"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Product Type"
+          },
           "analysis_scope": {
             "type": "string",
             "title": "Analysis Scope"
@@ -13816,22 +14396,6 @@
             "type": "boolean",
             "title": "Native Research Ready",
             "readOnly": true
-          },
-          "provider_product_type": {
-            "anyOf": [
-              {
-                "type": "string",
-                "enum": [
-                  "CURRENCY",
-                  "METAL",
-                  "CFD"
-                ]
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Provider Product Type"
           }
         },
         "additionalProperties": false,
@@ -14066,6 +14630,87 @@
           "excluded"
         ],
         "title": "KnowledgeVisibility"
+      },
+      "LabRecordView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "checksum": {
+            "type": "string",
+            "title": "Checksum"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "checksum",
+          "created_at",
+          "payload"
+        ],
+        "title": "LabRecordView"
+      },
+      "LabState": {
+        "properties": {
+          "engines": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Engines"
+          },
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/SessionWindow"
+            },
+            "type": "array",
+            "title": "Sessions"
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/LabRecordView"
+            },
+            "type": "array",
+            "title": "Records"
+          },
+          "authority": {
+            "type": "string",
+            "const": "research_only",
+            "title": "Authority",
+            "default": "research_only"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "engines",
+          "sessions",
+          "records"
+        ],
+        "title": "LabState"
       },
       "LaneProgressView": {
         "properties": {
@@ -17237,6 +17882,82 @@
         ],
         "title": "ReadinessRecordView"
       },
+      "ReleaseInvocation": {
+        "properties": {
+          "channel": {
+            "type": "string",
+            "enum": [
+              "webchat",
+              "telegram",
+              "discord"
+            ],
+            "title": "Channel"
+          },
+          "agent_id": {
+            "type": "string",
+            "const": "tauric-chat",
+            "title": "Agent Id"
+          },
+          "session_key": {
+            "type": "string",
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Session Key"
+          },
+          "sender_id": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Sender Id",
+            "default": ""
+          },
+          "sender_is_owner": {
+            "type": "boolean",
+            "title": "Sender Is Owner"
+          },
+          "account_id": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Account Id",
+            "default": "default"
+          },
+          "tool_call_id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Tool Call Id"
+          },
+          "task_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Task Id"
+          },
+          "test_job_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Test Job Id"
+          },
+          "effect_key": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 3,
+            "pattern": "^[a-zA-Z0-9_.:-]+$",
+            "title": "Effect Key"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "channel",
+          "agent_id",
+          "session_key",
+          "sender_is_owner",
+          "tool_call_id",
+          "task_id",
+          "test_job_id",
+          "effect_key"
+        ],
+        "title": "ReleaseInvocation"
+      },
       "ReplayCreate": {
         "properties": {
           "request_id": {
@@ -18324,6 +19045,88 @@
         ],
         "title": "ScannerState"
       },
+      "SessionReportCreate": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "dataset_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Dataset Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 3,
+            "title": "Name"
+          },
+          "hypothesis": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 3,
+            "title": "Hypothesis"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "historical",
+              "current",
+              "forecast"
+            ],
+            "title": "Mode",
+            "default": "current"
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start"
+          },
+          "as_of": {
+            "type": "string",
+            "format": "date-time",
+            "title": "As Of"
+          },
+          "session": {
+            "$ref": "#/components/schemas/SessionWindow"
+          },
+          "forecast_bars": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Forecast Bars",
+            "default": 4
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceNote"
+            },
+            "type": "array",
+            "maxItems": 30,
+            "title": "Evidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "dataset_id",
+          "name",
+          "hypothesis",
+          "reason",
+          "start",
+          "as_of"
+        ],
+        "title": "SessionReportCreate"
+      },
       "SessionView": {
         "properties": {
           "username": {
@@ -18348,6 +19151,44 @@
           "expires_at"
         ],
         "title": "SessionView"
+      },
+      "SessionWindow": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name",
+            "default": "All trading hours"
+          },
+          "timezone": {
+            "type": "string",
+            "title": "Timezone",
+            "default": "UTC"
+          },
+          "opening": {
+            "type": "string",
+            "title": "Opening",
+            "default": "00:00"
+          },
+          "closing": {
+            "type": "string",
+            "title": "Closing",
+            "default": "00:00"
+          },
+          "weekdays": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "maxItems": 7,
+            "minItems": 1,
+            "title": "Weekdays"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SessionWindow"
       },
       "SettingChange": {
         "properties": {
@@ -19346,873 +20187,6 @@
         ],
         "title": "StrategyVersionView"
       },
-      "TradingReadinessView": {
-        "properties": {
-          "valuations": {
-            "items": {
-              "$ref": "#/components/schemas/ReadinessRecordView"
-            },
-            "type": "array",
-            "title": "Valuations"
-          },
-          "forward_protocols": {
-            "items": {
-              "$ref": "#/components/schemas/ReadinessRecordView"
-            },
-            "type": "array",
-            "title": "Forward Protocols"
-          },
-          "forward_reports": {
-            "items": {
-              "$ref": "#/components/schemas/ReadinessRecordView"
-            },
-            "type": "array",
-            "title": "Forward Reports"
-          },
-          "brokers": {
-            "items": {
-              "$ref": "#/components/schemas/BrokerReadinessView"
-            },
-            "type": "array",
-            "title": "Brokers"
-          },
-          "valuation_worker_ready": {
-            "type": "boolean",
-            "title": "Valuation Worker Ready"
-          },
-          "forward_worker_ready": {
-            "type": "boolean",
-            "title": "Forward Worker Ready"
-          },
-          "generated_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Generated At"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "valuations",
-          "forward_protocols",
-          "forward_reports",
-          "brokers",
-          "valuation_worker_ready",
-          "forward_worker_ready",
-          "generated_at"
-        ],
-        "title": "TradingReadinessView"
-      },
-      "TradingRecordView": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
-          "kind": {
-            "type": "string",
-            "enum": [
-              "proposal",
-              "governance",
-              "plan",
-              "fill",
-              "policy",
-              "halt"
-            ],
-            "title": "Kind"
-          },
-          "account_id": {
-            "type": "string",
-            "title": "Account Id"
-          },
-          "deployment_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Deployment Id"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          },
-          "payload": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Payload"
-          },
-          "checksum": {
-            "type": "string",
-            "title": "Checksum"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "id",
-          "kind",
-          "account_id",
-          "deployment_id",
-          "created_at",
-          "payload",
-          "checksum"
-        ],
-        "title": "TradingRecordView"
-      },
-      "TradingViewAuthorization": {
-        "properties": {
-          "authorization_url": {
-            "type": "string",
-            "title": "Authorization Url"
-          },
-          "expires_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Expires At"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "authorization_url",
-          "expires_at"
-        ],
-        "title": "TradingViewAuthorization"
-      },
-      "TradingViewChange": {
-        "properties": {
-          "expected_revision": {
-            "type": "integer",
-            "minimum": 0.0,
-            "title": "Expected Revision"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "expected_revision"
-        ],
-        "title": "TradingViewChange"
-      },
-      "TradingViewConnection": {
-        "properties": {
-          "configured": {
-            "type": "boolean",
-            "title": "Configured"
-          },
-          "revision": {
-            "type": "integer",
-            "title": "Revision"
-          },
-          "expires_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Expires At"
-          },
-          "checked_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Checked At"
-          },
-          "ready": {
-            "type": "boolean",
-            "title": "Ready",
-            "default": false
-          },
-          "scope": {
-            "type": "string",
-            "title": "Scope",
-            "default": "mcp:read"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "configured",
-          "revision"
-        ],
-        "title": "TradingViewConnection"
-      },
-      "ValidationError": {
-        "properties": {
-          "loc": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
-            },
-            "type": "array",
-            "title": "Location"
-          },
-          "msg": {
-            "type": "string",
-            "title": "Message"
-          },
-          "type": {
-            "type": "string",
-            "title": "Error Type"
-          },
-          "input": {
-            "title": "Input"
-          },
-          "ctx": {
-            "type": "object",
-            "title": "Context"
-          }
-        },
-        "type": "object",
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
-        "title": "ValidationError"
-      },
-      "WorkspaceCreate": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "maxLength": 80,
-            "minLength": 1,
-            "title": "Name"
-          },
-          "clone_from": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Clone From"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "name"
-        ],
-        "title": "WorkspaceCreate"
-      },
-      "WorkspaceView": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "revision": {
-            "type": "integer",
-            "title": "Revision"
-          },
-          "layout": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Layout"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "id",
-          "name",
-          "revision",
-          "layout"
-        ],
-        "title": "WorkspaceView"
-      },
-      "Criterion": {
-        "properties": {
-          "description": {
-            "type": "string",
-            "maxLength": 500,
-            "minLength": 3,
-            "title": "Description"
-          },
-          "proof": {
-            "type": "string",
-            "enum": [
-              "research_report",
-              "source_evidence",
-              "job_success",
-              "command_success",
-              "tests_passed",
-              "child_complete",
-              "deployment_verified"
-            ],
-            "title": "Proof"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "description",
-          "proof"
-        ],
-        "title": "Criterion"
-      },
-      "EngineeringInvocation": {
-        "properties": {
-          "channel": {
-            "type": "string",
-            "enum": [
-              "webchat",
-              "telegram",
-              "discord"
-            ],
-            "title": "Channel"
-          },
-          "agent_id": {
-            "type": "string",
-            "const": "tauric-chat",
-            "title": "Agent Id"
-          },
-          "session_key": {
-            "type": "string",
-            "maxLength": 400,
-            "minLength": 1,
-            "title": "Session Key"
-          },
-          "sender_id": {
-            "type": "string",
-            "maxLength": 100,
-            "title": "Sender Id",
-            "default": ""
-          },
-          "sender_is_owner": {
-            "type": "boolean",
-            "title": "Sender Is Owner"
-          },
-          "account_id": {
-            "type": "string",
-            "maxLength": 100,
-            "title": "Account Id",
-            "default": "default"
-          },
-          "tool_call_id": {
-            "type": "string",
-            "maxLength": 200,
-            "minLength": 1,
-            "title": "Tool Call Id"
-          },
-          "task_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Task Id"
-          },
-          "effect_key": {
-            "type": "string",
-            "maxLength": 80,
-            "minLength": 3,
-            "pattern": "^[a-zA-Z0-9_.:-]+$",
-            "title": "Effect Key"
-          },
-          "script": {
-            "type": "string",
-            "maxLength": 30000,
-            "minLength": 1,
-            "title": "Script"
-          },
-          "timeout_seconds": {
-            "type": "integer",
-            "maximum": 600.0,
-            "minimum": 1.0,
-            "title": "Timeout Seconds",
-            "default": 120
-          },
-          "purpose": {
-            "type": "string",
-            "enum": [
-              "inspect",
-              "develop",
-              "test"
-            ],
-            "title": "Purpose",
-            "default": "develop"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "channel",
-          "agent_id",
-          "session_key",
-          "sender_is_owner",
-          "tool_call_id",
-          "task_id",
-          "effect_key",
-          "script"
-        ],
-        "title": "EngineeringInvocation"
-      },
-      "EvidenceNote": {
-        "properties": {
-          "title": {
-            "type": "string",
-            "maxLength": 180,
-            "minLength": 3,
-            "title": "Title"
-          },
-          "source": {
-            "type": "string",
-            "maxLength": 500,
-            "minLength": 3,
-            "title": "Source"
-          },
-          "content": {
-            "type": "string",
-            "maxLength": 4000,
-            "minLength": 3,
-            "title": "Content"
-          },
-          "published_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Published At"
-          },
-          "available_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Available At"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "title",
-          "source",
-          "content",
-          "published_at",
-          "available_at"
-        ],
-        "title": "EvidenceNote"
-      },
-      "ExperimentCreate": {
-        "properties": {
-          "request_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Request Id"
-          },
-          "dataset_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Dataset Id"
-          },
-          "name": {
-            "type": "string",
-            "maxLength": 120,
-            "minLength": 3,
-            "title": "Name"
-          },
-          "hypothesis": {
-            "type": "string",
-            "maxLength": 2000,
-            "minLength": 3,
-            "title": "Hypothesis"
-          },
-          "reason": {
-            "type": "string",
-            "maxLength": 500,
-            "minLength": 3,
-            "title": "Reason"
-          },
-          "engine": {
-            "type": "string",
-            "enum": [
-              "lean",
-              "qlib"
-            ],
-            "title": "Engine"
-          },
-          "session": {
-            "$ref": "#/components/schemas/SessionWindow"
-          },
-          "train_end": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Train End"
-          },
-          "validation_end": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Validation End"
-          },
-          "test_end": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Test End"
-          },
-          "horizon_bars": {
-            "type": "integer",
-            "maximum": 100.0,
-            "minimum": 1.0,
-            "title": "Horizon Bars",
-            "default": 4
-          },
-          "lookback_bars": {
-            "type": "integer",
-            "maximum": 200.0,
-            "minimum": 3.0,
-            "title": "Lookback Bars",
-            "default": 12
-          },
-          "fast_window": {
-            "type": "integer",
-            "maximum": 100.0,
-            "minimum": 1.0,
-            "title": "Fast Window",
-            "default": 5
-          },
-          "slow_window": {
-            "type": "integer",
-            "maximum": 300.0,
-            "minimum": 2.0,
-            "title": "Slow Window",
-            "default": 20
-          },
-          "starting_balance": {
-            "type": "string",
-            "title": "Starting Balance",
-            "default": "10000"
-          },
-          "allocation_percent": {
-            "type": "string",
-            "title": "Allocation Percent",
-            "default": "25"
-          },
-          "fee_bps": {
-            "type": "string",
-            "title": "Fee Bps",
-            "default": "0"
-          },
-          "slippage_bps": {
-            "type": "string",
-            "title": "Slippage Bps",
-            "default": "5"
-          },
-          "asset_costs": {
-            "$ref": "#/components/schemas/AssetCosts"
-          },
-          "model_run_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Model Run Id"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "request_id",
-          "dataset_id",
-          "name",
-          "hypothesis",
-          "reason",
-          "engine",
-          "train_end",
-          "validation_end",
-          "test_end",
-          "asset_costs"
-        ],
-        "title": "ExperimentCreate"
-      },
-      "HistoricalDatasetCreate": {
-        "properties": {
-          "request_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Request Id"
-          },
-          "name": {
-            "type": "string",
-            "maxLength": 120,
-            "minLength": 3,
-            "title": "Name"
-          },
-          "instrument_id": {
-            "type": "string",
-            "maxLength": 120,
-            "minLength": 1,
-            "title": "Instrument Id"
-          },
-          "interval": {
-            "type": "string",
-            "enum": [
-              "1m",
-              "5m",
-              "15m",
-              "1h",
-              "4h",
-              "1d"
-            ],
-            "title": "Interval"
-          },
-          "start": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Start"
-          },
-          "end": {
-            "type": "string",
-            "format": "date-time",
-            "title": "End"
-          },
-          "reason": {
-            "type": "string",
-            "maxLength": 500,
-            "minLength": 3,
-            "title": "Reason"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "request_id",
-          "name",
-          "instrument_id",
-          "interval",
-          "start",
-          "end",
-          "reason"
-        ],
-        "title": "HistoricalDatasetCreate"
-      },
-      "LabRecordView": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
-          "kind": {
-            "type": "string",
-            "title": "Kind"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "checksum": {
-            "type": "string",
-            "title": "Checksum"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          },
-          "payload": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Payload"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "id",
-          "kind",
-          "name",
-          "checksum",
-          "created_at",
-          "payload"
-        ],
-        "title": "LabRecordView"
-      },
-      "LabState": {
-        "properties": {
-          "engines": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Engines"
-          },
-          "sessions": {
-            "items": {
-              "$ref": "#/components/schemas/SessionWindow"
-            },
-            "type": "array",
-            "title": "Sessions"
-          },
-          "records": {
-            "items": {
-              "$ref": "#/components/schemas/LabRecordView"
-            },
-            "type": "array",
-            "title": "Records"
-          },
-          "authority": {
-            "type": "string",
-            "const": "research_only",
-            "title": "Authority",
-            "default": "research_only"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "engines",
-          "sessions",
-          "records"
-        ],
-        "title": "LabState"
-      },
-      "SessionReportCreate": {
-        "properties": {
-          "request_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Request Id"
-          },
-          "dataset_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Dataset Id"
-          },
-          "name": {
-            "type": "string",
-            "maxLength": 120,
-            "minLength": 3,
-            "title": "Name"
-          },
-          "hypothesis": {
-            "type": "string",
-            "maxLength": 2000,
-            "minLength": 3,
-            "title": "Hypothesis"
-          },
-          "reason": {
-            "type": "string",
-            "maxLength": 500,
-            "minLength": 3,
-            "title": "Reason"
-          },
-          "mode": {
-            "type": "string",
-            "enum": [
-              "historical",
-              "current",
-              "forecast"
-            ],
-            "title": "Mode",
-            "default": "current"
-          },
-          "start": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Start"
-          },
-          "as_of": {
-            "type": "string",
-            "format": "date-time",
-            "title": "As Of"
-          },
-          "session": {
-            "$ref": "#/components/schemas/SessionWindow"
-          },
-          "forecast_bars": {
-            "type": "integer",
-            "maximum": 100.0,
-            "minimum": 1.0,
-            "title": "Forecast Bars",
-            "default": 4
-          },
-          "evidence": {
-            "items": {
-              "$ref": "#/components/schemas/EvidenceNote"
-            },
-            "type": "array",
-            "maxItems": 30,
-            "title": "Evidence"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "request_id",
-          "dataset_id",
-          "name",
-          "hypothesis",
-          "reason",
-          "start",
-          "as_of"
-        ],
-        "title": "SessionReportCreate"
-      },
-      "SessionWindow": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "maxLength": 80,
-            "minLength": 1,
-            "title": "Name",
-            "default": "All trading hours"
-          },
-          "timezone": {
-            "type": "string",
-            "title": "Timezone",
-            "default": "UTC"
-          },
-          "opening": {
-            "type": "string",
-            "title": "Opening",
-            "default": "00:00"
-          },
-          "closing": {
-            "type": "string",
-            "title": "Closing",
-            "default": "00:00"
-          },
-          "weekdays": {
-            "items": {
-              "type": "integer"
-            },
-            "type": "array",
-            "maxItems": 7,
-            "minItems": 1,
-            "title": "Weekdays"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "title": "SessionWindow"
-      },
       "TaskControl": {
         "properties": {
           "expected_revision": {
@@ -20641,81 +20615,308 @@
         ],
         "title": "TaskView"
       },
-      "ReleaseInvocation": {
+      "TradingReadinessView": {
         "properties": {
-          "channel": {
-            "type": "string",
-            "enum": [
-              "webchat",
-              "telegram",
-              "discord"
-            ],
-            "title": "Channel"
+          "valuations": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessRecordView"
+            },
+            "type": "array",
+            "title": "Valuations"
           },
-          "agent_id": {
-            "type": "string",
-            "const": "tauric-chat",
-            "title": "Agent Id"
+          "forward_protocols": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessRecordView"
+            },
+            "type": "array",
+            "title": "Forward Protocols"
           },
-          "session_key": {
-            "type": "string",
-            "maxLength": 400,
-            "minLength": 1,
-            "title": "Session Key"
+          "forward_reports": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessRecordView"
+            },
+            "type": "array",
+            "title": "Forward Reports"
           },
-          "sender_id": {
-            "type": "string",
-            "maxLength": 100,
-            "title": "Sender Id",
-            "default": ""
+          "brokers": {
+            "items": {
+              "$ref": "#/components/schemas/BrokerReadinessView"
+            },
+            "type": "array",
+            "title": "Brokers"
           },
-          "sender_is_owner": {
+          "valuation_worker_ready": {
             "type": "boolean",
-            "title": "Sender Is Owner"
+            "title": "Valuation Worker Ready"
           },
-          "account_id": {
-            "type": "string",
-            "maxLength": 100,
-            "title": "Account Id",
-            "default": "default"
+          "forward_worker_ready": {
+            "type": "boolean",
+            "title": "Forward Worker Ready"
           },
-          "tool_call_id": {
+          "generated_at": {
             "type": "string",
-            "maxLength": 200,
-            "minLength": 1,
-            "title": "Tool Call Id"
-          },
-          "task_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Task Id"
-          },
-          "test_job_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Test Job Id"
-          },
-          "effect_key": {
-            "type": "string",
-            "maxLength": 80,
-            "minLength": 3,
-            "pattern": "^[a-zA-Z0-9_.:-]+$",
-            "title": "Effect Key"
+            "format": "date-time",
+            "title": "Generated At"
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "channel",
-          "agent_id",
-          "session_key",
-          "sender_is_owner",
-          "tool_call_id",
-          "task_id",
-          "test_job_id",
-          "effect_key"
+          "valuations",
+          "forward_protocols",
+          "forward_reports",
+          "brokers",
+          "valuation_worker_ready",
+          "forward_worker_ready",
+          "generated_at"
         ],
-        "title": "ReleaseInvocation"
+        "title": "TradingReadinessView"
+      },
+      "TradingRecordView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "proposal",
+              "governance",
+              "plan",
+              "fill",
+              "policy",
+              "halt"
+            ],
+            "title": "Kind"
+          },
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "deployment_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deployment Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload"
+          },
+          "checksum": {
+            "type": "string",
+            "title": "Checksum"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "account_id",
+          "deployment_id",
+          "created_at",
+          "payload",
+          "checksum"
+        ],
+        "title": "TradingRecordView"
+      },
+      "TradingViewAuthorization": {
+        "properties": {
+          "authorization_url": {
+            "type": "string",
+            "title": "Authorization Url"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "authorization_url",
+          "expires_at"
+        ],
+        "title": "TradingViewAuthorization"
+      },
+      "TradingViewChange": {
+        "properties": {
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expected_revision"
+        ],
+        "title": "TradingViewChange"
+      },
+      "TradingViewConnection": {
+        "properties": {
+          "configured": {
+            "type": "boolean",
+            "title": "Configured"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "checked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked At"
+          },
+          "ready": {
+            "type": "boolean",
+            "title": "Ready",
+            "default": false
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope",
+            "default": "mcp:read"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "configured",
+          "revision"
+        ],
+        "title": "TradingViewConnection"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "WorkspaceCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "clone_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clone From"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "WorkspaceCreate"
+      },
+      "WorkspaceView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "layout": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Layout"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "revision",
+          "layout"
+        ],
+        "title": "WorkspaceView"
       }
     }
   }

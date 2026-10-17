@@ -44,6 +44,7 @@ jobs:
           npm --prefix openclaw run plugin:validate
           node openclaw/plugin.test.mjs
           node openclaw/config.test.mjs
+          node openclaw/heartbeat-status.test.mjs
       - name: Remove disposable storage
         if: always()
         run: docker compose --env-file .env -f deploy/compose.dev.yml down -v

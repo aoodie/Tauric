@@ -107,7 +107,7 @@ class ReadOnlyProvider:
         self.client = None
         self.client_factory = None
 
-    def collect(self, spec, interval, *, config=None):
+    def collect(self, spec, interval, *, config=None, start=None, end=None):
         config = config if config is not None else connections()
         if interval not in spec.supported_intervals:
             raise HTTPException(422, "This provider does not support the selected interval.")
@@ -125,6 +125,8 @@ class ReadOnlyProvider:
                     timeout=runtime_config().market_timeout_seconds, follow_redirects=False
                 )
                 self.client_factory = httpx.Client
+            if start is not None:
+                return self.fetch(self.client, spec, interval, config, start=start, end=end)
             return self.fetch(self.client, spec, interval, config)
         except httpx.HTTPStatusError as error:
             code = error.response.status_code
@@ -154,7 +156,7 @@ class ReadOnlyProvider:
 class OandaFX(ReadOnlyProvider):
     id = "oanda_v20"
 
-    def fetch(self, client, spec, interval, config):
+    def fetch(self, client, spec, interval, config, *, start=None, end=None):
         token = config.oanda.token.get_secret_value()
         if not token:
             raise HTTPException(503, "Configure the private OANDA data token before refreshing FX.")
@@ -194,7 +196,11 @@ class OandaFX(ReadOnlyProvider):
                     "4h": "H4",
                     "1d": "D",
                 }[interval],
-                "count": 300,
+                **(
+                    {"count": 300}
+                    if start is None
+                    else {"from": start.isoformat(), "to": end.isoformat()}
+                ),
                 "smooth": "false",
                 "dailyAlignment": 17,
                 "alignmentTimezone": "America/New_York",
@@ -209,7 +215,7 @@ class OandaFX(ReadOnlyProvider):
         ):
             raise ValueError("Unexpected instrument/granularity")
         rows = payload["candles"]
-        if not isinstance(rows, list) or not 1 <= len(rows) <= 300:
+        if not isinstance(rows, list) or not 1 <= len(rows) <= (300 if start is None else 5000):
             raise ValueError("Unbounded or empty provider candles")
         context = default_context(spec)
         candles = []
@@ -251,7 +257,7 @@ class OandaFX(ReadOnlyProvider):
 class AlpacaStocks(ReadOnlyProvider):
     id = "alpaca_stocks"
 
-    def fetch(self, client, spec, interval, config):
+    def fetch(self, client, spec, interval, config, *, start=None, end=None):
         connection = config.alpaca
         if not connection.key.get_secret_value() or not connection.secret.get_secret_value():
             raise HTTPException(
@@ -262,8 +268,13 @@ class AlpacaStocks(ReadOnlyProvider):
             "APCA-API-SECRET-KEY": connection.secret.get_secret_value(),
         }
         received = now()
-        as_of = received - timedelta(minutes=connection.delay_minutes)
-        start = as_of - timedelta(days={"1d": 500, "4h": 180, "1h": 90}.get(interval, 30))
+        historical = start is not None
+        as_of = (
+            min(end, received - timedelta(minutes=connection.delay_minutes))
+            if historical
+            else received - timedelta(minutes=connection.delay_minutes)
+        )
+        start = start if historical else as_of - timedelta(days={"1d": 500, "4h": 180, "1h": 90}.get(interval, 30))
         host = (
             "paper-api.alpaca.markets"
             if connection.environment == "paper"
@@ -275,10 +286,10 @@ class AlpacaStocks(ReadOnlyProvider):
             headers=headers,
             params={
                 "start": start.astimezone(NY).date().isoformat(),
-                "end": received.astimezone(NY).date().isoformat(),
+                "end": as_of.astimezone(NY).date().isoformat(),
             },
         )
-        if not isinstance(sessions, list) or len(sessions) > 600:
+        if not isinstance(sessions, list) or len(sessions) > (1500 if historical else 600):
             raise ValueError("Invalid stock calendar")
         calendar = []
         for row in sessions:
@@ -299,7 +310,7 @@ class AlpacaStocks(ReadOnlyProvider):
             calendar_source="Alpaca /v2/calendar",
             coverage_start=datetime.combine(start.astimezone(NY).date(), time.min, NY),
             coverage_end=datetime.combine(
-                received.astimezone(NY).date() + timedelta(days=1), time.min, NY
+                as_of.astimezone(NY).date() + timedelta(days=1), time.min, NY
             ),
             sessions=calendar,
             warnings=[
@@ -321,6 +332,7 @@ class AlpacaStocks(ReadOnlyProvider):
             "asof": received.date().isoformat(),
         }
         rows, seen = [], set()
+        row_limit = 150000 if historical else 10000
         # The provider may return fewer rows than the requested page limit.
         # Bound both calls and retained observations, rather than requiring the
         # entire 500-day history to fit in four responses.
@@ -336,12 +348,12 @@ class AlpacaStocks(ReadOnlyProvider):
                 or set(payload["bars"]) - {spec.provider_symbol}
             ):
                 raise ValueError("Unbounded or wrong-symbol stock response")
-            if len(rows) + len(batch) > 10000:
-                batch = batch[: 10000 - len(rows)]
+            if len(rows) + len(batch) > row_limit:
+                batch = batch[: row_limit - len(rows)]
                 truncated = True
             rows.extend(batch)
             token = payload.get("next_page_token")
-            if not token or len(rows) >= 10000:
+            if not token or len(rows) >= row_limit:
                 truncated = truncated or bool(token)
                 break
             if not isinstance(token, str) or token in seen:
@@ -355,6 +367,10 @@ class AlpacaStocks(ReadOnlyProvider):
             for left, right in zip(rows, rows[1:], strict=False)
         ):
             raise ValueError("Stock response must follow requested descending ordering")
+        if historical and truncated:
+            raise HTTPException(
+                422, "Historical stock range exceeds the retrieval limit; choose a shorter range"
+            )
         if truncated:
             context.warnings.append(
                 "History is bounded by pagination; the oldest partial aggregate is omitted."
@@ -364,7 +380,12 @@ class AlpacaStocks(ReadOnlyProvider):
         )
         if not candles:
             raise ValueError("No regular-session stock bars")
-        return candles[-300:], as_of, now(), context.model_dump(mode="json")
+        return (
+            (candles if historical else candles[-300:]),
+            as_of,
+            now(),
+            context.model_dump(mode="json"),
+        )
 
 
 def aggregate_stocks(

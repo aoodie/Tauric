@@ -160,10 +160,23 @@ class BrokerPolicyChange(Contract):
     request_id: UUID
     expected_revision: int = Field(ge=0, strict=True)
     enabled: bool = Field(strict=True)
-    no_owner_limits: Literal[True] = True
+    no_owner_limits: bool = Field(default=True, strict=True)
+    maximum_risk_percent: Money | None = None
+    maximum_drawdown_percent: Money | None = None
     live_acknowledged: bool = Field(default=False, strict=True)
     forward_report_id: UUID | None = None
     reason: str = Field(min_length=3, max_length=500)
+
+    @model_validator(mode="after")
+    def owner_limits(self):
+        limits = (self.maximum_risk_percent, self.maximum_drawdown_percent)
+        if self.no_owner_limits and any(value is not None for value in limits):
+            raise ValueError("Turn off no_owner_limits when setting risk limits.")
+        if not self.no_owner_limits and any(value is None for value in limits):
+            raise ValueError("Specify both maximum risk and maximum drawdown percentages.")
+        if any(value is not None and Decimal(value) > 100 for value in limits):
+            raise ValueError("Risk and drawdown percentages must be at most 100.")
+        return self
 
 
 class BrokerPolicyView(Contract):

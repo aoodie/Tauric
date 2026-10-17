@@ -507,5 +507,6 @@
   },
   "known_private_credentials_checked": true,
   "workstation_data_excluded": true,
-  "git_history_included": false
+  "git_history_included": false,
+  "snapshot_role": "Historical source-export record; not the current commit identity. See docs/SOURCE_SYNC_2026-10-18.md."
 }

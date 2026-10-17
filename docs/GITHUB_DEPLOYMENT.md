@@ -1,5 +1,7 @@
 # GitHub deployment candidates
 
+**Monitoring candidate — 8 October 2026:** the separate `codex/trading-acceptance-monitoring` branch is deployed at `18b3d34`; [PR 6](https://github.com/aoodie/Tauric/pull/6) retains it for review. [Hosted release](https://github.com/aoodie/Tauric/actions/runs/37734549950) passed checks, image publication and full installation/restoration. The shared deployment branch and concurrent research work were preserved.
+
 **8 October status:** hosted publication and native amd64 installation/restore passed for deployed source `0e30a3b`. The IONOS candidate serves trusted public-IP HTTPS and has reboot/backup evidence. Current acceptance work is described in [the acceptance plan](ACCEPTANCE_PLAN.md); earlier pending-publication statements below are historical.
 
 The repository now contains a GitHub Actions delivery path and a server-only Compose package. It remains a **deployment candidate** until the target Linux host, connected automatic trading cycle and soak/recovery gates pass. GitHub stores source, runs checks and publishes images; the application runs on a Linux server. GitHub Pages cannot host its database, API or background workers.
@@ -71,11 +73,3 @@ The observer records health, unexpected restarts/recreations, OOM flags, CPU/mem
 - Keep real-money execution disabled. Wider platform features retain their separate acceptance checks in `SERVER_READINESS.md`.
 
 Primary workflow references: [GitHub container publication](https://docs.github.com/en/actions/tutorials/publish-packages/publish-docker-images), [Docker provenance and SBOMs](https://docs.docker.com/build/ci/github-actions/attestations/), and [Compose services](https://docs.docker.com/reference/compose-file/services/).
-
-## Encrypted image-only registry recovery
-
-If the server registry login has expired, the release workflow can exchange its own package-read permission for four repository-scoped pull tokens. Supply `registry_revision`, the successful `registry_run` and an ephemeral RSA public `registry_recipient` when dispatching `release.yml`. It requires a completed successful same-repository release and validates all four immutable image identities and manifest bytes. The GitHub credential stays inside the workflow. The encrypted envelope uses RSA-OAEP-SHA256 and authenticated AES-256-GCM; retain the private recipient key locally and delete it after use.
-
-The workflow stays alive for 180 seconds after uploading the envelope because registry authorization can expire when its issuing workflow ends. Receive and decrypt it immediately, then send its plaintext only over the already verified SSH connection to `python3 scripts/registry_pull.py --revision FULL_COMMIT` on standard input. Never put tokens in command arguments, logs, chat or the public release bundle. The downloader uses the host's existing containerd image store, private temporary RAM-backed registry configuration and exact amd64 digests. It removes that transient configuration and saves only public image identities. This does not change the permanent registry configuration, start containers or grant financial authority. [Containerd registry configuration](https://github.com/containerd/containerd/blob/main/docs/hosts.md) documents the temporary host-header mechanism.
-
-After downloading, remove the encrypted access artifact and local recipient key. Continue the ordinary backup, isolated migration rehearsal, installation and post-deployment checks. A registry handoff does not authorize an untested release.

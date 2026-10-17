@@ -12,4 +12,5 @@ done
 ollama pull qwen3:4b
 ollama pull nomic-embed-text:v1.5
 ollama create tauric-memory:4b -f /setup/Memory.Modelfile
+ollama create tauric-heartbeat:4b -f /setup/Heartbeat.Modelfile
 ollama list

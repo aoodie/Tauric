@@ -564,6 +564,9 @@ def eligible_report(db, owner, report_id, provider):
 
 
 def require_live_strategy(db, owner, policy, strategy_version_id, instrument_id, risk_percent=None):
+    from .broker_risk import policy_risk
+
+    policy_risk(policy, risk_percent)
     if policy.payload.get("environment") != "live":
         return
     report = owned(db, owner, policy.payload["forward_report_id"], "forward_report")
@@ -618,6 +621,9 @@ def operating_guard(db, owner, policy, intent_id=None):
         raise HTTPException(
             409, "Live entries wait for complete current account valuation and currency exposure."
         )
+    from .broker_risk import policy_drawdown
+
+    policy_drawdown(policy, account)
     query = select(BrokerOrderIntent.id).where(
         BrokerOrderIntent.owner_id == owner.id,
         BrokerOrderIntent.provider == policy.provider,

@@ -3,6 +3,7 @@ import { Activity, RefreshCw, ArrowUpRight } from "lucide-react";
 import { api } from "../api/client";
 import type { components } from "../api/schema";
 import "./activity.css";
+import { HeartbeatPanel, useHeartbeatStatus } from "./HeartbeatStatus";
 
 type Feed = components["schemas"]["AssistantActivityFeed"];
 type Item = components["schemas"]["AssistantActivityItem"];
@@ -143,6 +144,7 @@ export function OpenClawActivity({
   open: (kind: string, id: string) => void;
   compact?: boolean;
 }) {
+  const heartbeat = useHeartbeatStatus();
   const [feed, setFeed] = useState<Feed>();
   const [items, setItems] = useState<Item[]>([]);
   const [cursor, setCursor] = useState<string | null>();
@@ -278,6 +280,7 @@ export function OpenClawActivity({
           Refresh
         </button>
       </header>
+      <HeartbeatPanel status={heartbeat} timezone={timezone} />
       {error && (
         <p className="activity-error" role="alert">
           {error}

@@ -1,0 +1,124 @@
+.lab-intro {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+  margin: 30px 0 20px;
+}
+.lab-intro h2 {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 36px;
+  font-weight: 500;
+  margin: 8px 0;
+}
+.lab-intro p {
+  color: var(--muted);
+  line-height: 1.7;
+}
+.lab-engines {
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+  padding: 18px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.lab-engines > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+.lab-engines small {
+  color: var(--muted);
+}
+.lab-ready,
+.lab-offline {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cyan);
+}
+.lab-offline {
+  background: #687786;
+}
+.research-lab summary {
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.lab-weekdays {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.lab-weekdays label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.lab-weekdays input {
+  width: auto;
+}
+.lab-history > h2 {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 28px;
+  font-weight: 500;
+}
+.lab-history summary small {
+  margin-left: 16px;
+  color: var(--muted);
+}
+.lab-result details {
+  margin: 20px 0;
+}
+.lab-result li {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 10px 0;
+  line-height: 1.7;
+}
+.lab-checksum {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  margin: 18px 0;
+}
+.lab-scenarios {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  border-top: 1px solid var(--border);
+  padding: 20px 0;
+}
+.lab-scenarios p {
+  font-size: 12px;
+}
+.lab-scenarios small {
+  color: var(--muted);
+  line-height: 1.7;
+}
+.lab-curve {
+  margin: 24px 0;
+}
+.lab-curve figcaption,
+.lab-curve span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.lab-curve svg {
+  width: 100%;
+  height: auto;
+  margin: 18px 0;
+}
+@media (max-width: 700px) {
+  .lab-intro {
+    display: block;
+  }
+  .lab-scenarios {
+    grid-template-columns: 1fr;
+  }
+  .research-tabs {
+    flex-wrap: wrap;
+  }
+}

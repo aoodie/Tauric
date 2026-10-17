@@ -1,5 +1,10 @@
 # Optional local memory extension for compose.dev.yml. No trading permission changes.
 services:
+  openclaw:
+    networks: [default, memory_private]
+    mem_limit: 2g
+    environment:
+      OPENCLAW_LOCAL_HEARTBEAT: "1"
   api:
     networks: [default, memory_private]
     environment:

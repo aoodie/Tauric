@@ -385,7 +385,19 @@ export const api = {
         body,
       }),
     ),
+  heartbeatStatus: async () =>
+    unwrap(
+      await client.GET("/api/v1/chat/heartbeat", {
+        signal: AbortSignal.timeout(5000),
+      }),
+    ),
   assistant: async () => unwrap(await client.GET("/api/v1/assistant")),
+  assistantActivities: async (cursor?: string) =>
+    unwrap(
+      await client.GET("/api/v1/assistant/activities", {
+        params: { query: { limit: 50, cursor } },
+      }),
+    ),
   saveChatSettings: async (body: components["schemas"]["ChatConfigChange"]) =>
     unwrap(await client.PUT("/api/v1/chat/settings", { body })),
   portfolioResearch: async (portfolio_id: string) =>
@@ -464,12 +476,6 @@ export const api = {
   sendChat: async (body: components["schemas"]["ChatSend"]) =>
     unwrap(await client.POST("/api/v1/chat/messages", { body })),
   scanners: async () => unwrap(await client.GET("/api/v1/scanners")),
-  assistantActivities: async (cursor?: string) =>
-    unwrap(
-      await client.GET("/api/v1/assistant/activities", {
-        params: { query: { limit: 50, cursor } },
-      }),
-    ),
   observeActivities: async (identities: string[]) =>
     unwrap(
       await client.POST("/api/v1/assistant/activities/observe", {

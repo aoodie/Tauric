@@ -1,5 +1,7 @@
 # Server and installation readiness
 
+**Monitoring deployment — 8 October 2026:** source `18b3d34` is deployed with all 15 services healthy. Hosted installation/restoration and a scoped failed-start recovery after migration passed. Strategy qualification failed; prospective, connected-cycle and representative-workload acceptance remain open. See [the validation record](VALIDATION_RESULT_2026-10-08.md).
+
 **Current status — 8 October 2026:** the IONOS candidate is deployed and healthy, with hosted images, public HTTPS, reboot recovery and backup/restore evidence. Production acceptance remains incomplete: representative 24-hour workload, connected automatic demo trading, failed migrated-upgrade recovery and actual prospective strategy evidence remain open. The [acceptance plan](ACCEPTANCE_PLAN.md) is the current work order; older assessments below do not mean the server is still uninstalled.
 
 **Deployment-package update, 5 October 2026:** the [GitHub/server candidate](GITHUB_DEPLOYMENT.md) is implemented. The isolated Linux arm64 container rehearsal verifies startup, owner/configuration persistence, service restarts and database/runtime restoration. GitHub-hosted publication, clean target Linux installation, HTTPS certificate operation, host reboot, representative 24-hour load and connected automatic broker approval-to-fill-to-exit remain open. See [current package evidence](SERVER_DEPLOYMENT_VERIFICATION.md). The full platform is still not certified for production installation.

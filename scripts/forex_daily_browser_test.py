@@ -30,11 +30,11 @@ with sync_playwright() as p:
     ):
         chart.get_by_label("Chart instrument").select_option(instrument)
         expect(
-            chart.get_by_role("button", name="Research", exact=True)
+            chart.get_by_role("button", name="Daily research", exact=True)
         ).to_be_enabled()
-        chart.get_by_role("button", name="Research", exact=True).click()
+        chart.get_by_role("button", name="Daily research", exact=True).click()
         expect(panel.locator(".native-scope strong")).to_have_text(symbol)
-        expect(panel.locator(".daily-research .panel-kicker")).to_contain_text("FOREX DAILY RESEARCH")
+        expect(panel.locator(".panel-kicker")).to_contain_text("FOREX DAILY RESEARCH")
         expect(panel.locator(".native-scope")).to_contain_text(
             "closed OANDA bid/ask candles"
         )
@@ -50,7 +50,7 @@ with sync_playwright() as p:
         expect(panel.locator(".fx-supplement")).to_contain_text("5/5 sources available")
         expect(panel.locator(".fx-supplement")).to_contain_text("Consensus")
         if symbol == "GBP/USD":
-            expect(panel.locator(".fx-policy")).to_contain_text("Offline unavailable source fixture")
+            expect(panel.locator(".fx-policy")).to_contain_text("Source unavailable")
             expect(panel.locator(".fx-policy")).to_contain_text("2/4 sources available")
         else:
             expect(panel.locator(".fx-policy")).to_contain_text("4/4 sources available")
@@ -86,7 +86,7 @@ with sync_playwright() as p:
     page.get_by_label("Active panel", exact=True).select_option("chart")
     mobile = page.locator(".mobile-panel")
     mobile.get_by_label("Chart instrument").select_option("oanda:fx:EUR_USD")
-    mobile.get_by_role("button", name="Research", exact=True).click()
+    mobile.get_by_role("button", name="Daily research", exact=True).click()
     expect(mobile.locator(".native-report")).to_be_visible()
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
     checks.append("Forex daily report and controls remain usable on mobile")

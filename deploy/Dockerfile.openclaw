@@ -5,7 +5,7 @@ RUN npm ci --ignore-scripts --no-audit --no-fund
 COPY openclaw/plugin ./plugin
 COPY openclaw/skills ./skills
 COPY openclaw/workflows ./workflows
-COPY openclaw/start.mjs openclaw/config.mjs ./
+COPY openclaw/start.mjs openclaw/config.mjs openclaw/heartbeat-status.mjs ./
 COPY backend/tauric/chat_instructions.txt ./chat_instructions.txt
 RUN npm run plugin:build && npm run plugin:validate \
     && mkdir -p /state && chown -R node:node /app/plugin /state

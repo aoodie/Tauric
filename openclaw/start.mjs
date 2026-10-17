@@ -2,6 +2,7 @@
 import fs from "node:fs";
 import { spawn } from "node:child_process";
 import { buildConfig, gatewayRunning } from "./config.mjs";
+import { createHeartbeatStatusServer } from "./heartbeat-status.mjs";
 const root = process.env.OPENCLAW_STATE_DIR ?? "/state";
 fs.mkdirSync(root, {recursive:true,mode:0o700});
 if(process.getuid?.() === 0) {
@@ -23,6 +24,8 @@ fs.mkdirSync(`${root}/broker-workspace/skills`,{recursive:true,mode:0o700});
 fs.cpSync("/app/skills/tauric-broker-governance",`${root}/broker-workspace/skills/tauric-broker-governance`,{recursive:true});
 fs.mkdirSync(`${root}/chat-workspace`,{recursive:true,mode:0o700});
 fs.copyFileSync('/app/chat_instructions.txt',`${root}/chat-workspace/AGENTS.md`);
+const localHeartbeat = process.env.OPENCLAW_LOCAL_HEARTBEAT === '1';
+if(localHeartbeat) fs.mkdirSync(`${root}/heartbeat-workspace`,{recursive:true,mode:0o700});
 const headers = {Authorization:`Bearer ${tokens.platform_token}`,"Content-Type":"application/json"};
 async function platform(path, body) {
   const response = await fetch(`http://api:8000/internal/openclaw/${path}`, {
@@ -33,8 +36,11 @@ async function platform(path, body) {
   if(!body) return response.json();
 }
 let child, fingerprint, stopping=false, syncing=false;
+const statusServer = createHeartbeatStatusServer({root, enabled:localHeartbeat,
+  token:tokens.platform_token, runtimeAvailable:()=>gatewayRunning(child)});
+statusServer.listen(18790, '0.0.0.0');
 function launch(runtime) {
-  fs.writeFileSync(`${root}/openclaw.json.next`,JSON.stringify(buildConfig(root,tokens,runtime)),{mode:0o600});
+  fs.writeFileSync(`${root}/openclaw.json.next`,JSON.stringify(buildConfig(root,tokens,runtime,{localHeartbeat})),{mode:0o600});
   fs.renameSync(`${root}/openclaw.json.next`,`${root}/openclaw.json`);
   // Provider exceptions and agent text may contain private inputs. Don't forward logs.
   child=spawn(process.execPath,["/app/node_modules/openclaw/openclaw.mjs","gateway","run"],{
@@ -59,7 +65,7 @@ async function sync() {
       await retire();
       if(stopping) return;
       launch(runtime);fingerprint=runtime.fingerprint;
-      console.log("Private governance configuration applied; no model call started.");
+      console.log(localHeartbeat ? "Private configuration applied; local heartbeat scheduled." : "Private governance configuration applied; no model call started.");
     }
     const health=await fetch("http://127.0.0.1:18789/healthz",{signal:AbortSignal.timeout(2000)});
     if(health.ok && gatewayRunning(child)) await platform("heartbeat",{fingerprint,capabilities:["paper_governance","broker_entry_review"]});
@@ -71,5 +77,5 @@ launch({routes:{}});
 await sync();
 const timer=setInterval(sync,5000);
 for(const event of ["SIGTERM","SIGINT"])process.on(event,async()=>{
-  stopping=true;clearInterval(timer);await retire();process.exit(0);
+  stopping=true;clearInterval(timer);statusServer.close();await retire();process.exit(0);
 });

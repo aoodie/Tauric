@@ -4,11 +4,13 @@ Owner authorized this work on 8 October 2026. The first milestone is reliable go
 
 ## Baseline
 
-Published/deployed source: `0e30a3bdfb6206544cb6bff242c8e0ac5b223eaf`. Its [hosted release](https://github.com/aoodie/Tauric/actions/runs/37677136199) passed 968 backend tests, 11 deployment checks, frontend/OpenClaw checks, four amd64/arm64 image publications and installation/full restoration; 20 browser tests were deselected. Saved IONOS evidence records trusted public-IP HTTPS, reboot recovery, restored backups and encrypted off-host backups. A fresh 8 October read-only SSH check found all 15 services healthy using the verified project host key.
+Verified starting source: `0e30a3bdfb6206544cb6bff242c8e0ac5b223eaf`. Its [hosted release](https://github.com/aoodie/Tauric/actions/runs/37677136199) passed 968 backend tests, 11 deployment checks, frontend/OpenClaw checks, four amd64/arm64 image publications and installation/full restoration; 20 browser tests were deselected. Saved IONOS evidence records trusted public-IP HTTPS, reboot recovery, restored backups and encrypted off-host backups. A fresh 8 October read-only SSH check found all 15 services healthy using the verified project host key.
 
 The target server initially had no saved strategy, research portfolio, automatic route or prospective protocol. Its state is separate from the workstation's enabled demo routes. A new target-host research context remains halted and grants no broker execution authority.
 
 The progress-reporting candidate is assembled over published assistant upgrade `363fd9b7c1acbf443d361330db72f8c56c39d49c`, preserving that upgrade without overwriting the shared release branch. A separate branch carries the monitoring changes. Bind all candidate sources and hosted image digests to one tested commit before deployment and prospective registration.
+
+Current deployed monitoring source: `18b3d34473b666cfa83df6679357481bd4c504bb`, preserving assistant source `363fd9b`. Hosted checks passed 1,004 backend tests and 11 deployment controls; all four image jobs and clean installation/restoration passed. All 15 target services and seven progress lanes are healthy on schema 0033. The failed research result still blocks prospective registration. A failed post-migration startup was recovered in isolated copies, and a fresh current-state backup passed full restoration. See [the completed validation record](VALIDATION_RESULT_2026-10-08.md) for scope and the pending signed-in check.
 
 ## Work order
 

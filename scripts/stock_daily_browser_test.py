@@ -27,9 +27,9 @@ with sync_playwright() as p:
     ):
         chart.get_by_label("Chart instrument").select_option(instrument)
         expect(
-            chart.get_by_role("button", name="Research", exact=True)
+            chart.get_by_role("button", name="Daily research", exact=True)
         ).to_be_enabled()
-        chart.get_by_role("button", name="Research", exact=True).click()
+        chart.get_by_role("button", name="Daily research", exact=True).click()
         expect(panel.locator(".native-scope strong")).to_have_text(symbol)
         expect(panel.locator(".native-scope")).to_contain_text(
             "Alpaca chart snapshots are separate"
@@ -58,7 +58,7 @@ with sync_playwright() as p:
     checks.append("Saved ETF report remains available after reload")
     chart.get_by_label("Chart instrument").select_option("oanda:fx:EUR_USD")
     expect(
-        chart.get_by_role("button", name="Research", exact=True)
+        chart.get_by_role("button", name="Daily research", exact=True)
     ).to_be_enabled()
     expect(
         panel.get_by_role("button", name="Run daily analysis", exact=True)
@@ -73,7 +73,7 @@ with sync_playwright() as p:
         "alpaca:etf:SPY"
     )
     page.locator(".mobile-panel").get_by_role(
-        "button", name="Research", exact=True
+        "button", name="Daily research", exact=True
     ).click()
     expect(page.locator(".mobile-panel .native-report")).to_be_visible()
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")

@@ -3,9 +3,14 @@ import {
   ScannerPanel,
   ScannerWorkspace,
 } from "./scanner/Scanner";
+import { StrategiesPage } from "./trading/StrategySettings";
 import { TraderDashboard } from "./scanner/TraderDashboard";
 import { OpenClawActivity } from "./chat/ActivityFeed";
-import { StrategiesPage } from "./trading/StrategySettings";
+import {
+  HeartbeatPanel,
+  heartbeatLabel,
+  useHeartbeatStatus,
+} from "./chat/HeartbeatStatus";
 import { BrokerModeBadge } from "./trading/LiveTrading";
 import {
   PaperProvider,
@@ -1206,6 +1211,7 @@ function Workstation({
   );
   const [settings, setSettings] = useState<Setting[]>([]);
   const [chatDraft, setChatDraft] = useState("");
+  const heartbeat = useHeartbeatStatus();
   const [chatConnection, setChatConnection] =
     useState<Awaited<ReturnType<typeof api.chatSettings>>>();
   const [brokerConnections, setBrokerConnections] =
@@ -1732,6 +1738,16 @@ function Workstation({
             <span className="status-dot idle" />
             OpenClaw · assistant &amp; approvals
           </span>
+          <button
+            className="heartbeat-indicator"
+            onClick={() => navigate("system")}
+            aria-label="View OpenClaw heartbeat status"
+          >
+            <span
+              className={`status-dot ${heartbeat?.status === "healthy" ? "good" : "idle"}`}
+            />
+            Heartbeat · {heartbeatLabel(heartbeat)}
+          </button>
           <span className="status-execution">
             <LockKeyhole size={12} />
             <BrokerModeBadge />
@@ -2101,6 +2117,7 @@ function Workstation({
               </div>
               <span className="badge gold">Production checks pending</span>
             </div>
+            <HeartbeatPanel status={heartbeat} timezone={timezone} />
             <div className="system-list">
               {[
                 {

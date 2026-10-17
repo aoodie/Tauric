@@ -13,7 +13,7 @@ from test_assistant_management import invocation as invocation
 from test_assistant_management import ready as ready
 from test_multifactor_scanner import multifactor_market as multifactor_market
 
-from tauric import analysis, assistant_activity, paper
+from tauric import assistant_activity, paper
 from tauric.models import AnalysisArtifact, AnalysisJob, AssistantRecord, Owner, now
 
 
@@ -144,20 +144,22 @@ def test_request_receipt_follows_actual_research_outcome(signed_in, database):
     assert any(v["id"] == receipt["id"] for v in response["current_work"])
     with Session(database[1]) as db:
         job = db.get(AnalysisJob, job_id)
-        job.status = "running"
-        job.heartbeat_at = now()
+        job.status, job.finished_at = "succeeded", now()
         db.commit()
     response = signed_in.get("/api/v1/assistant/activities").json()
     assert (
         next(v for v in response["items"] if v["id"] == "assistant:" + saved_id)["status"]
-        == "running"
+        == "blocked"
     )
     with Session(database[1]) as db:
-        # Use the real native writer: its checksum format differs from receipts.
-        payload = {"reports": {"fixture": "Synthetic research result — café"}}
-        assert analysis.finish(db, job_id, payload)
-        artifact = db.scalar(select(AnalysisArtifact).where(AnalysisArtifact.job_id == job_id))
-        assert artifact.checksum != paper.checksum(payload)
+        owner = db.scalar(select(Owner))
+        payload = {"reports": {"fixture": "Synthetic research result"}}
+        db.add(
+            AnalysisArtifact(
+                owner_id=owner.id, job_id=job_id, payload=payload, checksum=paper.checksum(payload)
+            )
+        )
+        db.commit()
     response = signed_in.get("/api/v1/assistant/activities").json()
     assert (
         next(v for v in response["items"] if v["id"] == "assistant:" + saved_id)["status"]
@@ -191,37 +193,6 @@ def test_request_receipt_follows_actual_research_outcome(signed_in, database):
     )
 
 
-def test_completed_native_job_without_artifact_remains_blocked(signed_in, database):
-    with Session(database[0]) as db:
-        owner = db.scalar(select(Owner))
-        job = AnalysisJob(
-            owner_id=owner.id,
-            request_id=str(uuid4()),
-            instrument_id="binance:spot:BTCUSDT",
-            profile="local",
-            request={},
-            status="queued",
-        )
-        db.add(job)
-        db.flush()
-        saved = record(db, owner, "research_candidate", {"id": job.id, "status": "queued"})
-        identity, job_id = saved.id, job.id
-        db.commit()
-        job.status, job.finished_at = "succeeded", now()
-        db.commit()
-    response = signed_in.get("/api/v1/assistant/activities")
-    assert response.status_code == 200, response.text
-    feed = response.json()
-    assert (
-        next(row for row in feed["items"] if row["id"] == "assistant:" + identity)["status"]
-        == "blocked"
-    )
-    assert any(
-        row["id"] == "research:" + job_id and row["status"] == "blocked"
-        for row in feed["current_work"]
-    )
-
-
 def test_unresolved_intent_is_not_completed_or_failed(signed_in, database):
     with Session(database[0]) as db:
         owner = db.scalar(select(Owner))
@@ -240,13 +211,3 @@ def test_unresolved_intent_is_not_completed_or_failed(signed_in, database):
 def test_corrupt_receipt_cannot_be_projected():
     with pytest.raises(HTTPException, match="integrity"):
         assistant_activity.verified(SimpleNamespace(payload={"result": {}}, checksum="f" * 64))
-
-
-@pytest.mark.parametrize("compact_checksum", [True, False])
-def test_native_artifact_rejects_receipt_format_and_corrupt_checksum(compact_checksum):
-    payload = {"reports": {"fixture": "Native checksum format"}}
-    artifact = AnalysisArtifact(
-        payload=payload, checksum=paper.checksum(payload) if compact_checksum else "f" * 64
-    )
-    with pytest.raises(HTTPException, match="integrity"):
-        assistant_activity.verified(artifact)

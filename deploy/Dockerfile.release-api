@@ -10,8 +10,8 @@ COPY backend/runners ./runners
 COPY backend/migrations ./migrations
 COPY backend/alembic.ini ./alembic.ini
 COPY backend/tauric /app/project-source/backend/tauric
-COPY backend/tests /app/project-source/backend/tests
 COPY backend/runners /app/project-source/backend/runners
+COPY backend/tests /app/project-source/backend/tests
 COPY frontend/src /app/project-source/frontend/src
 COPY frontend/package.json /app/project-source/frontend/package.json
 COPY openclaw/plugin/src /app/project-source/openclaw/plugin/src

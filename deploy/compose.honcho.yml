@@ -86,6 +86,7 @@ services:
       - memory_models:/root/.ollama
       - ./memory-model-download.sh:/setup/download.sh:ro
       - ./Memory.Modelfile:/setup/Memory.Modelfile:ro
+      - ./Heartbeat.Modelfile:/setup/Heartbeat.Modelfile:ro
     networks: [downloads]
     mem_limit: 512m
 networks:

@@ -111,3 +111,36 @@ def validate_current(evidence, actual):
             raise BrokerError(
                 "Current stop risk exceeds the assessed sizing budget; this signal is not resized or resubmitted."
             )
+
+
+def policy_risk(policy, risk_percent):
+    """Reject a route budget above its independently saved account policy."""
+    from fastapi import HTTPException
+
+    maximum = policy.payload.get("maximum_risk_percent")
+    if (
+        maximum is not None
+        and risk_percent is not None
+        and Decimal(risk_percent) > Decimal(maximum)
+    ):
+        raise HTTPException(409, "Entry risk exceeds the account policy limit.")
+
+
+def policy_drawdown(policy, account):
+    """Pause new entries after a recorded peak-to-equity drawdown breach."""
+    from fastapi import HTTPException
+
+    maximum = policy.payload.get("maximum_drawdown_percent")
+    if maximum is None:
+        return
+    observed = account.get("marked_max_drawdown_percent")
+    if observed is None:
+        raise HTTPException(409, "Entry risk waits for an observed account drawdown history.")
+    try:
+        value = Decimal(observed)
+        if not value.is_finite() or value < 0:
+            raise ValueError()
+    except (ValueError, TypeError, ArithmeticError):
+        raise HTTPException(409, "Account drawdown evidence is invalid.") from None
+    if value >= Decimal(maximum):
+        raise HTTPException(409, "Account drawdown limit reached; new entries are paused.")

@@ -7,6 +7,7 @@ import {
 } from "../api/client";
 import { BrokerSetupReview } from "./BrokerSetupReview";
 import { BrokerRoutes } from "./BrokerRoutes";
+import { brokerPolicyLimits } from "./brokerPolicyLimits";
 
 const label = { oanda: "OANDA", alpaca: "Alpaca" };
 const explain = (error: unknown) =>
@@ -82,7 +83,7 @@ export function BrokerExecution() {
         request_id: crypto.randomUUID(),
         expected_revision: policy?.revision ?? 0,
         enabled: !policy?.settings.enabled,
-        no_owner_limits: true,
+        ...brokerPolicyLimits(policy?.settings),
         live_acknowledged: false,
         reason: policy?.settings.enabled
           ? "Owner stopped new broker orders"
@@ -92,6 +93,29 @@ export function BrokerExecution() {
         policy?.settings.enabled
           ? "New broker entries paused. Position protection and exits continue."
           : "Demo broker orders enabled. Broker buying-power and instrument rules apply.",
+      );
+    });
+  }
+  async function saveLimits(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    await act(async () => {
+      await api.saveBrokerPolicy(provider, {
+        request_id: crypto.randomUUID(),
+        expected_revision: policy?.revision ?? 0,
+        enabled: policy?.settings.enabled === true,
+        no_owner_limits: false,
+        maximum_risk_percent: String(form.get("maximum_risk")),
+        maximum_drawdown_percent: String(form.get("maximum_drawdown")),
+        live_acknowledged: live && policy?.settings.enabled === true,
+        forward_report_id:
+          typeof policy?.settings.forward_report_id === "string"
+            ? policy.settings.forward_report_id
+            : undefined,
+        reason: "Owner updated account risk and drawdown limits",
+      });
+      setNotice(
+        "Account limits saved. Refresh assessments and affected route bindings before new entries.",
       );
     });
   }
@@ -212,6 +236,35 @@ export function BrokerExecution() {
       </div>
       {error && <p role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
+      <form onSubmit={saveLimits} key={`${provider}:${policy?.revision ?? 0}`}>
+        <label>
+          Maximum risk per trade (%)
+          <input
+            name="maximum_risk"
+            required
+            inputMode="decimal"
+            defaultValue={String(policy?.settings.maximum_risk_percent ?? "5")}
+          />
+        </label>
+        <label>
+          Maximum observed drawdown (%)
+          <input
+            name="maximum_drawdown"
+            required
+            inputMode="decimal"
+            defaultValue={String(
+              policy?.settings.maximum_drawdown_percent ?? "15",
+            )}
+          />
+        </label>
+        <button className="secondary" disabled={pending}>
+          Save account limits
+        </button>
+        <p>
+          Limits pause new live entries at the drawdown threshold. Position
+          exits and protection repair continue.
+        </p>
+      </form>
       {connection?.account && (
         <>
           <p>
