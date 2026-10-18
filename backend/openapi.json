@@ -9569,6 +9569,27 @@
         ],
         "title": "BrokerPositionView"
       },
+      "BrokerProtectionReplay": {
+        "properties": {
+          "price_step": {
+            "type": "string",
+            "title": "Price Step"
+          },
+          "entry_delay_seconds": {
+            "type": "integer",
+            "maximum": 86400.0,
+            "minimum": 0.0,
+            "title": "Entry Delay Seconds",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "price_step"
+        ],
+        "title": "BrokerProtectionReplay"
+      },
       "BrokerProtectionView": {
         "properties": {
           "broker_order_id": {
@@ -18005,6 +18026,72 @@
         ],
         "title": "ReplayCreate"
       },
+      "ReplayExecutionEvidence": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "const": "broker_protected_ohlc_long_v1",
+            "title": "Model"
+          },
+          "entry_delay_seconds": {
+            "type": "integer",
+            "title": "Entry Delay Seconds"
+          },
+          "signal_to_fill": {
+            "$ref": "#/components/schemas/ReplayTiming"
+          },
+          "expired_entries": {
+            "type": "integer",
+            "title": "Expired Entries"
+          },
+          "unfilled_entries": {
+            "type": "integer",
+            "title": "Unfilled Entries"
+          },
+          "same_bar_exits": {
+            "type": "integer",
+            "title": "Same Bar Exits"
+          },
+          "ambiguous_exits": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Ambiguous Exits"
+          },
+          "partial_fills_modeled": {
+            "type": "boolean",
+            "const": false,
+            "title": "Partial Fills Modeled",
+            "default": false
+          },
+          "intrabar_path_observed": {
+            "type": "boolean",
+            "const": false,
+            "title": "Intrabar Path Observed",
+            "default": false
+          },
+          "broker_parity_verified": {
+            "type": "boolean",
+            "const": false,
+            "title": "Broker Parity Verified",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "model",
+          "entry_delay_seconds",
+          "signal_to_fill",
+          "expired_entries",
+          "unfilled_entries",
+          "same_bar_exits",
+          "ambiguous_exits"
+        ],
+        "title": "ReplayExecutionEvidence"
+      },
       "ReplayParameters": {
         "properties": {
           "engine": {
@@ -18081,6 +18168,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/AssetCosts"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "broker_protection": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BrokerProtectionReplay"
               },
               {
                 "type": "null"
@@ -18164,6 +18261,16 @@
             },
             "type": "array",
             "title": "Financing Events"
+          },
+          "execution_evidence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReplayExecutionEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -18182,6 +18289,56 @@
           "bars"
         ],
         "title": "ReplayResult"
+      },
+      "ReplayTiming": {
+        "properties": {
+          "observations": {
+            "type": "integer",
+            "title": "Observations"
+          },
+          "median_seconds": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Seconds"
+          },
+          "p95_seconds": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P95 Seconds"
+          },
+          "maximum_seconds": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maximum Seconds"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "observations",
+          "median_seconds",
+          "p95_seconds",
+          "maximum_seconds"
+        ],
+        "title": "ReplayTiming"
       },
       "ReplayView": {
         "properties": {

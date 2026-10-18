@@ -52,6 +52,25 @@ BREAKOUT_ASSUMPTIONS = [
 ]
 
 
+def protected_assumptions(spec, context):
+    return [
+        ASSUMPTIONS[0],
+        f"Long-only unlevered {spec.asset_type} research scenario; full fills, one position, quote-currency cash and no margin model.",
+        "Signals use closed bars. Entry waits for the first observed open after the assumed delay, and expires at the saved signal lifetime. These delays are scenario assumptions, not measured model latency.",
+        "The signal candle's closing ask is a proxy for the pre-submission quote. Stop prices round down and targets round up to the supplied price step; both remain fixed after entry, including delayed or slipped fills.",
+        "Protection is assumed active on the entire filled quantity from the entry open. Stop gaps use the observed executable open; intrabar stops use the threshold with adverse slippage. Take-profit limits never fill below their limit before fees.",
+        "Opening prices establish opening-gap precedence. If a later bar range touches both protection levels, stop-first is an explicitly conservative scenario and the ambiguity is recorded; the intrabar path and exit time are unknown.",
+        "Intrabar exits are stamped at candle close. Financing uses that approximate holding period; rollover order within the candle cannot be reconstructed.",
+        "Only channel exits wait for the next observed open. A queued channel exit cannot bypass protection at that open.",
+        "Forex uses historical bid/ask without added spread. Equity/ETF bid/ask is approximated from trade candles and the declared spread; limit-touch liquidity and trigger eligibility are assumptions.",
+        "Fees use the declared per-unit/minimum commission, notional fee and sell tax. FX financing uses the explicit daily rate at 17:00 New York and configured triple weekday; historical rates and holiday multipliers are not verified.",
+        ASSUMPTIONS[4],
+        ASSUMPTIONS[6],
+        "Partial fills, bracket activation races, order-book depth, outages, actual broker fills and AI/owner approvals are not modeled. This scenario establishes neither broker parity, strategy qualification nor trading authority.",
+        *(context or {}).get("warnings", []),
+    ]
+
+
 def owned(db, owner, record_id, kind):
     row = db.get(ResearchRecord, str(record_id))
     if not row or row.owner_id != owner.id or row.kind != kind:
@@ -258,7 +277,11 @@ def run(db, owner, body, *, commit=True):
     if spec.asset_type != "crypto_spot":
         if not costs or costs.asset_type != spec.asset_type:
             raise HTTPException(422, "Select explicit trading costs matching the dataset asset.")
-        if spec.asset_type != "fx" and body.parameters.engine != "sma_cross_spot_v1":
+        if (
+            spec.asset_type != "fx"
+            and body.parameters.engine != "sma_cross_spot_v1"
+            and not body.parameters.broker_protection
+        ):
             raise HTTPException(
                 422, "Saved breakout execution is currently qualified only for crypto spot."
             )
@@ -299,7 +322,7 @@ def run(db, owner, body, *, commit=True):
         result = replay_engine.simulate(candles, body.parameters, strategy, data_context=context)
     except (ValueError, ArithmeticError):
         raise HTTPException(
-            422, "Replay costs or sizing cannot be supported by the unlevered cash balance."
+            422, "Replay inputs, protection assumptions or sizing cannot be supported by the candles and unlevered cash balance."
         ) from None
     sources = {module.__name__: Path(module.__file__).read_text() for module in modules}
     row = save(
@@ -311,7 +334,9 @@ def run(db, owner, body, *, commit=True):
             "dataset_checksum": dataset.checksum,
             "asset_type": spec.asset_type,
             "quote_currency": spec.quote_currency,
-            "engine_version": replay_engine.BREAKOUT_ENGINE_VERSION
+            "engine_version": replay_engine.PROTECTED_ENGINE_VERSION
+            if body.parameters.broker_protection
+            else replay_engine.BREAKOUT_ENGINE_VERSION
             if strategy
             else replay_engine.ASSET_ENGINE_VERSION
             if costs
@@ -319,7 +344,9 @@ def run(db, owner, body, *, commit=True):
             "engine_checksum": paper.checksum(sources),
             "engine_sources": sources,
             "result": result.model_dump(mode="json"),
-            "assumptions": asset_assumptions(spec, context)
+            "assumptions": protected_assumptions(spec, context)
+            if body.parameters.broker_protection
+            else asset_assumptions(spec, context)
             if costs
             else BREAKOUT_ASSUMPTIONS
             if strategy

@@ -4,8 +4,8 @@ No model, broker, account, deployment or strategy mutation is reachable here.
 OHLC stop time is unknown: intrabar stops are stamped at that bar's close.
 """
 
-from datetime import datetime
-from decimal import ROUND_DOWN, Decimal, localcontext
+from datetime import datetime, timedelta
+from decimal import ROUND_CEILING, ROUND_DOWN, ROUND_FLOOR, Decimal, localcontext
 from types import SimpleNamespace
 
 from . import strategy_rules
@@ -17,6 +17,7 @@ from .research_contracts import ReplayResult, ResearchBar
 ENGINE_VERSION = "sma_cross_spot_v1.0.2"
 BREAKOUT_ENGINE_VERSION = "closed_bar_breakout_spot_v1.0.1"
 ASSET_ENGINE_VERSION = "sma_cross_assets_v1.0.1"
+PROTECTED_ENGINE_VERSION = "broker_protected_ohlc_long_v1.0.0"
 D = Decimal
 ZERO = D("0")
 
@@ -28,6 +29,13 @@ def simulate(candles, params, strategy=None, *, data_context=None):
         not strategy.parameters.rules or str(params.strategy_version_id) != strategy.id
     ):
         raise ValueError("The pinned strategy must match the selected executable version.")
+    if params.broker_protection and params.asset_costs.asset_type == "fx" and (
+        not data_context
+        or data_context.get("price_side") != "bid_ask"
+        or D(params.asset_costs.spread_bps) != 0
+        or any(not bar.get("bid") or not bar.get("ask") for bar in candles)
+    ):
+        raise ValueError("Protected Forex replay requires historical bid/ask and zero added spread.")
     with localcontext() as ctx:
         ctx.prec = 120
         return _simulate(candles, params, strategy, data_context)
@@ -44,6 +52,9 @@ def _simulate(candles, p, strategy, data_context):
     fills, signals, trades = [], [], []
     position = pending = None
     costs = p.asset_costs
+    protection = p.broker_protection
+    latencies, ambiguous_exits = [], []
+    expired_entries = unfilled_entries = same_bar_exits = 0
     financing_events = []
     finance_clock = datetime.fromisoformat(candles[0]["open_time"])
     skipped = 0
@@ -70,9 +81,11 @@ def _simulate(candles, p, strategy, data_context):
                 )
         finance_clock = ending
 
-    def exit_position(observed, stamp, cause, source_bar=None, field="open"):
+    def exit_position(observed, stamp, cause, source_bar=None, field="open", *, limit=None):
         nonlocal cash, position
         price = execution_price(observed, "sell", source_bar, field, costs, slip)
+        if limit is not None:
+            price = max(limit, price)
         quantity = D(position["quantity"])
         fee = commission(quantity, price, "sell", fee_rate, costs)
         cash += quantity * price - fee
@@ -110,10 +123,57 @@ def _simulate(candles, p, strategy, data_context):
         )
         position = None
 
+    def bid(bar, field):
+        if costs.asset_type == "fx":
+            return D(bar["bid"][field])
+        return D(bar[field]) * (1 - D(costs.spread_bps) / 20000)
+
+    def protected_exit(bar, index, *, at_open):
+        nonlocal same_bar_exits
+        stop, target = D(position["stop_price"]), D(position["target_price"])
+        stop_touched = stop_trigger_price(bar, "open" if at_open else "low", costs) <= stop
+        target_touched = bid(bar, "open" if at_open else "high") >= target
+        if not stop_touched and not target_touched:
+            return
+        if position["entry_bar_index"] == index:
+            same_bar_exits += 1
+        if not at_open and stop_touched and target_touched:
+            ambiguous_exits.append(
+                {
+                    "bar_index": index,
+                    "open_time": bar["open_time"],
+                    "close_time": bar["close_time"],
+                    "stop_price": decimal_text(stop),
+                    "target_price": decimal_text(target),
+                    "selected_exit": "stop",
+                }
+            )
+        if stop_touched:
+            exit_position(
+                D(bar["open"]) if at_open else stop,
+                bar["open_time"] if at_open else bar["close_time"],
+                "protected_stop_gap" if at_open else "protected_stop_intrabar_time_assumed",
+                bar,
+                "open" if at_open else "stop",
+            )
+        else:
+            # A take-profit is a limit order. Costs must never manufacture a
+            # pre-fee fill worse than its limit, including after an opening gap.
+            exit_position(
+                D(bar["open"]) if at_open else target,
+                bar["open_time"] if at_open else bar["close_time"],
+                "protected_target_gap" if at_open else "protected_target_intrabar_time_assumed",
+                bar if at_open else None,
+                "open" if at_open else "stop",
+                limit=target,
+            )
+
     for i, bar in enumerate(candles):
         opening = D(bar["open"])
         prior_mark = D(candles[i - 1]["close"]) if i else opening
         finance_until(bar["open_time"], prior_mark)
+        if protection and position:
+            protected_exit(bar, i, at_open=True)
         # Gap stops take precedence over a prior close's queued crossover exit.
         if (
             not rules
@@ -121,7 +181,16 @@ def _simulate(candles, p, strategy, data_context):
             and stop_trigger_price(bar, "open", costs) <= D(position["stop_price"])
         ):
             exit_position(opening, bar["open_time"], "stop_gap", bar)
-        if pending:
+        waiting = False
+        if protection and pending and pending["side"] == "buy":
+            at = datetime.fromisoformat(bar["open_time"])
+            if at >= datetime.fromisoformat(pending["expires_at"]):
+                pending["execution"] = "expired_before_entry"
+                expired_entries += 1
+                pending = None
+            elif at < datetime.fromisoformat(pending["available_at"]):
+                waiting = True
+        if pending and not waiting:
             if pending["side"] == "sell" and position:
                 exit_position(
                     opening,
@@ -183,14 +252,38 @@ def _simulate(candles, p, strategy, data_context):
                         "fee": decimal_text(fee),
                         "stop_price": decimal_text(stop),
                         "cause": "breakout_next_open" if rules else "cross_up_next_open",
+                        **(
+                            {
+                                "target_price": pending["target_price"],
+                                "reference_ask": pending["reference_ask"],
+                                "entry_bar_index": i,
+                                "cause": "protected_breakout_observed_open",
+                            }
+                            if protection
+                            else {}
+                        ),
                     }
                     fills.append(position)
+                    if protection:
+                        signal_at = datetime.fromisoformat(pending["time"])
+                        filled_at = datetime.fromisoformat(bar["open_time"])
+                        latencies.append(
+                            D(str((filled_at - signal_at).total_seconds()))
+                        )
+                        pending["execution"] = "filled_at_observed_open"
+                        pending["filled_at"] = bar["open_time"]
                 else:
                     skipped += 1
+                    if protection:
+                        pending["execution"] = "skipped_opening_stop_or_budget"
             pending = None
+        if protection and position and position["entry_bar_index"] == i:
+            protected_exit(bar, i, at_open=True)
         # A bar's close is unknown at an interior rollover, so retain the prior
         # observed mark. Closed-bar funding precedes any same-timestamp exit.
         finance_until(bar["close_time"], prior_mark)
+        if protection and position:
+            protected_exit(bar, i, at_open=False)
         if (
             not rules
             and position
@@ -204,7 +297,7 @@ def _simulate(candles, p, strategy, data_context):
                 "stop",
             )
         closes.append(D(bar["close"]))
-        if rules:
+        if rules and not (protection and pending):
             held = (
                 SimpleNamespace(
                     id=position["id"],
@@ -217,6 +310,21 @@ def _simulate(candles, p, strategy, data_context):
             evaluation = strategy_rules.evaluate_closed_bars(
                 closed_bars[: i + 1], rules, held, data_context=data_context
             )
+            if protection and position:
+                # Broker protection handles stop/target touches. The only
+                # strategy-managed exit is the original closed-bar channel.
+                channel = min(
+                    stop_trigger_price(previous, "low", costs)
+                    for previous in candles[i - rules.exit_lookback : i]
+                )
+                exit_channel = stop_trigger_price(bar, "close", costs) < channel
+                evaluation = {
+                    "action": "exit" if exit_channel else "hold",
+                    "reasons": ["Closed-bar channel exit." if exit_channel else "No channel exit."],
+                    "exit_trigger": "channel",
+                    "exit_channel": decimal_text(channel),
+                    "bar_close_time": bar["close_time"],
+                }
             side = {"enter": "buy", "exit": "sell"}.get(evaluation["action"])
             if side:
                 signal = {
@@ -232,9 +340,40 @@ def _simulate(candles, p, strategy, data_context):
                     ),
                 }
                 signals.append(signal)
+                if protection and side == "buy":
+                    tick = D(protection.price_step)
+                    stop = (
+                        (D(signal["stop_price"]) / tick).to_integral_value(rounding=ROUND_FLOOR)
+                        * tick
+                    )
+                    ask = (
+                        D(bar["ask"]["close"])
+                        if costs.asset_type == "fx"
+                        else D(bar["close"]) * (1 + D(costs.spread_bps) / 20000)
+                    )
+                    if not ZERO < stop < ask:
+                        raise ValueError(
+                            "The rounded protective stop must be positive and below the reference ask."
+                        )
+                    target = (
+                        ((ask + (ask - stop) * D(rules.take_profit_r)) / tick)
+                        .to_integral_value(rounding=ROUND_CEILING)
+                        * tick
+                    )
+                    stamp = datetime.fromisoformat(signal["time"])
+                    signal.update(
+                        stop_price=decimal_text(stop),
+                        target_price=decimal_text(target),
+                        reference_ask=decimal_text(ask),
+                        available_at=(stamp + timedelta(seconds=protection.entry_delay_seconds)).isoformat(),
+                        expires_at=(stamp + timedelta(seconds=rules.signal_ttl_seconds)).isoformat(),
+                        execution="awaiting_observed_open" if i + 1 < len(candles) else "no_next_bar",
+                    )
+                    if i + 1 == len(candles):
+                        unfilled_entries += 1
                 if i + 1 < len(candles):
                     pending = signal
-        elif len(closes) > p.slow_window:
+        elif not rules and len(closes) > p.slow_window:
             # Compare exact sums instead of rounded averages; only this prefix is visible.
             current = (
                 sum(closes[-p.fast_window :], ZERO) * p.slow_window
@@ -287,4 +426,27 @@ def _simulate(candles, p, strategy, data_context):
         bars=len(candles),
         financing_cost=decimal_text(sum((D(e["amount"]) for e in financing_events), ZERO)),
         financing_events=financing_events,
+        execution_evidence={
+            "model": "broker_protected_ohlc_long_v1",
+            "entry_delay_seconds": protection.entry_delay_seconds,
+            "signal_to_fill": timing_summary(latencies),
+            "expired_entries": expired_entries,
+            "unfilled_entries": unfilled_entries + int(bool(pending and pending["side"] == "buy")),
+            "same_bar_exits": same_bar_exits,
+            "ambiguous_exits": ambiguous_exits,
+        }
+        if protection
+        else None,
     )
+
+
+def timing_summary(seconds):
+    """Median and nearest-rank p95 of observed replay delays, in exact seconds."""
+    values = sorted(seconds)
+    n = len(values)
+    return {
+        "observations": n,
+        "median_seconds": decimal_text((values[(n - 1) // 2] + values[n // 2]) / 2) if n else None,
+        "p95_seconds": decimal_text(values[(95 * n + 99) // 100 - 1]) if n else None,
+        "maximum_seconds": decimal_text(values[-1]) if n else None,
+    }
