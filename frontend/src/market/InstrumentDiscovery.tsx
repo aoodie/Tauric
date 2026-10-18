@@ -6,7 +6,7 @@ import { useMarket } from "./MarketContext";
 import "./discovery.css";
 
 type Discovery = components["schemas"]["DiscoveryView"];
-type Asset = "fx" | "equity" | "etf";
+type Asset = "fx" | "equity" | "etf" | "commodity" | "cfd";
 
 export function InstrumentDiscovery({
   onAdded,
@@ -193,11 +193,9 @@ export function InstrumentDiscovery({
             {result.items.map((item) => {
               const asset =
                 item.registered_asset_type ??
-                (provider === "oanda" ? "fx" : classes[item.symbol]);
-              const currencies = item.symbol.split("_");
-              const fxAI = currencies.every((c) =>
-                ["USD", "EUR", "GBP", "JPY"].includes(c),
-              );
+                (provider === "oanda"
+                  ? (item.category as Asset)
+                  : classes[item.symbol]);
               return (
                 <article
                   className="discovery-row"
@@ -209,8 +207,8 @@ export function InstrumentDiscovery({
                     <span>{item.name}</span>
                     <small>
                       {item.exchange}
-                      {provider === "oanda" && !fxAI
-                        ? " · Charts and experiments; daily AI research pending"
+                      {provider === "oanda"
+                        ? " · Daily research; economic coverage varies by currency"
                         : ""}
                     </small>
                     {!item.available && (

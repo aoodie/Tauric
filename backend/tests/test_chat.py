@@ -158,7 +158,7 @@ def test_worker_success_and_lease_fencing(ready, database, monkeypatch):
         assert '"daily_native_research": true' in instructions
         assert '"forex_policy_currencies": ["EUR", "GBP", "JPY", "USD"]' in instructions
         assert (
-            '"unsupported_scopes": ["commodities", "weekly", "historical", "intraday", "futures"]'
+            '"unsupported_native_scopes": ["commodities", "weekly", "historical", "intraday", "futures"]'
             in instructions
         )
         assert (
@@ -216,6 +216,9 @@ def test_private_status_is_read_only_and_contains_no_secrets(ready):
     headers = {"Authorization": "Bearer fixture-private-" + "x" * 50}
     response = ready.get("/internal/openclaw/chat-context", headers=headers)
     assert response.status_code == 200
+    assert response.json()["broker_trading"]["native_approval_required"]
+    assert not response.json()["broker_trading"]["openclaw_may_raise_native_risk"]
+    assert not response.json()["broker_trading"]["chat_order_authority"]
     assert response.json()["authority"] == "read_only"
     assert response.json()["live_execution_enabled"] is False
     assert "fixture-model-key" not in response.text

@@ -9,6 +9,7 @@ import {
 import { useMarket } from "../market/MarketContext";
 import { usePaper } from "./PaperTrading";
 import { allocationPath } from "./CapitalSettings";
+import { WorkflowTabs } from "../ui/WorkflowTabs";
 
 function parameters(f: FormData): StrategyParameters {
   return {
@@ -41,10 +42,10 @@ function Fields({ value }: { value?: StrategyParameters }) {
     <>
       <div className="paper-form-grid">
         {[
-          ["label", "Version label"],
-          ["quantity_step", "Version quantity step"],
-          ["capital_limit", "Version capital limit (account currency)"],
-          ["risk_percent", "Version risk per trade (%)"],
+          ["label", "Version name"],
+          ["quantity_step", "Order size increment"],
+          ["capital_limit", "Capital ceiling (account currency)"],
+          ["risk_percent", "Risk per trade (%)"],
         ].map(([key, label]) => (
           <label key={key}>
             {label}
@@ -53,7 +54,8 @@ function Fields({ value }: { value?: StrategyParameters }) {
               required
               maxLength={80}
               defaultValue={String(
-                value?.[key as keyof StrategyParameters] ?? "",
+                value?.[key as keyof StrategyParameters] ??
+                  (key === "label" ? "Initial" : ""),
               )}
             />
           </label>
@@ -67,17 +69,21 @@ function Fields({ value }: { value?: StrategyParameters }) {
           value={engine}
           onChange={(e) => setEngine(e.target.value)}
         >
-          <option value="manual">Manual proposals</option>
+          <option value="manual">Review each trade manually</option>
           <option value="closed_bar_breakout_v1">
-            Closed-candle breakout · long spot
+            Breakout rules · long only
           </option>
         </select>
       </label>
       {engine === "closed_bar_breakout_v1" && (
-        <>
+        <details className="workflow-advanced">
+          <summary>
+            Breakout rules and exits{" "}
+            <span>Timeframe, filters and profit target</span>
+          </summary>
           <div className="paper-form-grid">
             <label>
-              Rule candle interval
+              Rule timeframe
               <select
                 name="rule_interval"
                 aria-label="Rule candle interval"
@@ -113,7 +119,14 @@ function Fields({ value }: { value?: StrategyParameters }) {
                 100,
                 1,
               ],
-              ["take_profit_r", "Profit target (R)", "2", 1, 100, "any"],
+              [
+                "take_profit_r",
+                "Profit target (times initial risk)",
+                "2",
+                1,
+                100,
+                "any",
+              ],
               [
                 "signal_ttl_seconds",
                 "Signal valid for (seconds)",
@@ -148,7 +161,7 @@ function Fields({ value }: { value?: StrategyParameters }) {
             entry-to-stop distance. One open position per route; evaluate and
             apply actions in Paper trading.
           </p>
-        </>
+        </details>
       )}
       <label>
         Strategy notes
@@ -163,7 +176,7 @@ function Fields({ value }: { value?: StrategyParameters }) {
         />
       </label>
       <label>
-        Version reason
+        Why save this version?
         <input name="reason" required minLength={3} maxLength={500} />
       </label>
     </>
@@ -239,12 +252,14 @@ function VersionCard({ versions }: { versions: StrategyVersion[] }) {
     <article className="paper-card" aria-label={`${head.name} versions`}>
       <div className="paper-card-head">
         <div>
-          <span className="eyebrow">SAVED STRATEGY · PAPER</span>
+          <span className="eyebrow">
+            {head.parameters.rules ? "BREAKOUT RULES" : "MANUAL TRADE REVIEW"}
+          </span>
           <h2>{head.name}</h2>
         </div>
         <span className="badge cyan">Revision {head.revision}</span>
       </div>
-      <p>{head.parameters.description}</p>
+      <p className="strategy-description">{head.parameters.description}</p>
       <p className="muted">
         {head.parameters.label} · {head.parameters.risk_percent}% trade risk ·{" "}
         {head.parameters.capital_limit} · account currency capital limit · step{" "}
@@ -259,6 +274,12 @@ function VersionCard({ versions }: { versions: StrategyVersion[] }) {
           {head.parameters.rules.take_profit_r} R
         </p>
       )}
+      <p className="muted">
+        {state?.deployments.filter((d) =>
+          ordered.some((v) => v.id === d.strategy_revision_id),
+        ).length ?? 0}{" "}
+        paper routes use this strategy.
+      </p>
       <div className="paper-actions">
         <button
           className="secondary small"
@@ -379,9 +400,10 @@ function VersionCard({ versions }: { versions: StrategyVersion[] }) {
     </article>
   );
 }
-export function StrategySettings() {
+export function StrategySettings({ embedded = false }: { embedded?: boolean }) {
   const { state, act, pending } = usePaper();
   const [adding, setAdding] = useState(false);
+  const [search, setSearch] = useState("");
   const grouped = new Map<string, StrategyVersion[]>();
   for (const v of state?.strategy_versions ?? [])
     grouped.set(v.strategy_id, [...(grouped.get(v.strategy_id) ?? []), v]);
@@ -407,24 +429,33 @@ export function StrategySettings() {
       className="paper-account-list"
       aria-label="Strategy versions and routes"
     >
-      <div className="paper-intro">
-        <div>
-          <h2>Strategy versions &amp; routing</h2>
-          <p>
-            Save configuration before deploying it. New versions leave existing
-            routes and positions pinned to their earlier version. Choose manual
-            proposals or executable candle rules, then evaluate deployed rules
-            in Paper trading.
-          </p>
+      {!embedded && (
+        <div className="paper-intro">
+          <div>
+            <h2>Strategy library</h2>
+            <p>
+              Save your idea and rules, then choose a paper account when you are
+              ready to test. Existing routes keep the version they started with.
+            </p>
+          </div>
         </div>
-      </div>
-      <div>
+      )}
+      <div className="workflow-library-tools">
+        <label>
+          Find a strategy
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Name or idea"
+          />
+        </label>
         <button
           className="secondary small"
           disabled={!state || pending}
           onClick={() => setAdding(!adding)}
         >
-          {adding ? "Close strategy version form" : "Add strategy version"}
+          {adding ? "Close strategy form" : "New strategy"}
         </button>
       </div>
       {adding && (
@@ -433,26 +464,150 @@ export function StrategySettings() {
           aria-label="New strategy version"
           onSubmit={create}
         >
-          <h2>New strategy version</h2>
+          <h2>New strategy</h2>
           <fieldset disabled={pending}>
             <label>
-              Registered strategy name
+              Strategy name
               <input name="name" required minLength={3} maxLength={80} />
             </label>
             <Fields />
             <button className="primary small" type="submit">
-              Save strategy version
+              Save strategy
             </button>
           </fieldset>
         </form>
       )}
-      {[...grouped.entries()].map(([id, versions]) => (
-        <VersionCard key={id} versions={versions} />
-      ))}
+      {[...grouped.entries()]
+        .filter(([, versions]) =>
+          versions.some((v) =>
+            `${v.name} ${v.parameters.description}`
+              .toLowerCase()
+              .includes(search.toLowerCase()),
+          ),
+        )
+        .map(([id, versions]) => (
+          <VersionCard key={id} versions={versions} />
+        ))}
       {state && !grouped.size && (
-        <p className="muted">No saved strategy versions yet.</p>
+        <p className="empty-copy">
+          Create a strategy with your idea, trade rules and risk settings. You
+          can also ask OpenClaw to develop a hypothesis and test plan.
+        </p>
       )}
     </section>
+  );
+}
+
+export function StrategiesPage({
+  ask,
+  trading,
+  research,
+}: {
+  ask: (draft: string) => void;
+  trading: () => void;
+  research: () => void;
+}) {
+  const { state, error, notice } = usePaper();
+  const market = useMarket();
+  const [tab, setTab] = useState("library");
+  const count = new Set(state?.strategy_versions.map((v) => v.strategy_id))
+    .size;
+  return (
+    <div className="page-scroll workflow-page">
+      <div className="page-heading">
+        <div>
+          <span className="eyebrow">IDEA → RULES → EVIDENCE</span>
+          <h1>Strategies</h1>
+          <p>
+            Develop an idea, save its rules, and test it before changing a
+            trading route.
+          </p>
+        </div>
+        <button
+          className="secondary"
+          onClick={() =>
+            ask(
+              "Review my strategy library like a quant researcher. Identify weak assumptions, propose one testable improvement with a simple baseline and realistic costs, and save a research note. Keep deployed versions and risk limits unchanged.",
+            )
+          }
+        >
+          Ask OpenClaw
+        </button>
+      </div>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      {notice && (
+        <p className="settings-success" role="status">
+          {notice}
+        </p>
+      )}
+      <WorkflowTabs
+        label="Strategy views"
+        value={tab}
+        select={setTab}
+        options={[
+          { id: "library", label: "Strategy library", count },
+          {
+            id: "routes",
+            label: "Paper routes",
+            count: state?.deployments.length,
+          },
+        ]}
+      />
+      <section
+        role="tabpanel"
+        id={`workflow-panel-${tab}`}
+        aria-labelledby={`workflow-${tab}`}
+      >
+        {tab === "library" ? (
+          <StrategySettings embedded />
+        ) : (
+          <div className="paper-account-list">
+            <div className="workflow-route-intro">
+              <p>
+                Each route ties a saved version to a market and a paper account.
+              </p>
+              <button className="secondary small" onClick={trading}>
+                Open paper trading
+              </button>
+            </div>
+            {state?.deployments.map((d) => (
+              <article className="paper-card" key={d.id}>
+                <h2>{d.strategy}</h2>
+                <p>
+                  {market.instruments.find((i) => i.id === d.instrument_id)
+                    ?.symbol ?? d.instrument_id.split(":").at(-1)}{" "}
+                  ·{" "}
+                  {state.accounts.find((a) => a.id === d.account_id)?.name ??
+                    "Paper account"}{" "}
+                  · {d.strategy_version}
+                </p>
+                <DeploymentControls deployment={d} />
+              </article>
+            ))}
+            {state && !state.deployments.length && (
+              <p className="empty-copy">
+                No paper routes yet. Choose a saved strategy in the library,
+                then select an account and allocation.
+              </p>
+            )}
+          </div>
+        )}
+      </section>
+      <div className="workflow-next-step">
+        <span>Have an idea ready to test?</span>
+        <button className="text-button" onClick={research}>
+          Open research &amp; backtests
+        </button>
+      </div>
+      <p className="workflow-authority">
+        New versions leave existing routes unchanged. Tauric evidence and
+        approvals are required wherever the trading policy calls for them.
+      </p>
+    </div>
   );
 }
 export function DeploymentControls({

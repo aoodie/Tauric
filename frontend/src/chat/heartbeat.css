@@ -1,0 +1,61 @@
+.heartbeat-panel {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  padding: 16px;
+  margin: 0 0 16px;
+  border-radius: 5px;
+}
+.heartbeat-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.heartbeat-heading h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 15px;
+}
+.heartbeat-panel p {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 8px 0;
+}
+.heartbeat-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 24px;
+  margin: 16px 0;
+}
+.heartbeat-details dt {
+  color: var(--muted);
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+.heartbeat-details dd {
+  margin: 0;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.heartbeat-panel .heartbeat-scope {
+  font-size: 11px;
+  margin-bottom: 0;
+}
+.statusbar .heartbeat-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+@media (max-width: 600px) {
+  .heartbeat-details {
+    grid-template-columns: 1fr;
+  }
+}

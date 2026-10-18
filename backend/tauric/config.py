@@ -27,6 +27,12 @@ class RuntimeConfig(BaseSettings):
     runtime_directory: str = "/tmp/tauric-runtime"
     analysis_timeout_seconds: int = Field(default=1200, ge=30, le=7200)
     governance_url: str = "http://openclaw:18789"
+    memory_private_file: str = "/run/tauric/memory-private.json"
+    knowledge_vault_directory: str = "/data/knowledge"
+    knowledge_vault_display: str = ""
+    engineering_spool_directory: str = "/run/tauric-engineering"
+    engineering_public_key_file: str = "/run/tauric-engineering/public/public.pem"
+    release_spool_directory: str = "/run/tauric-release"
 
     @model_validator(mode="after")
     def private_database_password(self):
@@ -41,7 +47,7 @@ class RuntimeConfig(BaseSettings):
         return self
 
 
-SCHEMA_REVISION = "0029_market_intelligence"
+SCHEMA_REVISION = "0036_agent_tasks"
 
 
 @lru_cache

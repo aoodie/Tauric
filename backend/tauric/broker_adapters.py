@@ -1,4 +1,4 @@
-"""Fixed-host demo broker adapters. No retries or real-money endpoint exists here.
+"""Fixed-host demo and governed live broker adapters, without mutation retries.
 
 The platform must durably commit the intent/client ID before calling submit.
 Unknown submission/cancellation outcomes require reconciliation, never re-submit.
@@ -53,7 +53,7 @@ def identifier(value):
 
 
 def symbol(value, provider):
-    pattern = r"[A-Z]{3}_[A-Z]{3}" if provider == "oanda" else r"[A-Z][A-Z0-9.-]{0,31}"
+    pattern = r"[A-Z0-9]{1,20}_[A-Z]{3}" if provider == "oanda" else r"[A-Z][A-Z0-9.-]{0,31}"
     if not isinstance(value, str) or not re.fullmatch(pattern, value):
         raise BrokerError("This broker instrument symbol is unsupported.")
     return value
@@ -114,7 +114,9 @@ class DemoBroker:
         if response.status_code == 404 and missing:
             raise BrokerError("The broker order was not found.", not_found=True)
         if response.status_code in (401, 403):
-            raise BrokerError("Check the demo broker credentials and account permissions.")
+            raise BrokerError(
+                "Check the broker credentials and account permissions.", not_submitted=mutation
+            )
         if response.status_code == 429:
             raise BrokerError("The demo broker rate limit was reached.", unknown=mutation)
         if response.status_code >= 500 or 300 <= response.status_code < 400:
@@ -160,6 +162,7 @@ class DemoBroker:
 
 class OandaPractice(DemoBroker):
     provider = "oanda"
+    environment = "practice"
     base_url = "https://api-fxpractice.oanda.com"
 
     def guard(self):
@@ -184,7 +187,7 @@ class OandaPractice(DemoBroker):
             # MT4-linked accounts cannot use the client correlation extension.
             return BrokerAccountView(
                 provider=self.provider,
-                environment="practice",
+                environment=self.environment,
                 account_fingerprint=hashlib.sha256(data["id"].encode()).hexdigest(),
                 currency=data["currency"],
                 cash=amount(data["balance"]),
@@ -193,6 +196,13 @@ class OandaPractice(DemoBroker):
                 trading_enabled=not bool(data.get("mt4AccountID")),
                 open_positions=int(data["openPositionCount"]),
                 pending_orders=int(data["pendingOrderCount"]),
+                realized_pnl_home=amount(data["pl"]) if data.get("pl") is not None else None,
+                fees_home=amount(data["commission"])
+                if data.get("commission") is not None
+                else None,
+                financing_home=amount(data["financing"])
+                if data.get("financing") is not None
+                else None,
                 observed_at=now(),
             )
         except (KeyError, ValueError, TypeError, AttributeError, ArithmeticError):
@@ -205,10 +215,11 @@ class OandaPractice(DemoBroker):
                 "instruments"
             ]
             row = next(r for r in rows if r["name"] == name)
-            if row["type"] != "CURRENCY":
-                raise ValueError("Only currency pairs are supported")
+            if row["type"] not in {"CURRENCY", "METAL", "CFD"}:
+                raise ValueError("Unknown OANDA product type")
             return BrokerInstrumentView(
                 symbol=name,
+                product_type=row["type"],
                 tradable=True,
                 quantity_step=format(Decimal(10) ** -int(row["tradeUnitsPrecision"]), "f"),
                 minimum_quantity=amount(row["minimumTradeSize"], nonnegative=True),
@@ -501,6 +512,7 @@ class OandaPractice(DemoBroker):
 
 class AlpacaPaper(DemoBroker):
     provider = "alpaca"
+    environment = "paper"
     base_url = "https://paper-api.alpaca.markets"
 
     def guard(self):
@@ -520,7 +532,7 @@ class AlpacaPaper(DemoBroker):
             row = self.request("GET", "/v2/account")
             return BrokerAccountView(
                 provider=self.provider,
-                environment="paper",
+                environment=self.environment,
                 account_fingerprint=hashlib.sha256(row["id"].encode()).hexdigest(),
                 currency=row["currency"],
                 cash=amount(row["cash"]),
@@ -704,7 +716,50 @@ class AlpacaPaper(DemoBroker):
         return self.order(client_id)
 
 
+class LiveEntryGuard:
+    def submit(self, order):
+        if order.position_effect == "open" and (not self.before_mutation or not order.stop_loss):
+            raise BrokerError(
+                "Live entries require current native/OpenClaw authority and a protective stop.",
+                not_submitted=True,
+            )
+        return super().submit(order)
+
+
+class OandaLive(LiveEntryGuard, OandaPractice):
+    environment = "live"
+    base_url = "https://api-fxtrade.oanda.com"
+
+    def guard(self):
+        if self.config.environment != "live":
+            raise BrokerError("OANDA live adapter requires an explicit live connection.")
+        if not self.config.token.get_secret_value() or not re.fullmatch(
+            r"[0-9]+(?:-[0-9]+)*", self.config.account_id
+        ):
+            raise BrokerError("Save a valid OANDA live token and account ID first.")
+
+
+class AlpacaLive(LiveEntryGuard, AlpacaPaper):
+    environment = "live"
+    base_url = "https://api.alpaca.markets"
+
+    def guard(self):
+        if self.config.environment != "live":
+            raise BrokerError("Alpaca live adapter requires an explicit live connection.")
+        if not self.config.key.get_secret_value() or not self.config.secret.get_secret_value():
+            raise BrokerError("Save a valid Alpaca live key and secret first.")
+
+
 def adapter(provider, config, **kwargs):
     if provider not in ("oanda", "alpaca"):
         raise BrokerError("This demo broker is unsupported.")
-    return (OandaPractice if provider == "oanda" else AlpacaPaper)(config, **kwargs)
+    kinds = {
+        ("oanda", "practice"): OandaPractice,
+        ("oanda", "live"): OandaLive,
+        ("alpaca", "paper"): AlpacaPaper,
+        ("alpaca", "live"): AlpacaLive,
+    }
+    kind = kinds.get((provider, config.environment))
+    if not kind:
+        raise BrokerError("This broker environment is unsupported.")
+    return kind(config, **kwargs)

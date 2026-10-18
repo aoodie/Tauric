@@ -11,10 +11,85 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
+from urllib.parse import quote
 from uuid import uuid4
 
 import server
 import server_soak
+
+
+def redact_diagnostics(diagnostics, private, password=None):
+    values = {password} if password else set()
+
+    def collect(value, sensitive=False):
+        if isinstance(value, str) and value and (sensitive or len(value) >= 12):
+            values.add(value)
+        elif isinstance(value, dict):
+            for key, item in value.items():
+                collect(
+                    item,
+                    any(
+                        word in key.lower()
+                        for word in (
+                            "password",
+                            "token",
+                            "secret",
+                            "key",
+                            "authorization",
+                        )
+                    ),
+                )
+        elif isinstance(value, list):
+            for item in value:
+                collect(item, sensitive)
+
+    for path in private.iterdir():
+        if path.is_file():
+            value = path.read_text().strip()
+            if value:
+                values.add(value)
+                try:
+                    collect(json.loads(value))
+                except json.JSONDecodeError:
+                    pass
+    for value in sorted(values, key=len, reverse=True):
+        diagnostics = diagnostics.replace(quote(value, safe=""), "[private]")
+        diagnostics = diagnostics.replace(value, "[private]")
+    return diagnostics
+
+
+def health_diagnostics(compose):
+    container_ids = (
+        subprocess.run(
+            compose + ["ps", "--all", "--quiet"],
+            capture_output=True,
+            check=False,
+            timeout=20,
+        )
+        .stdout.decode()
+        .split()
+    )
+    if not container_ids:
+        return ""
+    output = subprocess.run(
+        [
+            "docker",
+            "inspect",
+            "--format",
+            "{{.Name}} health={{json .State.Health}} oom={{json .State.OOMKilled}} memory={{.HostConfig.Memory}}",
+            *container_ids,
+        ],
+        capture_output=True,
+        check=False,
+        timeout=20,
+    ).stdout.decode(errors="replace")
+    output += "\n" + subprocess.run(
+        ["docker", "stats", "--no-stream", "--format", "{{json .}}", *container_ids],
+        capture_output=True,
+        check=False,
+        timeout=20,
+    ).stdout.decode(errors="replace")
+    return output
 
 
 def request(opener, origin, path, body=None, method="GET", csrf=None, expected=200):
@@ -45,7 +120,7 @@ def request(opener, origin, path, body=None, method="GET", csrf=None, expected=2
     )
 
 
-def rehearse(images, output, local=False, ai=True):
+def rehearse(images, output, local=False, ai=True, emit_failure_diagnostics=False):
     token = uuid4().hex[:12]
     project = "tauric_release_" + token
     restored_project = "tauric_restore_" + token
@@ -66,11 +141,25 @@ def rehearse(images, output, local=False, ai=True):
         if ai:
             compose += ["--profile", "analysis", "--profile", "governance"]
         recovery_compose = None
+        startup_diagnostics = ""
+        password = None
         try:
-            server.run(
+            startup = subprocess.run(
                 compose + ["up", "-d", "--wait", "--wait-timeout", "240"],
-                stdout=subprocess.PIPE,
+                capture_output=True,
+                check=False,
             )
+            startup_diagnostics = (startup.stdout + startup.stderr).decode(
+                errors="replace"
+            )
+            if startup.returncode:
+                raise RuntimeError(
+                    "Release startup failed; redacted diagnostics saved."
+                )
+            if emit_failure_diagnostics:
+                result["startup_readiness_diagnostics"] = redact_diagnostics(
+                    health_diagnostics(compose), state / "secrets"
+                )
             result["fresh_install_ready"] = True
             server.run(
                 compose
@@ -110,6 +199,42 @@ def rehearse(images, output, local=False, ai=True):
                 "POST",
             )
             csrf = session["csrf_token"]
+            if ai:
+                saved_chat = request(
+                    opener,
+                    origin,
+                    "/api/v1/chat/settings",
+                    {
+                        "expected_revision": 0,
+                        "profile": "local",
+                        "daily_research_allowance": 0,
+                        **{
+                            channel: {
+                                "enabled": False,
+                                "owner_id": "",
+                                "token_action": "clear",
+                                "token": "",
+                            }
+                            for channel in ("telegram", "discord")
+                        },
+                    },
+                    "PUT",
+                    csrf,
+                )
+                assert saved_chat["revision"] == 1
+                server.run(
+                    compose
+                    + [
+                        "exec",
+                        "-T",
+                        "agent_tasks",
+                        "python",
+                        "-c",
+                        "from sqlalchemy import select; from sqlalchemy.orm import Session; from tauric.database import engine; from tauric.models import Owner; from tauric import chat; db=Session(engine()); owner=db.scalar(select(Owner)); value,revision=chat.load_config(db); assert revision==1 and value.daily_research_allowance==0; assert chat.config_view(db,owner).storage_ready; db.close()",
+                    ],
+                    stdout=subprocess.PIPE,
+                )
+                result["supervisor_saved_chat_configuration"] = True
             changed = request(
                 opener,
                 origin,
@@ -210,21 +335,45 @@ def rehearse(images, output, local=False, ai=True):
                 connected_automatic_cycle_verified=False,
                 production_acceptance_complete=False,
             )
-        except Exception:
-            diagnostics = subprocess.run(
-                compose + ["logs", "--no-color", "--tail", "50"],
+        except Exception as error:
+            diagnostics = (
+                startup_diagnostics
+                + "\n"
+                + getattr(error, "diagnostics", "")
+                + "\n"
+                + subprocess.run(
+                    compose + ["logs", "--no-color", "--tail", "50"],
+                    capture_output=True,
+                    check=False,
+                ).stdout.decode(errors="replace")
+            )
+            diagnostics += "\n" + subprocess.run(
+                compose + ["ps", "--all", "--format", "json"],
                 capture_output=True,
                 check=False,
             ).stdout.decode(errors="replace")
-            for path in (state / "secrets").iterdir():
-                if path.is_file():
-                    diagnostics = diagnostics.replace(
-                        path.read_text().strip(), "[private]"
-                    )
+            try:
+                diagnostics += "\n" + health_diagnostics(compose)
+            except subprocess.TimeoutExpired:
+                diagnostics += "\nReadiness diagnostics timed out."
+            if (recovered / "server.env").exists():
+                recovered_compose = server.command(recovered, restored_project) + [
+                    "--profile",
+                    "*",
+                ]
+                diagnostics += "\nRestoration project:\n" + subprocess.run(
+                    recovered_compose + ["logs", "--no-color", "--tail", "50"],
+                    capture_output=True,
+                    check=False,
+                    timeout=20,
+                ).stdout.decode(errors="replace")
+            diagnostics = redact_diagnostics(diagnostics, state / "secrets", password)
             output.parent.mkdir(parents=True, exist_ok=True)
             failure = output.with_suffix(".failure.log")
             failure.write_text(diagnostics)
             failure.chmod(0o600)
+            if emit_failure_diagnostics:
+                print("Redacted disposable release diagnostics:\n" + diagnostics)
             raise
         finally:
             # These names are random and created by this invocation, never the
@@ -255,10 +404,17 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--local-images", action="store_true")
     parser.add_argument("--skip-ai", action="store_true")
+    parser.add_argument("--emit-failure-diagnostics", action="store_true")
     args = parser.parse_args()
     print(
         json.dumps(
-            rehearse(args.images, args.output, args.local_images, not args.skip_ai),
+            rehearse(
+                args.images,
+                args.output,
+                args.local_images,
+                not args.skip_ai,
+                args.emit_failure_diagnostics,
+            ),
             indent=2,
         )
     )

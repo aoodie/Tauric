@@ -363,7 +363,7 @@ export function PortfolioResearch({
                     }
                   />
                   {p.name} · revision {p.revision} ·{" "}
-                  {p.parameters.universe.join(", ")}
+                  {(p.parameters.universe ?? []).join(", ")}
                   {!p.parameters.enabled && " · paused"}
                 </label>
               ))

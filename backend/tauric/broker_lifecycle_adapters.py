@@ -35,6 +35,7 @@ def oanda_trade(broker, trade_id):
                         status=protection["state"].lower(),
                         filled_quantity="0",
                         price=protection.get("price"),
+                        remaining_quantity=amount(abs(remaining)),
                     )
                 )
         exits = []
@@ -131,6 +132,21 @@ def alpaca_order_id(broker, order_id):
     return broker.view_order(row), row
 
 
+def alpaca_protection_status(order):
+    # Held bracket legs are conditional, not active stops. Pending changes also
+    # cannot prove continued coverage, even when the generic order is pending.
+    if order.broker_status in {"held", "done_for_day"}:
+        return "inactive"
+    if order.status not in {
+        "filled",
+        "cancelled",
+        "rejected",
+        "expired",
+    } and order.broker_status not in {"new", "accepted", "partially_filled"}:
+        return "unknown"
+    return order.status
+
+
 def alpaca_children(broker, entry):
     parent, raw = alpaca_order_id(broker, entry.broker_order_id)
     if (
@@ -160,15 +176,107 @@ def alpaca_children(broker, entry):
                 BrokerProtectionView(
                     broker_order_id=order.broker_order_id,
                     kind=kind,
-                    status=order.status,
+                    status=alpaca_protection_status(order),
                     filled_quantity=order.filled_quantity,
                     price=row.get("stop_price") or row.get("limit_price"),
+                    remaining_quantity=amount(
+                        Decimal(order.requested_quantity) - Decimal(order.filled_quantity)
+                    ),
                 ),
             )
         )
     if len({order.broker_order_id for order, _ in result}) != len(result):
         raise BrokerError("The broker returned duplicate protective orders.")
     return result
+
+
+def alpaca_replacement(broker, submission):
+    """Read a durably recorded reducing protection, including its OCO stop leg."""
+    order = broker.order(submission["client_order_id"])
+    parent, raw = alpaca_order_id(broker, order.broker_order_id)
+    if (
+        parent.client_order_id != submission["client_order_id"]
+        or parent.symbol != submission["symbol"]
+        or parent.side != submission["side"]
+        or Decimal(parent.requested_quantity) != Decimal(submission["quantity"])
+    ):
+        raise BrokerError("Replacement protection differs from its durable authority.")
+    legs = raw.get("legs") or []
+    if not isinstance(legs, list) or len(legs) > 1:
+        raise BrokerError("Replacement protection has an unsupported structure.")
+    result = []
+    for record in [raw, *legs]:
+        item = broker.view_order(record)
+        kind = (
+            "stop_loss"
+            if record.get("type") == "stop"
+            else "take_profit"
+            if record.get("type") == "limit"
+            else "other"
+        )
+        price = record.get("stop_price") if kind == "stop_loss" else record.get("limit_price")
+        expected = submission.get(kind)
+        if (
+            item.symbol != parent.symbol
+            or item.side != parent.side
+            or kind == "other"
+            or not expected
+            or not price
+            or Decimal(price) != Decimal(expected)
+            or Decimal(item.requested_quantity) > Decimal(submission["quantity"])
+        ):
+            raise BrokerError(
+                "Replacement protection prices, side or quantity could not be verified."
+            )
+        result.append(
+            (
+                item,
+                BrokerProtectionView(
+                    broker_order_id=item.broker_order_id,
+                    kind=kind,
+                    status=alpaca_protection_status(item),
+                    filled_quantity=item.filled_quantity,
+                    price=price,
+                    remaining_quantity=amount(
+                        Decimal(item.requested_quantity) - Decimal(item.filled_quantity)
+                    ),
+                ),
+            )
+        )
+    if len({item.broker_order_id for item, _ in result}) != len(result):
+        raise BrokerError("Replacement protection contains duplicate orders.")
+    if {p.kind for _, p in result} != {
+        k for k in ("stop_loss", "take_profit") if submission.get(k)
+    }:
+        raise BrokerError("Replacement protection is missing a requested leg.")
+    return result
+
+
+def alpaca_protect(broker, submission):
+    """Submit only the recorded remainder, with an at-most-once client identifier."""
+    body = {
+        "client_order_id": submission["client_order_id"],
+        "symbol": submission["symbol"],
+        "side": submission["side"],
+        "qty": submission["quantity"],
+        "time_in_force": "gtc",
+    }
+    stop, target = submission.get("stop_loss"), submission.get("take_profit")
+    if stop and target:
+        body.update(
+            type="limit",
+            order_class="oco",
+            take_profit={"limit_price": target},
+            stop_loss={"stop_price": stop},
+        )
+    elif stop:
+        body.update(type="stop", stop_price=stop)
+    elif target:
+        body.update(type="limit", limit_price=target)
+    else:
+        raise BrokerError("Replacement protection requires a saved stop or target.")
+    broker.request("POST", "/v2/orders", body=body)
+    return alpaca_replacement(broker, submission)
 
 
 def alpaca_fills(broker, order):

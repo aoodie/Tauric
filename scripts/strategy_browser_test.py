@@ -26,19 +26,20 @@ with sync_playwright() as p:
         has=page.get_by_role("heading", name="Browser paper", exact=True)
     )
     account.get_by_role("button", name="Resume paper entries", exact=True).click()
-    page.get_by_role("button", name="Add strategy version", exact=True).click()
+    page.get_by_role("button", name="Strategies", exact=True).click()
+    page.get_by_role("button", name="New strategy", exact=True).click()
     form = page.get_by_role("form", name="New strategy version", exact=True)
     for label, value in {
-        "Registered strategy name": "Browser registered",
-        "Version label": "v1",
-        "Version quantity step": "0.00001",
-        "Version capital limit (USDT)": "5000",
-        "Version risk per trade (%)": "1",
+        "Strategy name": "Browser registered",
+        "Version name": "v1",
+        "Order size increment": "0.00001",
+        "Capital ceiling (account currency)": "5000",
+        "Risk per trade (%)": "1",
         "Strategy notes": "Browser original strategy notes. Explicit long spot proposals only.",
-        "Version reason": "Save browser immutable first version",
+        "Why save this version?": "Save browser immutable first version",
     }.items():
         form.get_by_label(label, exact=True).fill(value)
-    form.get_by_role("button", name="Save strategy version", exact=True).click()
+    form.get_by_role("button", name="Save strategy", exact=True).click()
     card = page.get_by_role("article", name="Browser registered versions", exact=True)
     expect(card.get_by_text("Revision 1", exact=True)).to_be_visible()
     card.get_by_role("button", name="Deploy saved version", exact=True).click()
@@ -61,12 +62,12 @@ with sync_playwright() as p:
     )
     card.get_by_role("button", name="Create new version", exact=True).click()
     form = card.get_by_role("form", name="Browser registered new version", exact=True)
-    form.get_by_label("Version label", exact=True).fill("v2")
-    form.get_by_label("Version risk per trade (%)", exact=True).fill("0.25")
+    form.get_by_label("Version name", exact=True).fill("v2")
+    form.get_by_label("Risk per trade (%)", exact=True).fill("0.25")
     form.get_by_label("Strategy notes", exact=True).fill(
         "Browser revised notes for a lower risk version."
     )
-    form.get_by_label("Version reason", exact=True).fill(
+    form.get_by_label("Why save this version?", exact=True).fill(
         "Prepare lower risk without changing the route"
     )
     form.get_by_role("button", name="Save new version", exact=True).click()
@@ -82,7 +83,7 @@ with sync_playwright() as p:
     results.append(
         "A new version preserves the earlier deployment and complete history"
     )
-    page.get_by_role("button", name="Paper trading", exact=True).click()
+    page.get_by_role("button", name="Trading", exact=True).click()
     form = page.get_by_role("form", name="Paper proposal", exact=True)
     form.get_by_label("Paper strategy", exact=True).select_option(deployment["id"])
     quote = page.evaluate(
@@ -134,7 +135,7 @@ with sync_playwright() as p:
     expect(
         route.get_by_role("button", name="Resume strategy route", exact=True)
     ).to_be_visible()
-    page.get_by_role("button", name="Paper trading", exact=True).click()
+    page.get_by_role("button", name="Trading", exact=True).click()
     page.get_by_role("button", name="Close paper position", exact=True).click()
     expect(page.get_by_role("status")).to_contain_text("Paper position closed")
     exit_lineage = page.evaluate(

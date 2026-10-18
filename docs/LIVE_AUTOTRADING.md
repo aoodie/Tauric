@@ -1,0 +1,31 @@
+# Governed automatic trading
+
+The [8 October acceptance plan](ACCEPTANCE_PLAN.md) records the pinned deployment baseline, first frozen EUR/USD trial and the sequence for operational monitoring and prospective registration. Research evidence, prospective results and connected lifecycle acceptance remain distinct gates.
+
+Tauric supports OANDA Forex and Alpaca stock/ETF execution through separate demo and live adapters. Live credentials alone never enable entries. Every live entry requires an enabled policy bound to passing prospective evidence, the exact saved strategy and instrument, an affirmative native Tauric setup assessment, an immutable OpenClaw allow, current account/quote checks and a protective stop.
+
+Tauric is the mandatory risk authority. It assesses the proposed quantity, all broker holdings and the current marked portfolio. OpenClaw may veto, defer or reduce an approved quantity using a decimal `risk_scale` in `(0,1]`. The platform rounds reductions down to broker increments. Neither model has an order tool. Changing strategy, instrument, protection, account or increasing risk requires fresh native evidence and applicable validation. Unknown submissions are reconciled by their existing identifiers and never repeated.
+
+## Portfolio and protection
+
+Trading → Portfolio and live trading shows simulated and broker accounts separately, with account currency, cash, equity, gross exposure, realized/open P&L, available cost breakdowns, position marks, external holdings and Forex currency legs. Missing or stale marks prevent a complete valuation. Unavailable broker fee details remain unavailable rather than being reported as zero. Broker NAV is authoritative; simulated equity is cash plus marked positions less accrued financing. Drawdown is measured from observed valuations and cannot describe unobserved prices. Deposits, withdrawals, dividends and tax-lot returns are not inferred as strategy performance.
+
+The independent valuation service observes accounts each minute. Live entry checks require a complete observation no older than two minutes, no unresolved entries/closes and recently reconciled stop coverage for existing attributed positions. Held or uncertain Alpaca stops never count as active coverage. Pausing entries preserves protection, position reconciliation and attributed exits. Switching accounts or clearing credentials is blocked while orders or attributed positions remain unresolved. Credentials can be rotated only after verifying they identify every outstanding entry's original account.
+
+An Alpaca partial close cancels existing exit orders, records the close before submission and restores broker-held protection only for the attributed remainder. Completion waits for broker confirmation of every requested protection leg. A lost response triggers reconciliation, never a repeated submission. A confirmed rejected/cancelled replacement can be repaired through the journal's recovery action; uncertain or active replacements cannot be duplicated. External shares are never added to the close or replacement quantity. OANDA closes retain trade-specific stop attribution.
+
+## Prospective validation and activation
+
+1. Save executable rules and complete research qualification for the same strategy version and instrument, including the appropriate asset costs and data semantics.
+2. Use an empty, dedicated OANDA practice or Alpaca paper account with no pending orders. Register forward validation before observing outcomes. The registration freezes strategy checksum, execution source, account identity, starting equity, account history checkpoint, risk ceiling and acceptance thresholds.
+3. Enable a demo strategy route. Actual entries still require both native Tauric and OpenClaw review. Keep both observation services running. The forward-validation worker evaluates registered runs every fifteen minutes; the trading screen also offers an explicit evaluation action.
+4. A report passes only when all frozen criteria pass: elapsed prospective days, enough complete trades, clean account activity and costs, positive net NAV change above the selected threshold, observed drawdown, continuous valuations, latency, adverse slippage and matching earlier research qualification. Unrelated activity, cash transfers, unresolved positions, changed execution source/account and missing evidence prevent promotion. Defaults of 14 days and 20 trades are editable registration inputs, not proof of statistical sufficiency or live profitability.
+5. Once evidence passes, select the intended live account and enter credentials in Settings → Market connections. Check that account, then use Activate live trading on its passed report. Evidence must be current for activation. Save/enable a matching automatic route within its validated risk ceiling: the lesser of its frozen ceiling and largest observed approved stop risk. An unused larger ceiling does not qualify. Direct manual live entry requests are rejected.
+
+Live promotion does not establish live liquidity, market impact, latency or future returns. Alpaca's paper environment has documented execution limitations, and non-trade account fees can be posted after the trade date. A target-host rehearsal, sustained representative operation and actual prospective strategy evidence remain deployment acceptance work. Historical or synthetic test fixtures cannot satisfy an owner's prospective run.
+
+## Operations
+
+Migration `0032_live_readiness` adds immutable portfolio/protocol/report evidence and database guards for live policies, native approval and reduced sizing. Backup before upgrade. Development and server Compose include independent valuation and forward-validation services. Readiness and registration endpoints require owner authentication and CSRF protection; they accept thresholds and actions, never client-supplied performance results. Broker and model credentials stay encrypted in Settings.
+
+Relevant provider semantics: [OANDA stop-order triggers](https://developer.oanda.com/rest-live-v20/order-df/), [Alpaca bracket/OCO orders](https://docs.alpaca.markets/us/docs/orders-at-alpaca), [Alpaca account activity and fee timing](https://docs.alpaca.markets/us/reference/getaccountactivities-2), [Alpaca paper limitations](https://docs.alpaca.markets/us/docs/paper-trading).

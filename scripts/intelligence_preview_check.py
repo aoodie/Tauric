@@ -115,6 +115,8 @@ def main():
         "intelligence_contracts.py",
         "intelligence_models.py",
         "intelligence_sources.py",
+        "intelligence_catalog.py",
+        "intelligence_prices.py",
     }
     other_changes = {}
     for service in backend_services:
@@ -145,7 +147,7 @@ def main():
                     (ROOT / "frontend/dist" / asset.lstrip("/")).read_bytes()
                 ).digest()
             )
-    code = "import json;from tauric.app import app;print(json.dumps(all(p in app.openapi()['paths'] for p in ['/api/v1/intelligence','/api/v1/intelligence/refresh','/api/v1/intelligence/watchlist','/api/v1/intelligence/receipts/{receipt_id}','/api/v1/intelligence/reports/{instrument_id}'])))"
+    code = "import json;from tauric.app import app;print(json.dumps(all(p in app.openapi()['paths'] for p in ['/api/v1/intelligence','/api/v1/intelligence/catalogs/refresh','/api/v1/intelligence/register','/api/v1/intelligence/refresh','/api/v1/intelligence/watchlist','/api/v1/intelligence/receipts/{receipt_id}','/api/v1/intelligence/reports/{instrument_id}'])))"
     assert run("api", code), "Intelligence routes missing."
     report = {
         "health": health,

@@ -12,9 +12,15 @@ from .chat_contracts import (
     ChatTurnView,
     ConversationView,
 )
+from .heartbeat_status import HeartbeatStatus, read_status
 from .models import ChatTurn
 
 router = APIRouter(prefix="/api/v1/chat")
+
+
+@router.get("/heartbeat", response_model=HeartbeatStatus)
+def heartbeat(owner: CurrentOwner):
+    return read_status()
 
 
 @router.get("/settings", response_model=ChatConfigView)

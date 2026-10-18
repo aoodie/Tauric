@@ -1,8 +1,17 @@
 import {
   ScannerProvider,
-  ScannerSettings,
   ScannerPanel,
+  ScannerWorkspace,
 } from "./scanner/Scanner";
+import { StrategiesPage } from "./trading/StrategySettings";
+import { TraderDashboard } from "./scanner/TraderDashboard";
+import { OpenClawActivity } from "./chat/ActivityFeed";
+import {
+  HeartbeatPanel,
+  heartbeatLabel,
+  useHeartbeatStatus,
+} from "./chat/HeartbeatStatus";
+import { BrokerModeBadge } from "./trading/LiveTrading";
 import {
   PaperProvider,
   TradingSettings,
@@ -23,6 +32,7 @@ import {
 import { ChatConnections, OpenClawChat } from "./chat/Chat";
 import { PortfolioSettings } from "./chat/PortfolioSettings";
 import { ResearchPage } from "./research/Research";
+import { KnowledgePage } from "./knowledge/Knowledge";
 import { MarketIntelligence } from "./intelligence/MarketIntelligence";
 import { NativeReportReader } from "./research/NativeReport";
 import {
@@ -98,6 +108,7 @@ const PANELS: Record<string, { label: string; icon: LucideIcon }> = {
   scanner: { label: "Scanner", icon: Radar },
   tauric: { label: "Tauric analysis", icon: Sparkles },
   openclaw: { label: "OpenClaw governance", icon: ShieldCheck },
+  openclaw_activity: { label: "OpenClaw activity", icon: Activity },
   positions: { label: "Positions", icon: Boxes },
   orders: { label: "Orders", icon: ArrowDownToLine },
   journal: { label: "Journal", icon: BookOpen },
@@ -658,6 +669,8 @@ function SettingsPage({
   section,
   selectSection,
   passwordChanged,
+  scanners,
+  strategies,
 }: {
   settings: Setting[];
   changed: () => Promise<void>;
@@ -665,6 +678,8 @@ function SettingsPage({
   section: string;
   selectSection: (section: string) => void;
   passwordChanged: () => void;
+  scanners: () => void;
+  strategies: () => void;
   open: (type: string, id: string) => void;
 }) {
   return (
@@ -766,10 +781,21 @@ function SettingsPage({
         ) : section === "trading" ? (
           <>
             <PortfolioSettings open={open} />
-            <TradingSettings />
+            <TradingSettings strategies={strategies} />
           </>
         ) : section === "scanners" ? (
-          <ScannerSettings />
+          <div className="paper-intro">
+            <div>
+              <h2>Scanner setup</h2>
+              <p>
+                Manage your saved scans and opportunities from the Scanners
+                page.
+              </p>
+              <button className="secondary" onClick={scanners}>
+                Open scanners
+              </button>
+            </div>
+          </div>
         ) : section === "chat" ? (
           <ChatConnections />
         ) : section === "security" ? (
@@ -1143,6 +1169,27 @@ function Clock({ timezone }: { timezone: string }) {
   );
 }
 
+function pageFromUrl() {
+  const view = new URLSearchParams(location.search).get("view");
+  return view &&
+    [
+      "workspace",
+      "intelligence",
+      "scanners",
+      "trader",
+      "strategies",
+      "paper",
+      "research",
+      "knowledge",
+      "chat",
+      "audit",
+      "settings",
+      "system",
+    ].includes(view)
+    ? view
+    : "workspace";
+}
+
 function Workstation({
   session,
   signedOut,
@@ -1155,10 +1202,7 @@ function Workstation({
   const [page, setPage] = useState(() =>
     new URLSearchParams(window.location.search).has("tradingview")
       ? "settings"
-      : new URLSearchParams(window.location.search).get("view") ===
-          "intelligence"
-        ? "intelligence"
-        : "workspace",
+      : pageFromUrl(),
   );
   const [settingsSection, setSettingsSection] = useState(() =>
     new URLSearchParams(window.location.search).has("tradingview")
@@ -1167,13 +1211,43 @@ function Workstation({
   );
   const [settings, setSettings] = useState<Setting[]>([]);
   const [chatDraft, setChatDraft] = useState("");
+  const heartbeat = useHeartbeatStatus();
+  const [chatConnection, setChatConnection] =
+    useState<Awaited<ReturnType<typeof api.chatSettings>>>();
+  const [brokerConnections, setBrokerConnections] =
+    useState<Awaited<ReturnType<typeof api.marketConnections>>>();
+  const [brokerChecks, setBrokerChecks] = useState<
+    Record<string, Awaited<ReturnType<typeof api.checkBroker>>>
+  >({});
+  const [brokerStatusError, setBrokerStatusError] = useState("");
+  const [tradingStatus, setTradingStatus] =
+    useState<Awaited<ReturnType<typeof api.tradingReadiness>>>();
   useEffect(() => {
     const url = new URL(location.href);
-    if (page === "intelligence") url.searchParams.set("view", "intelligence");
-    else if (url.searchParams.get("view") === "intelligence")
-      url.searchParams.delete("view");
+    if (page === "workspace") url.searchParams.delete("view");
+    else url.searchParams.set("view", page);
     history.replaceState(null, "", url);
   }, [page]);
+  useEffect(() => {
+    const readPage = () => setPage(pageFromUrl());
+    window.addEventListener("popstate", readPage);
+    return () => window.removeEventListener("popstate", readPage);
+  }, []);
+  function navigate(next: string) {
+    if (next === page) return;
+    const url = new URL(location.href);
+    if (next === "workspace") url.searchParams.delete("view");
+    else url.searchParams.set("view", next);
+    history.pushState(null, "", url);
+    setPage(next);
+  }
+  function askOpenClaw(draft: string) {
+    const url = new URL(location.href);
+    url.searchParams.delete("portfolio");
+    history.replaceState(null, "", url);
+    setChatDraft(draft);
+    navigate("chat");
+  }
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [model, setModel] = useState<Model | null>(null);
@@ -1272,6 +1346,78 @@ function Workstation({
       clearInterval(timer);
     };
   }, []);
+  useEffect(() => {
+    let active = true;
+    const check = () =>
+      api
+        .chatSettings()
+        .then((state) => {
+          if (active) setChatConnection(state);
+        })
+        .catch(() => {
+          if (active) setChatConnection(undefined);
+        });
+    void check();
+    const timer = setInterval(check, 15_000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, []);
+  useEffect(() => {
+    if (page !== "system") return;
+    let active = true;
+    let pending = false;
+    const check = async () => {
+      if (document.hidden || pending) return;
+      pending = true;
+      try {
+        const [connections, trading] = await Promise.all([
+          api.marketConnections(),
+          api.tradingReadiness(),
+        ]);
+        const checks = await Promise.all(
+          connections
+            .filter((c) => c.configured)
+            .map(async (connection) => {
+              try {
+                return await api.checkBroker(connection.id);
+              } catch (err) {
+                return {
+                  provider: connection.id,
+                  configured: true,
+                  environment: connection.environment,
+                  demo_environment: connection.environment !== "live",
+                  connection_revision: connection.revision,
+                  positions: [],
+                  error: message(err),
+                };
+              }
+            }),
+        );
+        if (active) {
+          setBrokerConnections(connections);
+          setTradingStatus(trading);
+          setBrokerChecks(
+            Object.fromEntries(checks.map((c) => [c.provider, c])),
+          );
+          setBrokerStatusError("");
+        }
+      } catch (err) {
+        if (active) setBrokerStatusError(message(err));
+      } finally {
+        pending = false;
+      }
+    };
+    void check();
+    const timer = window.setInterval(() => void check(), 60000);
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, [page]);
   useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(""), 5000);
@@ -1385,6 +1531,8 @@ function Workstation({
     }
   }
   function renderPanel(component: string) {
+    if (component === "openclaw_activity")
+      return <OpenClawActivity timezone={timezone} open={open} compact />;
     if (component === "chart")
       return (
         <Suspense fallback={<p className="muted">Opening market chart…</p>}>
@@ -1395,6 +1543,7 @@ function Workstation({
       return (
         <AnalysisPanel
           open={open}
+          ask={askOpenClaw}
           setup={() => {
             setSettingsSection("models");
             setPage("settings");
@@ -1412,8 +1561,7 @@ function Workstation({
         <ScannerPanel
           open={open}
           setup={() => {
-            setSettingsSection("scanners");
-            setPage("settings");
+            navigate("scanners");
           }}
           chart={() => openPanel("chart")}
         />
@@ -1467,10 +1615,14 @@ function Workstation({
   };
   const nav = [
     { id: "workspace", label: "Workspace", icon: LayoutDashboard },
+    { id: "trader", label: "Trader dashboard", icon: Radar },
     { id: "intelligence", label: "Market intelligence", icon: Waves },
-    { id: "paper", label: "Paper trading", icon: Boxes },
+    { id: "scanners", label: "Scanners", icon: Radar },
+    { id: "strategies", label: "Strategies", icon: Sparkles },
+    { id: "paper", label: "Trading", icon: Boxes },
     { id: "research", label: "Research & analytics", icon: BookOpen },
-    { id: "chat", label: "OpenClaw chat", icon: MessageSquare },
+    { id: "knowledge", label: "Knowledge", icon: Database },
+    { id: "chat", label: "OpenClaw", icon: MessageSquare },
     { id: "audit", label: "Activity", icon: History },
     { id: "settings", label: "Settings", icon: Settings2 },
     { id: "system", label: "System", icon: Activity },
@@ -1489,7 +1641,7 @@ function Workstation({
               key={item.id}
               title={item.label}
               className={page === item.id ? "active" : ""}
-              onClick={() => setPage(item.id)}
+              onClick={() => navigate(item.id)}
             >
               <item.icon size={18} />
               <span>{item.label}</span>
@@ -1498,15 +1650,14 @@ function Workstation({
           ))}
         </nav>
         <div className="sidebar-context">
-          <span className="eyebrow">LIVE EXECUTION</span>
+          <span className="eyebrow">REAL-MONEY TRADING</span>
           <div>
             <span className="status-dot idle" />
-            Disabled
+            Off
           </div>
           <p>
-            Paper simulation available.
-            <br />
-            Broker trading disabled.
+            Paper simulation, broker validation and governed live execution are
+            available.
           </p>
         </div>
         <div className="sidebar-bottom">
@@ -1518,7 +1669,7 @@ function Workstation({
             <PanelLeftClose size={18} />
             <span>Collapse</span>
           </button>
-          <span>DEVELOPMENT · 0.11.0</span>
+          <span>TAURIC · 0.12.0</span>
         </div>
       </aside>
       <div className="app-main">
@@ -1570,9 +1721,9 @@ function Workstation({
               className={`status-dot ${market.feed?.state === "fresh" ? "good" : "idle"}`}
             />
             {market.feed?.state === "fresh"
-              ? "Market data received"
+              ? "Chart data received"
               : market.feed?.state === "stale"
-                ? "Market data stale"
+                ? "Chart data needs refresh"
                 : "No market snapshot"}
           </span>
           <span>
@@ -1585,11 +1736,21 @@ function Workstation({
           </span>
           <span>
             <span className="status-dot idle" />
-            OpenClaw · chat & paper review
+            OpenClaw · assistant &amp; approvals
           </span>
+          <button
+            className="heartbeat-indicator"
+            onClick={() => navigate("system")}
+            aria-label="View OpenClaw heartbeat status"
+          >
+            <span
+              className={`status-dot ${heartbeat?.status === "healthy" ? "good" : "idle"}`}
+            />
+            Heartbeat · {heartbeatLabel(heartbeat)}
+          </button>
           <span className="status-execution">
             <LockKeyhole size={12} />
-            Live trading disabled
+            <BrokerModeBadge />
           </span>
         </div>
         {error && (
@@ -1839,10 +2000,7 @@ function Workstation({
               setSettingsSection("market");
               setPage("settings");
             }}
-            ask={(draft) => {
-              setChatDraft(draft);
-              setPage("chat");
-            }}
+            ask={askOpenClaw}
           />
         )}
         {page === "paper" && (
@@ -1852,6 +2010,28 @@ function Workstation({
               setSettingsSection("trading");
               setPage("settings");
             }}
+          />
+        )}
+        {page === "scanners" && (
+          <ScannerWorkspace
+            open={open}
+            chart={() => openPanel("chart")}
+            ask={askOpenClaw}
+          />
+        )}
+        {page === "trader" && (
+          <TraderDashboard
+            open={open}
+            chart={() => openPanel("chart")}
+            scanners={() => navigate("scanners")}
+            timezone={timezone}
+          />
+        )}
+        {page === "strategies" && (
+          <StrategiesPage
+            ask={askOpenClaw}
+            trading={() => navigate("paper")}
+            research={() => navigate("research")}
           />
         )}
         {page === "chat" && (
@@ -1867,6 +2047,9 @@ function Workstation({
         {page === "research" && (
           <ResearchPage open={(resource) => open(resource.type, resource.id)} />
         )}
+        {page === "knowledge" && (
+          <KnowledgePage navigate={navigate} ask={askOpenClaw} />
+        )}
         {page === "settings" && (
           <SettingsPage
             open={open}
@@ -1878,6 +2061,8 @@ function Workstation({
             passwordChanged={() =>
               signedOut("Password changed. Sign in with your new password.")
             }
+            scanners={() => navigate("scanners")}
+            strategies={() => navigate("strategies")}
           />
         )}
         {page === "audit" && (
@@ -1930,8 +2115,9 @@ function Workstation({
                 <h1>System status</h1>
                 <p>Only verified connections are shown as ready.</p>
               </div>
-              <span className="badge gold">DEVELOPMENT BUILD</span>
+              <span className="badge gold">Production checks pending</span>
             </div>
+            <HeartbeatPanel status={heartbeat} timezone={timezone} />
             <div className="system-list">
               {[
                 {
@@ -1949,13 +2135,13 @@ function Workstation({
                   icon: Database,
                 },
                 {
-                  label: "Market data",
-                  text: "Binance public spot candles; no account access",
+                  label: "Chart data",
+                  text: `${market.feed?.instrument.symbol ?? "Selected chart"} · ${market.providers.find((provider) => provider.id === market.feed?.instrument.provider)?.label ?? "Saved provider snapshot"}`,
                   state:
                     market.feed?.state === "fresh"
                       ? "Received"
                       : market.feed?.state === "stale"
-                        ? "Stale"
+                        ? "Refresh needed"
                         : "No snapshot",
                   ok: market.feed?.state === "fresh",
                   icon: Waves,
@@ -1971,9 +2157,23 @@ function Workstation({
                 },
                 {
                   label: "OpenClaw",
-                  text: "Independent governance runtime",
-                  state: "Not connected",
-                  ok: false,
+                  text: "Independent governance and chat runtime",
+                  state: !chatConnection
+                    ? "Checking connection"
+                    : chatConnection.gateway_ready &&
+                        chatConnection.worker_ready &&
+                        chatConnection.route_ready
+                      ? "Ready for chat"
+                      : !chatConnection.gateway_ready
+                        ? "Gateway offline"
+                        : !chatConnection.worker_ready
+                          ? "Chat worker offline"
+                          : "AI connection required",
+                  ok: !!(
+                    chatConnection?.gateway_ready &&
+                    chatConnection.worker_ready &&
+                    chatConnection.route_ready
+                  ),
                   icon: ShieldCheck,
                 },
                 {
@@ -1981,13 +2181,6 @@ function Workstation({
                   text: "Owner review, Decimal sizing and attributed simulated fills",
                   state: "Available",
                   ok: true,
-                  icon: Boxes,
-                },
-                {
-                  label: "Broker accounts",
-                  text: "OANDA · IBKR · Binance · Alpaca",
-                  state: "Not connected",
-                  ok: false,
                   icon: Boxes,
                 },
               ].map((item) => (
@@ -2002,6 +2195,82 @@ function Workstation({
                   </span>
                 </article>
               ))}
+              {(["oanda", "alpaca"] as const).map((provider) => {
+                const connection = brokerConnections?.find(
+                  (c) => c.id === provider,
+                );
+                const checked = brokerChecks[provider];
+                const verified = !!(
+                  connection?.configured &&
+                  checked?.connection_revision === connection.revision &&
+                  checked.account &&
+                  !checked.error &&
+                  !brokerStatusError
+                );
+                return (
+                  <article key={provider}>
+                    <Boxes size={21} />
+                    <div>
+                      <h3>
+                        {provider === "oanda"
+                          ? "OANDA account"
+                          : "Alpaca account"}
+                      </h3>
+                      <p>
+                        {brokerStatusError
+                          ? brokerStatusError
+                          : !brokerConnections
+                            ? "Checking saved connection and account access"
+                            : !connection?.configured
+                              ? "Add your account credentials in Market connections. Public chart data is separate from an account connection."
+                              : verified
+                                ? `${connection.environment} account · ${checked.positions?.length ?? 0} positions · checked ${new Date(checked.account!.observed_at).toLocaleTimeString("en-GB", { timeZone: timezone })}`
+                                : (checked?.error ?? "Checking account access")}
+                      </p>
+                    </div>
+                    <span className={`badge ${verified ? "green" : "neutral"}`}>
+                      {brokerStatusError
+                        ? "Status unavailable"
+                        : !brokerConnections
+                          ? "Checking"
+                          : !connection?.configured
+                            ? "Setup needed"
+                            : verified
+                              ? "Account data available"
+                              : checked?.error
+                                ? "Check failed"
+                                : "Checking"}
+                    </span>
+                  </article>
+                );
+              })}
+            </div>
+            <div className="system-note">
+              <RefreshCw size={19} />
+              <div>
+                <h3>Automatic chart updates</h3>
+                <p>
+                  {market.auto
+                    ? "The selected chart refreshes every 30 seconds while the workstation is visible, including on this page. It also refreshes when you return."
+                    : "Automatic refresh is paused. Resume it here to keep the selected chart current."}
+                </p>
+                <label className="market-check">
+                  <input
+                    type="checkbox"
+                    checked={market.auto}
+                    onChange={(e) => market.setAuto(e.target.checked)}
+                  />
+                  Update chart automatically
+                </label>
+                <button
+                  className="secondary small"
+                  disabled={market.loading || !market.instrumentId}
+                  onClick={() => void market.refresh()}
+                >
+                  {market.loading ? "Refreshing…" : "Refresh chart data"}
+                </button>
+                {market.error && <p role="alert">{market.error}</p>}
+              </div>
             </div>
             <div className="model-profile-grid">
               {market.status?.profiles.map((profile) => (
@@ -2043,12 +2312,49 @@ function Workstation({
             <div className="system-note">
               <LockKeyhole size={19} />
               <div>
-                <h3>Trading is not enabled</h3>
+                <h3>Trading modes</h3>
                 <p>
-                  This milestone stores workstation preferences and history.
-                  Public market data and the native analysis connection are
-                  available. Broker accounts, governance and execution remain
-                  disabled.
+                  Paper simulation is available. Broker account checks read data
+                  without placing orders. Broker execution requires a verified
+                  account and an enabled trading policy.
+                </p>
+                <p>
+                  {!tradingStatus || brokerStatusError
+                    ? "Trading policy status is unavailable. Open Trading to check current permissions."
+                    : tradingStatus.brokers.some((b) => b.live_enabled)
+                      ? "Live trading policies are enabled. Each entry still requires native Tauric approval and current protection checks."
+                      : "Real-money trading is off. Review account setup, demo execution and live readiness in Trading."}
+                </p>
+                <button
+                  className="secondary small"
+                  onClick={() => navigate("paper")}
+                >
+                  Open Trading
+                </button>
+                <button
+                  className="text-button"
+                  onClick={() => {
+                    setSettingsSection("market");
+                    navigate("settings");
+                  }}
+                >
+                  Market connections <ArrowRight size={13} />
+                </button>
+              </div>
+            </div>
+            <div className="system-note">
+              <ShieldCheck size={19} />
+              <div>
+                <h3>Production checks pending</h3>
+                <p>
+                  The workstation is deployed. Full production acceptance still
+                  requires a representative 24-hour workload check, a complete
+                  governed demo trade lifecycle, and upgrade recovery
+                  verification.
+                </p>
+                <p>
+                  IBKR and Binance account execution are not available in this
+                  release. Binance charts use public market data.
                 </p>
               </div>
             </div>
@@ -2060,7 +2366,7 @@ function Workstation({
             Owner session active
           </span>
           <span>Private workstation · Paper simulation</span>
-          <span>TAURIC 0.11.0</span>
+          <span>TAURIC 0.12.0</span>
         </footer>
       </div>
       {notice && (

@@ -29,17 +29,12 @@ from .strategy_contracts import BreakoutRules
 from .strategy_execution import snapshot_checked
 
 
-def capture(db, owner, body, *, route_context=None, risk_percent=None):
+def capture(db, owner, body, *, route_context=None, risk_percent=None, intent_id=None):
     spec = market.instrument(db, body.instrument_id)
-    expected = (
-        "oanda"
-        if spec.asset_type == "fx"
-        else "alpaca"
-        if spec.asset_type in {"equity", "etf"}
-        else None
-    )
-    if body.provider != expected:
-        raise HTTPException(422, "Choose a matching OANDA Forex or Alpaca stock/ETF instrument.")
+    from . import execution_scope
+
+    if body.provider != execution_scope.provider(spec):
+        raise HTTPException(422, "Select an account-verified product for the matching broker.")
     version = strategies.version(db, owner, body.strategy_version_id)
     raw_rules = version.payload["parameters"].get("rules")
     if not raw_rules:
@@ -61,6 +56,12 @@ def capture(db, owner, body, *, route_context=None, risk_percent=None):
         or policy.payload["connection_revision"] != revision
     ):
         raise HTTPException(409, "Verify and enable this demo broker before assessing its entries.")
+    from . import live_trading
+
+    live_report = live_trading.require_live_strategy(
+        db, owner, policy, version.id, spec.id, risk_percent
+    )
+    portfolio_observation = live_trading.operating_guard(db, owner, policy, intent_id)
     try:
         with broker_execution.adapter(body.provider, config) as broker:
             account = broker.account()
@@ -70,6 +71,13 @@ def capture(db, owner, body, *, route_context=None, risk_percent=None):
             ):
                 raise BrokerError("The verified demo account changed or is unavailable.")
             instrument = broker.instrument(spec.provider_symbol)
+            if (
+                spec.asset_type in {"commodity", "cfd"}
+                and instrument.product_type != spec.provider_product_type
+            ):
+                raise BrokerError(
+                    "The provider product classification changed; no entry is eligible."
+                )
             positions = broker.positions()
             quote, quote_error, planned, sizing = None, None, None, None
             ready = signal["action"] == "enter"
@@ -100,6 +108,30 @@ def capture(db, owner, body, *, route_context=None, risk_percent=None):
                                 account, instrument, quote, stop, risk_percent
                             )
                             body = body.model_copy(update={"quantity": quantity})
+                        elif live_report or policy.payload.get("maximum_risk_percent"):
+                            ceilings = [
+                                value
+                                for value in (
+                                    live_report.payload["maximum_risk_percent"]
+                                    if live_report
+                                    else None,
+                                    policy.payload.get("maximum_risk_percent"),
+                                )
+                                if value is not None
+                            ]
+                            ceiling = str(min(map(Decimal, ceilings)))
+                            maximum, sizing = broker_risk.calculate(
+                                account,
+                                instrument,
+                                quote,
+                                stop,
+                                ceiling,
+                            )
+                            if Decimal(body.quantity) > Decimal(maximum):
+                                raise BrokerError(
+                                    "Requested quantity exceeds the account or forward-validated risk ceiling; obtain fresh Tauric evidence before increasing risk."
+                                )
+                            sizing["quantity"] = body.quantity
                         planned = BrokerOrderRequest(
                             client_order_id="tauric_setup_" + str(body.request_id).replace("-", ""),
                             symbol=spec.provider_symbol,
@@ -137,6 +169,8 @@ def capture(db, owner, body, *, route_context=None, risk_percent=None):
         "broker_instrument": instrument.model_dump(mode="json"),
         "account": account.model_dump(mode="json"),
         "existing_positions": [position.model_dump(mode="json") for position in positions],
+        "risk_authority": "Native Tauric approves the maximum quantity. OpenClaw may reduce it; increases require a new native assessment.",
+        "portfolio_valuation": portfolio_observation,
         "policy_id": policy.id,
         "policy_checksum": policy.checksum,
         "policy": policy.payload,
@@ -270,9 +304,12 @@ def report(db, owner, job_id):
     if artifact:
         payload = artifact.payload
         is_fx = evidence["instrument"]["asset_type"] == "fx"
+        is_product = evidence["instrument"]["asset_type"] in {"commodity", "cfd"}
         expected_runtime = (
             "Tauric Forex daily extension / TradingAgents LLM clients"
             if is_fx
+            else "Tauric exact OANDA product setup / TradingAgents LLM client"
+            if is_product
             else "TauricResearch/TradingAgents"
         )
         if (
@@ -309,7 +346,7 @@ def report(db, owner, job_id):
                 and (
                     not evidence["entry_evidence_ready"]
                     or assessment.model_invocations != 1
-                    or evidence["instrument"]["asset_type"] != "fx"
+                    or evidence["instrument"]["asset_type"] in {"equity", "etf"}
                     and str(payload.get("native_rating")).strip().upper() != "BUY"
                 )
             ):

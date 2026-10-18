@@ -1,7 +1,7 @@
 {
   "id": "tauric-governance-tools",
   "name": "Tauric governance and chat tools",
-  "description": "Read Tauric evidence and queue bounded owner-requested native research. Cannot place orders or rewrite reports.",
+  "description": "Serve owner requests with fresh market data, research, governed paper and broker workflows, durable goals and isolated engineering. Tauric broker services enforce evidence, account bindings, policy, approval and release checks; direct live-source changes are unavailable.",
   "version": "0.6.0",
   "configSchema": {
     "type": "object",
@@ -31,7 +31,15 @@
       "tauric_research_status",
       "tauric_portfolio_action",
       "tauric_request_portfolio_research",
-      "tauric_broker_review_context"
+      "tauric_broker_review_context",
+      "tauric_project_read",
+      "tauric_project_action",
+      "tauric_market_data",
+      "tauric_open_research",
+      "tauric_task",
+      "tauric_engineering",
+      "tauric_release",
+      "tauric_heartbeat_status"
     ]
   },
   "toolMetadata": {
@@ -57,6 +65,30 @@
       "optional": true
     },
     "tauric_broker_review_context": {
+      "optional": true
+    },
+    "tauric_project_read": {
+      "optional": true
+    },
+    "tauric_project_action": {
+      "optional": true
+    },
+    "tauric_market_data": {
+      "optional": true
+    },
+    "tauric_open_research": {
+      "optional": true
+    },
+    "tauric_task": {
+      "optional": true
+    },
+    "tauric_engineering": {
+      "optional": true
+    },
+    "tauric_release": {
+      "optional": true
+    },
+    "tauric_heartbeat_status": {
       "optional": true
     }
   }

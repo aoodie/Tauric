@@ -11,7 +11,7 @@ from .data_providers import OandaFX, connections, stamp
 from .data_quality import freshness, verify
 from .instrument_discovery import request_json
 from .intelligence_catalog import latest, store
-from .market_calendars import NY
+from .market_calendars import NY, default_context
 from .market_contracts import Candle, DataContext, DataQuality, MarketSession, PriceOHLC
 from .models import now
 
@@ -244,7 +244,7 @@ def collect_page(db, owner, specs):
             if not value:
                 raise ValueError("Unavailable prices")
             candles, provider_time, received_at = value[:3]
-            context = value[3]
+            context = value[3] if len(value) == 4 else default_context(spec).model_dump(mode="json")
             quality = validate(candles, context, provider_time, payload["daily_aggregate"])
             if max(provider_time, received_at) > now() + timedelta(seconds=90):
                 raise ValueError("Future price receipt")

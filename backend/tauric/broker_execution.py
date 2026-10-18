@@ -113,14 +113,36 @@ def save_policy(db, owner, provider, body):
             raise HTTPException(409, str(error)) from None
         if not account.trading_enabled:
             raise HTTPException(409, "The demo broker account is not enabled for trading.")
+        if account.environment != config.environment:
+            raise HTTPException(
+                409, "The broker account environment differs from its saved connection."
+            )
+        if config.environment == "live":
+            from . import live_trading
+
+            if not body.live_acknowledged or not body.forward_report_id:
+                raise HTTPException(
+                    409,
+                    "Live activation requires acknowledgment and a passing forward-validation report.",
+                )
+            report = live_trading.eligible_report(db, owner, body.forward_report_id, provider)
+            protocol = live_trading.owned(db, owner, report.parent_id, "forward_protocol")
+            if account.currency != protocol.payload["currency"]:
+                raise HTTPException(
+                    409, "Live account currency must match the validated demo account currency."
+                )
     snapshot = {
         "request": payload,
         "enabled": body.enabled,
-        "no_owner_limits": True,
+        "no_owner_limits": body.no_owner_limits,
+        "maximum_risk_percent": body.maximum_risk_percent,
+        "maximum_drawdown_percent": body.maximum_drawdown_percent,
         "connection_revision": revision,
         "account_fingerprint": account.account_fingerprint if account else None,
         "environment": account.environment if account else None,
         "automatic_entries_enabled": False,
+        "forward_report_id": str(body.forward_report_id) if body.forward_report_id else None,
+        "risk_authority": "tauric_native_ceiling_openclaw_reduce",
     }
     row = BrokerPolicyVersion(
         owner_id=owner.id,
@@ -143,7 +165,7 @@ def save_policy(db, owner, provider, body):
             "provider": provider,
             "revision": row.revision,
             "enabled": body.enabled,
-            "no_owner_limits": True,
+            "no_owner_limits": body.no_owner_limits,
         },
     )
     db.commit()
@@ -236,6 +258,11 @@ def create_order(db, owner, provider, body):
         return view(db, existing)
     policy = latest_policy(db, owner, provider)
     config, revision = connection(db, provider)
+    if config.environment == "live":
+        raise HTTPException(
+            409,
+            "Live orders require Tauric assessment followed by a bound OpenClaw review. Close existing positions through their attributed journal.",
+        )
     if not policy or not policy.payload["enabled"]:
         raise HTTPException(409, "Enable demo broker execution before submitting an order.")
     if (
@@ -294,6 +321,15 @@ def create_order(db, owner, provider, body):
 
 def matching_broker(db, row, *, for_submission=False):
     config, revision = connection(db, row.provider)
+    bound_policy = db.get(BrokerPolicyVersion, row.policy_version_id)
+    if (
+        not bound_policy
+        or checksum(bound_policy.payload) != bound_policy.checksum
+        or config.environment != bound_policy.payload.get("environment")
+    ):
+        raise BrokerError(
+            "The broker environment differs from the original intent; restore its original account connection to reconcile."
+        )
     if for_submission and revision != row.connection_revision:
         raise BrokerError(
             "The connection changed; verify and re-enable the demo connection before new submission."
@@ -377,6 +413,13 @@ def submit(db, owner, intent_id):
             guard = broker_review.validate_submission(db, row)
         broker = matching_broker(db, row, for_submission=True)
         account = broker.account()
+        if account.environment == "live" and (
+            not guard or not row.payload["order"].get("stop_loss")
+        ):
+            raise BrokerError(
+                "Live submission requires current Tauric/OpenClaw approval and a protective stop.",
+                not_submitted=True,
+            )
         if account.account_fingerprint != row.account_fingerprint or not account.trading_enabled:
             raise BrokerError("The demo account identity or trading status changed.")
     except (BrokerError, HTTPException) as error:
@@ -499,8 +542,9 @@ def heartbeat(db):
     row = db.get(WorkerStatus, "broker_execution")
     if row:
         row.heartbeat_at = now()
+        row.version = "0.12.0"
     else:
-        db.add(WorkerStatus(id="broker_execution", version="0.11.0", heartbeat_at=now()))
+        db.add(WorkerStatus(id="broker_execution", version="0.12.0", heartbeat_at=now()))
     db.commit()
 
 

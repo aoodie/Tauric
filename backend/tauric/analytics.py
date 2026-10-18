@@ -55,7 +55,12 @@ def account_view(db, owner, account_id):
             continue
         entry = opened.pop(p["position_id"])
         ep = entry.payload
-        pnl = D(p["quantity"]) * (D(p["price"]) - D(ep["price"])) - fee - D(ep["fee"])
+        pnl = (
+            D(p["quantity"]) * (D(p["price"]) - D(ep["price"]))
+            - fee
+            - D(ep["fee"])
+            - D(p.get("financing", "0"))
+        )
         if pnl != D(p["realized_pnl"]):
             raise HTTPException(
                 409, "Recorded paper profit/loss does not reconcile with its fills."

@@ -2,14 +2,66 @@ name: Publish deployment candidate
 on:
   push:
     tags: ["v*"]
+    branches: [codex/deployment-candidate, codex/trading-acceptance-monitoring]
+  workflow_dispatch:
+    inputs:
+      registry_revision:
+        description: Optional successful release commit for encrypted pull-only registry access
+        type: string
+        required: false
+      registry_run:
+        description: Successful release run containing the verified image digest artifacts
+        type: string
+        required: false
+      registry_recipient:
+        description: Ephemeral RSA public key for encrypting image-scoped pull tokens
+        type: string
+        required: false
 permissions:
   contents: read
 concurrency:
-  group: tauric-release-${{ github.ref }}
-  cancel-in-progress: false
+  group: tauric-${{ inputs.registry_revision && 'registry' || 'release' }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref == 'refs/heads/codex/deployment-candidate' || github.ref == 'refs/heads/codex/trading-acceptance-monitoring' }}
 jobs:
   checks:
+    if: ${{ !inputs.registry_revision }}
     uses: ./.github/workflows/checks.yml
+  registry_access:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.registry_revision != '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      packages: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+      - name: Validate registry handoff controls
+        run: node --test scripts/tests/test_registry_handoff.mjs
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: digest-*
+          path: image-digests
+          merge-multiple: true
+          run-id: ${{ inputs.registry_run }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Encrypt verified image-scoped pull tokens
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE_REVISION: ${{ inputs.registry_revision }}
+          SOURCE_RUN: ${{ inputs.registry_run }}
+          RECIPIENT_PUBLIC_KEY: ${{ inputs.registry_recipient }}
+        run: node scripts/registry_handoff.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: encrypted-registry-access-${{ inputs.registry_revision }}
+          path: artifacts/encrypted-registry-access.json
+          retention-days: 1
+      - name: Keep scoped access valid during the encrypted handoff
+        run: sleep 180
   images:
     needs: checks
     runs-on: ubuntu-24.04
@@ -29,6 +81,8 @@ jobs:
             dockerfile: deploy/Dockerfile.web
           - kind: openclaw
             dockerfile: deploy/Dockerfile.openclaw
+          - kind: engineering
+            dockerfile: deploy/Dockerfile.engineering
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
@@ -110,11 +164,27 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Rehearse clean install and complete backup restoration
-        run: python scripts/release_smoke.py --images artifacts/tauric-release/images.env --output artifacts/release-smoke.json
+        run: DOCKER_CONFIG="${DOCKER_CONFIG:-$HOME/.docker}" sudo --preserve-env=DOCKER_CONFIG python3 scripts/release_smoke.py --images artifacts/tauric-release/images.env --output artifacts/release-smoke.json --emit-failure-diagnostics
+      - name: Verify isolated engineering with real code and executed tests
+        run: |
+          python -m venv /tmp/tauric-engineering-check
+          /tmp/tauric-engineering-check/bin/pip install cryptography==46.0.5
+          image=$(python -c 'import json; print(json.load(open("artifacts/tauric-release/engineering-image.json"))["image"])')
+          docker pull "$image"
+          sudo /tmp/tauric-engineering-check/bin/python scripts/engineering_smoke.py --image "$image" --output artifacts/engineering-smoke.json
+      - name: Preserve redacted installation failure evidence
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: installation-failure-${{ github.sha }}
+          path: artifacts/release-smoke.failure.log
+          retention-days: 7
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: tauric-deployment-${{ github.ref_name }}
+          name: tauric-deployment-${{ github.sha }}
           path: |
             artifacts/tauric-release.tar.gz
             artifacts/release-smoke.json
+            artifacts/engineering-smoke.json
           retention-days: 90

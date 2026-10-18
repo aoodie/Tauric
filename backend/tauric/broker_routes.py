@@ -21,7 +21,6 @@ from . import (
     governance,
     market,
     native_broker_setup,
-    native_scope,
     services,
     strategies,
     strategy_rules,
@@ -156,15 +155,10 @@ def save(db, owner, route_id, body):
     if body.expected_revision != (old.revision if old else 0):
         fail("Reload the route before changing it.")
     spec = market.instrument(db, body.instrument_id)
-    expected = (
-        "oanda"
-        if spec.asset_type == "fx"
-        else "alpaca"
-        if spec.asset_type in {"equity", "etf"}
-        else None
-    )
-    if body.provider != expected or not native_scope.supported(spec):
-        fail("Select a matching instrument with native research support.", 422)
+    from . import execution_scope
+
+    if body.provider != execution_scope.provider(spec):
+        raise HTTPException(422, "Select an account-verified product for the matching broker.")
     version = strategies.version(db, owner, body.strategy_version_id)
     raw_rules = version.payload["parameters"].get("rules")
     if not raw_rules:
@@ -196,6 +190,11 @@ def save(db, owner, route_id, body):
             fail("Verify and enable the selected demo broker first.")
         if not analysis.status(db).worker_ready or not profile or not profile.configured():
             fail("The selected native AI connection and research worker must be ready.", 503)
+        from . import live_trading
+
+        live_trading.require_live_strategy(
+            db, owner, policy, version.id, spec.id, body.risk_percent
+        )
         if (
             not next(r.ready for r in review.routes if r.id == body.review_profile)
             or not broker_execution.state(db, owner).worker_ready

@@ -60,7 +60,6 @@ def counts(database):
         ({"session_key": "agent:tauric-chat:telegram:default:group:12345678"}, 403),
         ({"session_key": "agent:tauric-chat:openai-user:tauric-web-other-owner"}, 403),
         ({"instrument_id": "oanda:spot:EURUSD"}, 404),
-        ({"instrument_id": "oanda:fx:EUR_USD"}, 422),
         ({"instrument_id": "oanda:fx:XAU_USD"}, 404),
         ({"instrument_id": "x" * 101}, 422),
         ({"scope": "weekly"}, 422),
@@ -117,9 +116,12 @@ def test_chat_capabilities_follow_registry_and_admit_new_stock(ready, database, 
     assert capabilities["registered_count"] == 10 and not capabilities["registry_truncated"]
     assert rows[definition["id"]]["chat_request_enabled"]
     assert rows["oanda:fx:EUR_USD"]["daily_native_research"]
-    assert not rows["oanda:fx:EUR_USD"]["chat_request_enabled"]
-    assert "weekly" in capabilities["unsupported_scopes"]
-    assert "commodities" in capabilities["unsupported_scopes"]
+    assert rows["oanda:fx:EUR_USD"]["chat_request_enabled"]
+    assert "weekly" in capabilities["unsupported_native_scopes"]
+    assert "commodities" in capabilities["unsupported_native_scopes"]
+    assert capabilities["open_research"]["enabled"]
+    assert capabilities["open_research"]["registration_required"] is False
+    assert capabilities["open_research"]["native_report_created"] is False
     assert "crypto research only" not in context["research_scope"]
     assert counts(database) == (0, 0)
     response = request(ready, {**invocation, "instrument_id": definition["id"]})
@@ -295,3 +297,67 @@ def test_allowance_uses_utc_midnight(ready, database, invocation, monkeypatch):
         assert chat_research.charged_today(db, owner) == 1
         monkeypatch.setattr(chat_research, "now", lambda: instant + timedelta(days=1))
         assert chat_research.charged_today(db, owner) == 0
+
+
+@pytest.mark.parametrize("pair", ["EUR_USD", "NZD_USD", "AUD_CAD", "SEK_NOK"])
+def test_owner_can_queue_any_registered_fx_pair_with_bound_daily_evidence(
+    ready, database, invocation, monkeypatch, pair
+):
+    from test_forex_macro import HTML, feed
+    from test_native_fx import daily_fixture
+
+    from tauric import forex_macro, forex_sources, market
+
+    instrument_id = "oanda:fx:" + pair
+    with Session(database[0]) as db:
+        definition = copy.deepcopy(db.get(Instrument, "oanda:fx:EUR_USD").definition)
+        base, quote = pair.split("_")
+        definition.update(
+            id=instrument_id,
+            symbol=base + "/" + quote,
+            provider_symbol=pair,
+            base_currency=base,
+            quote_currency=quote,
+            native_symbol=base + quote + "=X",
+        )
+        if not db.get(Instrument, instrument_id):
+            db.add(Instrument(id=instrument_id, definition=definition))
+            db.commit()
+    monkeypatch.setattr(
+        market.PROVIDERS["oanda_v20"],
+        "collect",
+        lambda instrument, interval, **kwargs: daily_fixture(instrument),
+    )
+
+    def primary(client, url):
+        for currency, (_, _, news, calendar) in forex_macro.SOURCES.items():
+            if url == news:
+                return feed(currency, published=now() - timedelta(days=1))
+            if url == calendar:
+                return HTML[currency]
+        raise AssertionError("Unknown currency must not construct an external URL")
+
+    monkeypatch.setattr(forex_macro, "_fetch", primary)
+    # No configured supplemental credentials: explicit unavailable receipts, no external calls.
+    response = request(ready, {**invocation, "instrument_id": instrument_id})
+    assert response.status_code == 202, response.text
+    result = response.json()
+    assert result["execution_authority"] is False and not result["reused"]
+    binding = result["job"]["request"]["forex_context"]
+    context = forex_macro.validate(binding["macro_snapshot"], definition)
+    forex_sources.validate(binding["supplemental_snapshot"], definition)
+    assert context["currencies"] == [base, quote]
+    assert binding["instrument_id"] == instrument_id and binding["interval"] == "1d"
+    assert result["job"]["request"]["chat_context"]["purpose"] == "daily_research_only"
+    for row in context["sources"]:
+        if row["currency"] not in forex_macro.SOURCES:
+            assert row["status"] == "unavailable" and row["items"] == []
+    repeated = request(ready, {**invocation, "instrument_id": instrument_id}).json()
+    assert repeated["reused"] and repeated["job"]["id"] == result["job"]["id"]
+    assert counts(database) == (1, 1)
+    capabilities = ready.get("/internal/openclaw/chat-context", headers=HEADERS).json()[
+        "research_capabilities"
+    ]
+    assert next(
+        row for row in capabilities["registered_instruments"] if row["id"] == instrument_id
+    )["chat_request_enabled"]

@@ -101,7 +101,7 @@ with sync_playwright() as p:
     results.append(
         "Settings accounts, explicit risk/cost policy and attributed deployment saved"
     )
-    page.get_by_role("button", name="Paper trading", exact=True).click()
+    page.get_by_role("button", name="Trading", exact=True).click()
     form = page.get_by_role("form", name="Paper proposal", exact=True)
     form.get_by_label("Paper strategy", exact=True).select_option(index=1)
     # Fetch the real public price through the authenticated platform route.
@@ -144,7 +144,7 @@ with sync_playwright() as p:
         page.get_by_role("button", name="Close paper position", exact=True)
     ).not_to_be_visible()
     page.reload()
-    page.get_by_role("button", name="Paper trading", exact=True).click()
+    page.get_by_role("button", name="Trading", exact=True).click()
     expect(page.get_by_text("No open paper positions.", exact=True)).to_be_visible()
     data = page.evaluate("async () => await (await fetch('/api/v1/paper')).json()")
     account = data["accounts"][0]

@@ -1,4 +1,4 @@
-"""Create a server-only release bundle from four published image digests."""
+"""Create a server release bundle from source-bound published image digests."""
 
 import argparse
 import hashlib
@@ -11,15 +11,46 @@ from pathlib import Path
 from server import IMAGE_KEYS, ROOT, validate_images
 
 FILES = (
+    "README.md",
+    "backend/tauric/chat_instructions.txt",
+    "docs/OPENCLAW_PROJECT_OWNERSHIP.md",
+    "docs/OPENCLAW_OWNERSHIP_IMPLEMENTATION.md",
+    "docs/OPEN_COMMODITY_RESEARCH.md",
+    "docs/TRADER_DASHBOARD_IMPLEMENTATION.md",
+    "docs/AUDIT_TRADER_DASHBOARD_2026-10-09.md",
     "deploy/compose.server.yml",
     "deploy/compose.https.yml",
+    "deploy/compose.public-ip.yml",
+    "deploy/compose.gateway-recovery.yml",
+    "openclaw/start.mjs",
+    "openclaw/config.mjs",
+    "openclaw/heartbeat-status.mjs",
+    "scripts/host_memory.py",
+    "docs/HOST_MEMORY_RECOVERY.md",
+    "backend/tauric/tradingview_connection.py",
+    "backend/tauric/tradingview_mcp.py",
     "deploy/init-db.sh",
     "deploy/start-db.sh",
     "deploy/Caddyfile.https",
+    "deploy/Caddyfile.public-ip",
     "deploy/model-profiles.example.json",
     "deploy/market-data.example.json",
     "scripts/server.py",
+    "scripts/engineering_host.py",
+    "scripts/project_tree.py",
+    "scripts/engineering_install.py",
+    "scripts/registry_pull.py",
+    "scripts/release_bridge.py",
+    "scripts/release_bridge_install.py",
+    "scripts/release_identity.py",
+    "scripts/release_publish.py",
+    "scripts/release_workflow.py",
+    "scripts/release_install.py",
+    ".github/workflows/release.yml",
+    ".github/workflows/checks.yml",
     "scripts/server_soak.py",
+    "scripts/acceptance_research.py",
+    "docs/ACCEPTANCE_PLAN.md",
     "docs/GITHUB_DEPLOYMENT.md",
     "docs/SERVER_READINESS.md",
     "docs/SERVER_DEPLOYMENT_VERIFICATION.md",
@@ -43,6 +74,19 @@ def build(images_dir, output, repository, revision):
         values[key] = entry["image"]
     validate_images(values)
     output.mkdir(parents=True)
+    engineering = json.loads((images_dir / "engineering.json").read_text())
+    if (
+        engineering["revision"] != revision
+        or engineering["repository"] != repository.lower()
+        or not re.fullmatch(
+            r"ghcr.io/[a-z0-9./_-]+-engineering@sha256:[a-f0-9]{64}",
+            engineering["image"],
+        )
+    ):
+        raise ValueError("Engineering image must belong to the exact verified release.")
+    (output / "engineering-image.json").write_text(
+        json.dumps(engineering, sort_keys=True) + "\n"
+    )
     for name in FILES:
         target = output / name
         target.parent.mkdir(parents=True, exist_ok=True)

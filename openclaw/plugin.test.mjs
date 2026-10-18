@@ -1,13 +1,15 @@
 import assert from 'node:assert/strict';
+import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import { getToolPluginMetadata } from 'openclaw/plugin-sdk/tool-plugin';
 import entry from './plugin/dist/index.js';
 const metadata=getToolPluginMetadata(entry);
 assert.equal(metadata.id,'tauric-governance-tools');
-assert.deepEqual(metadata.tools.map(t=>t.name),['tauric_paper_context','tauric_review_context','tauric_chat_context','tauric_request_research','tauric_research_status','tauric_portfolio_action','tauric_request_portfolio_research','tauric_broker_review_context']);
+assert.deepEqual(metadata.tools.map(t=>t.name),['tauric_paper_context','tauric_review_context','tauric_chat_context','tauric_request_research','tauric_research_status','tauric_portfolio_action','tauric_request_portfolio_research','tauric_broker_review_context','tauric_project_read','tauric_project_action','tauric_market_data','tauric_open_research','tauric_task','tauric_engineering','tauric_release','tauric_heartbeat_status']);
 assert.equal(metadata.tools[0].optional,true);
 const tools=[];
 entry.register({pluginConfig:{platformUrl:'http://api:8000/',platformToken:'offline-test-token'},registerTool:t=>tools.push(t)});
-assert.equal(tools.length,8);
+assert.equal(tools.length,16);
 const fakeContext={authority:'read_only_paper_context',native_original:{payload:{native_rating:'BUY',governance:null}}};
 const originalFetch=globalThis.fetch;
 let calls=0;
@@ -41,6 +43,8 @@ assert.equal(posted.session_key,trusted.sessionKey);
 assert.equal(posted.tool_call_id,'trusted-call');
 await research.execute('stock-call',{instrument_id:'alpaca:equity:NVDA'});
 assert.equal(posted.instrument_id,'alpaca:equity:NVDA');
+await research.execute('forex-call',{instrument_id:'oanda:fx:NZD_USD'});
+assert.equal(posted.instrument_id,'oanda:fx:NZD_USD');
 const halted=tools[3]({...trusted,assertInvocationCurrent(){throw Error('Lost invocation');}});
 let effects=0;
 globalThis.fetch=async()=>{effects++;throw Error('Forbidden effect');};
@@ -99,4 +103,171 @@ entry.register({pluginConfig:{platformUrl:'https://attacker.example/',platformTo
 globalThis.fetch=async()=>{throw Error('Forbidden external endpoint');};
 await assert.rejects(()=>badTools[7].execute('wrong-root',{job_id:reviewId}),/Unsupported private/);
 globalThis.fetch=originalFetch;
+for(const [index,endpoint,params] of [[14,'release',{task_id:'1b3d1382-4827-4c16-bb23-6c9d00c6ea61',test_job_id:'1b3d1382-4827-4c16-bb23-6c9d00c6ea61',effect_key:'release-fixture'}],[11,'open-research',{operation:'prices',symbol:'KC=F',provider:'yahoo',interval:'1w',start:'2025-01-01T00:00:00Z'}],[10,'market-observations',{symbol:'XAU/USD',intervals:['15m','1h']}],[8,'project-read',{resource:'source',path:'frontend/src/scanner/Scanner.tsx'}],
+  [9,'project-action',{operation:'save_research_note',parameters:{title:'Fixture idea'},reason:'Owner asked'}]]) {
+  const factory=tools[index];
+  assert.equal(typeof factory,'function');
+  assert.equal(factory({...trusted,senderIsOwner:false}),null);
+  assert.equal(factory({...trusted,agentId:'governor-local'}),null);
+  assert.equal(factory({...trusted,assertInvocationCurrent:undefined}),null);
+  let effect=false;
+  globalThis.fetch=async(url,options)=>{effect=true;assert.equal(new URL(url).pathname,`/internal/openclaw/${endpoint}`);
+    const posted=JSON.parse(options.body);assert.equal(posted.sender_id,trusted.requesterSenderId);
+    assert.equal(posted.session_key,trusted.sessionKey);assert.equal(posted.tool_call_id,'manager-fixture');
+    assert.equal(posted.native_approved,undefined);return Response.json({status:'saved'});};
+  const bound=factory(trusted);
+  await bound.execute('manager-fixture',{...params,sender_id:'attacker',session_key:'spoofed',native_approved:true});
+  assert.equal(effect,true);effect=false;
+  await assert.rejects(()=>factory({...trusted,assertInvocationCurrent(){throw Error('Revoked');}}).execute('manager-fixture',params),/Revoked/);
+  assert.equal(effect,false);
+  const aborted=new AbortController();aborted.abort();
+  await assert.rejects(()=>bound.execute('manager-fixture',params,aborted.signal));assert.equal(effect,false);
+}
+globalThis.fetch=originalFetch;
 console.log('Pinned SDK metadata, trusted scoped factories, effect guards, research budgets and portfolio action fixtures passed (no model calls).');
+
+const sourceReader=tools[11](trusted);
+assert.match(sourceReader.description,/operation=read/);
+globalThis.fetch=async()=>Response.json({detail:[{loc:['body'],msg:'Value error, Use operation=read for a source URL.',input:{url:'must-not-echo-input'}}]},{status:422});
+const invalidSource=(await sourceReader.execute('source-validation',{operation:'search',url:'https://example.org/',query:'source'})).details;
+assert.match(invalidSource.error,/Use operation=read/);
+assert.equal(invalidSource.validation_errors[0].message,'Value error, Use operation=read for a source URL.');
+assert.equal(JSON.stringify(invalidSource).includes('must-not-echo-input'),false);
+globalThis.fetch=async(url,options)=>{const data=JSON.parse(options.body);assert.equal(data.operation,'read');assert.equal(data.url,'https://example.org/');return Response.json({authority:'open_research_only',result:{text:'Verified original source'},orders_submitted:false});};
+assert.equal((await sourceReader.execute('source-read',{operation:'read',url:'https://example.org/'})).details.result.text,'Verified original source');
+globalThis.fetch=originalFetch;
+console.log('Original-source read descriptions and actionable validation feedback passed without echoing rejected inputs.');
+const publishedSchema=JSON.parse(readFileSync(new URL('../backend/openapi.json',import.meta.url),'utf8'));
+const heartbeatFactory=tools[metadata.tools.findIndex(tool=>tool.name==='tauric_heartbeat_status')];
+for(const agentId of ['tauric-chat','governor-local','broker-governor-local',undefined]) assert.equal(heartbeatFactory({agentId}),null);
+const heartbeatTool=heartbeatFactory({agentId:'tauric-heartbeat'});
+globalThis.fetch=async(url,options)=>{
+  assert.equal(new URL(url).href,'http://api:8000/health/ready');
+  assert.equal(options.redirect,'error');
+  assert.equal(options.headers,undefined);
+  return Response.json({status:'ok',private_input:'must-not-echo'});
+};
+const ready=(await heartbeatTool.execute('heartbeat-check',{})).details;
+assert.equal(ready.ready,true);
+assert.equal(ready.execution_authority,false);
+assert.equal(JSON.stringify(ready).includes('must-not-echo'),false);
+globalThis.fetch=async()=>Response.json({status:'unavailable'},{status:503});
+assert.equal((await heartbeatTool.execute('heartbeat-failure',{})).details.ready,false);
+await assert.rejects(()=>heartbeatTool.execute('heartbeat-aborted',{},aborter.signal));
+globalThis.fetch=originalFetch;
+console.log('Heartbeat readiness tool is read-only, agent-scoped and reports failures.');
+const advertisedOperations=tools[9](trusted).parameters.properties.operation.anyOf.map(value=>value.const);
+assert.deepEqual(advertisedOperations.sort(),publishedSchema.components.schemas.AssistantReceipt.properties.operation.enum.sort());
+console.log('Registered management operations exactly match the released backend contract.');
+
+const taskTool=tools[12](trusted);
+assert.equal(taskTool.parameters.type,'object');
+for(const [status,body] of [[500,'Internal Server Error private-input'],[503,JSON.stringify({detail:'private-input'})],[200,'unreadable private-input'],[200,'null']]) {
+  let requests=0;
+  globalThis.fetch=async()=>{requests++;return new Response(body,{status});};
+  const uncertain=(await taskTool.execute('uncertain-original',{action:'create',effect_key:'stable-child',parameters:{objective:'Bounded child'}})).details;
+  assert.equal(uncertain.applied,false);assert.equal(uncertain.outcome_unknown,true);
+  assert.match(uncertain.error,/Reconcile.*same identity/);
+  assert.equal(JSON.stringify(uncertain).includes('private-input'),false);
+  assert.equal(requests,1);
+}
+globalThis.fetch=async(_url,options)=>{
+  assert.equal(JSON.parse(options.body).parameters.unsupported_field,'private-input');
+  return Response.json({detail:'Check these task fields: unsupported_field: Extra inputs are not permitted'},{status:422});
+};
+const corrected=(await taskTool.execute('bad-child-fields',{action:'create',effect_key:'stable-child',parameters:{unsupported_field:'private-input'}})).details;
+assert.match(corrected.error,/unsupported_field: Extra inputs/);assert.equal(corrected.outcome_unknown,undefined);
+assert.equal(JSON.stringify(corrected).includes('private-input'),false);
+globalThis.fetch=originalFetch;
+console.log('Typed task arguments and safe validation/unknown-outcome feedback passed without replaying effects.');
+
+
+test('task actions remain expressible without nested schema alternatives',()=>{
+  const schema=taskTool.parameters;
+  function visit(value) {
+    if(!value || typeof value!=='object') return;
+    assert.equal(value.anyOf,undefined);assert.equal(value.oneOf,undefined);
+    for(const child of Object.values(value)) visit(child);
+  }
+  visit(schema);
+  assert.deepEqual(schema.properties.action.enum,['create','read','wait','complete','needs_owner']);
+  const parameters=schema.properties.parameters;
+  assert.equal(parameters.additionalProperties,false);
+  for(const key of ['objective','criteria','job','reason','evidence','summary']) assert.ok(parameters.properties[key]);
+  assert.ok(parameters.properties.criteria.items.properties.proof.enum.includes('tests_passed'));
+  assert.equal(parameters.required,undefined);
+  const purpose=tools[13](trusted).parameters.properties.purpose;
+  assert.deepEqual(purpose.enum,['develop','inspect','test']);assert.equal(purpose.default,'develop');
+});
+
+test('completion and wait preserve the original evidence without creating work',async()=>{
+  const id='1b3d1382-4827-4c16-bb23-6c9d00c6ea61';
+  const cases=[
+    {action:'complete',task_id:id,parameters:{evidence:[{kind:'engineering',id}],summary:'Existing signed tests passed'}},
+    {action:'wait',task_id:id,parameters:{job:{kind:'engineering',id},reason:'Follow original job'}},
+    {action:'read',task_id:id},
+    {action:'needs_owner',task_id:id,parameters:{reason:'Original recovery budget exhausted'}},
+  ];
+  try {
+    for(const input of cases) {
+      let count=0;
+      globalThis.fetch=async(url,options)=>{
+        count++;assert.equal(new URL(url).pathname,'/internal/openclaw/task');
+        const body=JSON.parse(options.body);
+        assert.equal(body.action,input.action);assert.equal(body.task_id,id);
+        assert.deepEqual(body.parameters,input.parameters);assert.equal(body.effect_key,undefined);
+        return Response.json({id,status:input.action==='complete'?'completed':'waiting'});
+      };
+      await taskTool.execute('same-original-call',input);assert.equal(count,1);
+    }
+  } finally {globalThis.fetch=originalFetch;}
+});
+
+test('populated shared task fields reach only their selected action contract',async()=>{
+  // Captured provider behavior: create included all eleven shared fields and
+  // the server rejected job, reason, evidence and summary on every attempt.
+  const id='1b3d1382-4827-4c16-bb23-6c9d00c6ea61';
+  const parameters={objective:'Run the authorized isolated test',criteria:[{description:'Existing tests passed',proof:'tests_passed'}],scope:['engineering'],dependencies:[],max_wakes:8,max_attempts:2,deadline_hours:24,
+    job:{kind:'engineering',id},reason:'Follow the original job',evidence:[{kind:'engineering',id}],summary:'Existing signed tests passed'};
+  const before=structuredClone(parameters);
+  const cases=[
+    ['create',['objective','criteria','scope','dependencies','max_wakes','max_attempts','deadline_hours']],
+    ['read',[]],['wait',['job','reason']],['complete',['evidence','summary']],['needs_owner',['reason']],
+  ];
+  try {
+    for(const [action,fields] of cases) {
+      let count=0;
+      globalThis.fetch=async(_url,options)=>{
+        count++;const body=JSON.parse(options.body);
+        assert.equal(body.action,action);
+        assert.deepEqual(body.parameters,Object.fromEntries(fields.map(key=>[key,parameters[key]])));
+        assert.equal(body.task_id,action==='create'?undefined:id);
+        assert.equal(body.effect_key,action==='create'?'same-original-effect':undefined);
+        return Response.json({applied:true});
+      };
+      await taskTool.execute('original-call',{action,task_id:id,effect_key:'same-original-effect',parameters});
+      assert.equal(count,1);assert.deepEqual(parameters,before);
+    }
+  } finally {globalThis.fetch=originalFetch;}
+});
+
+test('action alignment preserves unknown and malformed inputs for server rejection',async()=>{
+  const cases=[
+    {action:'create',parameters:{summary:'Irrelevant populated field',unsupported_field:'must reject'},expected:{unsupported_field:'must reject'}},
+    {action:'wait',parameters:{job:null,reason:'Original job is missing',criteria:[]},expected:{job:null,reason:'Original job is missing'}},
+    {action:'complete',parameters:['malformed'],expected:['malformed']},
+    {action:'__proto__',parameters:{summary:'Invalid action'},expected:{summary:'Invalid action'}},
+  ];
+  try {
+    for(const {action,parameters,expected} of cases) {
+      let count=0;
+      globalThis.fetch=async(_url,options)=>{
+        count++;const body=JSON.parse(options.body);assert.equal(body.action,action);
+        assert.deepEqual(body.parameters,expected);
+        return Response.json({detail:'Task input is invalid; no effect recorded'},{status:422});
+      };
+      const result=(await taskTool.execute('original-rejected-call',{action,effect_key:'original-effect',parameters})).details;
+      assert.equal(result.applied,false);assert.equal(count,1);assert.equal(result.outcome_unknown,undefined);
+    }
+  } finally {globalThis.fetch=originalFetch;}
+});

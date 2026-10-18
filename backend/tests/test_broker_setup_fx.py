@@ -20,7 +20,7 @@ from tauric.broker_adapters import DemoBroker
 from tauric.broker_contracts import BrokerInstrumentView, BrokerPositionView, BrokerQuote
 from tauric.market_calendars import default_context, periods
 from tauric.market_contracts import DataQuality, MarketView
-from tauric.models import AnalysisJob, MarketSnapshot
+from tauric.models import AnalysisJob, MarketSnapshot, Owner
 
 pytestmark = pytest.mark.usefixtures("configured")
 
@@ -214,3 +214,115 @@ def test_fx_setup_preserves_currency_units_home_currency_and_native_review(
     assert broker.submissions == [] and broker.cancellations == []
     with Session(database[0]) as db:
         assert db.scalar(select(func.count()).select_from(AnalysisJob)) == 0
+
+
+@pytest.mark.parametrize(
+    "product,symbol,asset", [("METAL", "XAU_USD", "commodity"), ("CFD", "WTICO_USD", "cfd")]
+)
+@pytest.mark.parametrize("failure", [None, "classification", "missing_bar"])
+def test_exact_product_capture_and_verified_assessment(
+    signed_in, database, monkeypatch, product, symbol, asset, failure
+):
+    from tauric import analysis
+    from tauric.models import Instrument
+
+    body, broker, stamp, original = fx_setup(signed_in, database, monkeypatch)
+    instrument = original.instrument.model_copy(
+        update={
+            "id": f"oanda:{asset}:{symbol}",
+            "symbol": symbol.replace("_", "/"),
+            "provider_symbol": symbol,
+            "asset_type": asset,
+            "base_currency": symbol.split("_")[0],
+            "native_asset_type": "none",
+            "provider_product_type": product,
+            "classification_source": "provider_product",
+            "calendar_id": "provider_observed",
+        }
+    )
+    context = default_context(instrument)
+    candles = original.candles if failure != "missing_bar" else original.candles[-2:]
+    data = {
+        "candles": [b.model_dump(mode="json") for b in candles],
+        "source": "oanda_v20",
+        "symbol": symbol,
+        "volume_type": "provider_ticks",
+        "availability": "observed_at_receipt",
+        "data_context": context.model_dump(mode="json"),
+        "quality": DataQuality().model_dump(mode="json"),
+    }
+    checksum = hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
+    snapshot_id = str(uuid4())
+    with Session(database[0]) as db:
+        db.add(
+            Instrument(
+                id=instrument.id,
+                definition=instrument.model_dump(mode="json", exclude={"native_research_ready"}),
+            )
+        )
+        db.add(
+            MarketSnapshot(
+                id=snapshot_id,
+                instrument_id=instrument.id,
+                interval="1m",
+                received_at=stamp,
+                provider_time=stamp,
+                checksum=checksum,
+                data=data,
+            )
+        )
+        analysis.heartbeat(db, "0.5.2")
+    feed = original.model_copy(
+        update={
+            "instrument": instrument,
+            "snapshot_id": snapshot_id,
+            "checksum": checksum,
+            "candles": candles,
+            "data_context": context,
+        }
+    )
+    monkeypatch.setattr(market, "refresh", lambda *args, **kwargs: feed)
+    monkeypatch.setattr(analysis, "now", lambda: stamp)
+    previous = broker.instrument
+    broker.instrument = lambda name: previous(name).model_copy(
+        update={"product_type": "CURRENCY" if failure == "classification" else product}
+    )
+    body["instrument_id"] = instrument.id
+    response = signed_in.post("/api/v1/brokers/setup-preview", json=body)
+    if failure == "classification":
+        assert response.status_code == 409, response.text
+        assert broker.submissions == [] and broker.cancellations == []
+        return
+    assert response.status_code == 200, response.text
+    preview = response.json()
+    assert preview["entry_evidence_ready"] is (failure is None)
+    queued = signed_in.post("/api/v1/brokers/setup-assessments", json=body)
+    if failure:
+        assert queued.status_code == 422, queued.text
+    else:
+        assert queued.status_code == 202, queued.text
+        with Session(database[0]) as db:
+            job = db.get(AnalysisJob, analysis.claim(db))
+            assert job.id == queued.json()["id"]
+            assessment = native_broker_setup.assess(
+                Model(), job.request["broker_context"], {}, "SETUP_REVIEW"
+            )
+            payload = {
+                "runtime": "Tauric exact OANDA product setup / TradingAgents LLM client",
+                "version": "0.5.2",
+                "upstream_revision": analysis.UPSTREAM_REVISION,
+                "request": job.request,
+                "reports": {"final_trade_decision": assessment["rationale"]},
+                "native_rating": "SETUP_REVIEW",
+                "broker_setup_assessment": assessment,
+                "execution_authority": False,
+                "governance": None,
+            }
+            assert analysis.finish(db, job.id, payload=payload)
+            report = broker_setup.report(
+                db,
+                db.get(Owner, job.owner_id),
+                job.id,
+            )
+            assert report.assessment.decision == "approve" and report.evidence_current
+    assert broker.submissions == [] and broker.cancellations == []

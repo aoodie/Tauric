@@ -123,13 +123,13 @@ def freeze(db, owner, body):
     asset_type = dataset.payload.get("asset_type", "crypto_spot")
     costs = body.parameters.asset_costs
     if (
-        asset_type not in {"crypto_spot", "fx"}
+        asset_type not in {"crypto_spot", "fx", "equity", "etf"}
         or (asset_type == "crypto_spot" and costs)
-        or (asset_type == "fx" and (not costs or costs.asset_type != "fx"))
+        or (asset_type != "crypto_spot" and (not costs or costs.asset_type != asset_type))
     ):
         raise HTTPException(
             422,
-            "Qualification requires supported crypto spot or Forex data with matching explicit costs.",
+            "Qualification requires supported spot, Forex, stock or ETF data with matching explicit costs.",
         )
     context = dataset.payload.get("data_context")
     if (
@@ -188,10 +188,16 @@ def freeze(db, owner, body):
             research.asset_assumptions(
                 market.instrument(db, dataset.payload["instrument_id"]), context
             )
-            + [
-                "Saved breakout rules use provider tick activity, not exchange volume; gap qualification uses expected trading sessions."
-            ]
-            if asset_type == "fx"
+            + (
+                [
+                    "Saved FX breakout rules use provider tick activity, not exchange volume; gaps use expected trading sessions."
+                ]
+                if asset_type == "fx"
+                else [
+                    "Stock breakout rules use exchange share volume and regular-session calendar alignment."
+                ]
+            )
+            if asset_type != "crypto_spot"
             else research.BREAKOUT_ASSUMPTIONS
         )
         + [
@@ -459,6 +465,24 @@ def latest_evaluation(db, owner, protocol):
 
 
 def assess(db, owner, key, body):
+    prepared_fx_context = None
+    existing = db.scalar(
+        select(QualificationAdmission).where(
+            QualificationAdmission.owner_id == owner.id,
+            QualificationAdmission.request_id == str(body.request_id),
+        )
+    )
+    initial = owned(db, owner, QualificationProtocol, key)
+    spec = market.instrument(db, initial.payload["instrument_id"])
+    if not existing and spec.asset_type == "fx":
+        from .native_fx import prepare
+
+        # No admission is written before collection. Release previous read locks
+        # and save only the immutable market receipt, then recheck every mandate,
+        # model, risk and queue condition under the normal admission lock below.
+        db.commit()
+        prepared_fx_context = prepare(db, spec)
+        db.commit()
     old = repeat(db, owner, QualificationAdmission, body)
     protocol = owned(db, owner, QualificationProtocol, key)
     evaluation = latest_evaluation(db, owner, protocol)
@@ -533,6 +557,7 @@ def assess(db, owner, key, body):
         ),
         commit=False,
         qualification_context=context,
+        prepared_fx_context=prepared_fx_context,
     )
     payload = {
         "request": body.model_dump(mode="json"),

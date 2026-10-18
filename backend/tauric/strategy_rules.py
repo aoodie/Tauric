@@ -14,7 +14,7 @@ def evaluate(feed, rules, position=None):
     duration = market.INTERVAL_SECONDS[rules.interval]
     if (
         feed.state != "fresh"
-        or feed.gaps
+        or (feed.gaps and feed.instrument.asset_type not in {"commodity", "cfd"})
         or not feed.snapshot_id
         or not feed.provider_time
         or not feed.received_at
@@ -32,7 +32,7 @@ def evaluate(feed, rules, position=None):
         rules,
         position,
         data_context=feed.data_context.model_dump(mode="json")
-        if feed.instrument.asset_type == "fx" and feed.data_context
+        if feed.instrument.asset_type in {"fx", "commodity", "cfd"} and feed.data_context
         else None,
     )
 

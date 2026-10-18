@@ -13,17 +13,20 @@ from fastapi.staticfiles import StaticFiles
 from test_chat import ready as ready
 from test_intelligence import feeds as feeds
 from test_intelligence import refresh
+from test_intelligence_catalog import sync
+from test_intelligence_catalog import wide_markets as wide_markets
 
 from tauric.app import app
 from tauric.config import runtime_config
 
 
 @pytest.mark.browser
-def test_built_intelligence(database, signed_in, ready, feeds):
+def test_built_intelligence(database, signed_in, ready, feeds, wide_markets):
     root = Path(__file__).resolve().parents[2]
     python = shutil.which("python3")
     assert (root / "frontend/dist/index.html").exists()
     refresh(signed_in, ["binance:spot:BTCUSDT", "alpaca:equity:AAPL", "oanda:fx:EUR_USD"])
+    sync(signed_in)
     routes = list(app.router.routes)
     app.mount("/", StaticFiles(directory=root / "frontend/dist", html=True))
     sock = socket.socket()

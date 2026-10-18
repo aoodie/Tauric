@@ -8,8 +8,10 @@ from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import select
 
 from . import governance, paper
+from .assistant_contracts import AssistantInvocation, AssistantRead
 from .auth import Db
 from .chat_contracts import ResearchInvocation
+from .chat_market import MarketObservationRequest
 from .config import runtime_config
 from .governance_contracts import GatewayHeartbeat
 from .models import (
@@ -23,9 +25,38 @@ from .models import (
     StrategyVersion,
     now,
 )
+from .open_research import OpenResearchRequest
 from .portfolio_contracts import ChatContextRead, PortfolioChatAction, PortfolioResearchInvocation
 
 router = APIRouter(prefix="/internal/openclaw", include_in_schema=False)
+
+
+@router.post("/open-research")
+def open_research(body: OpenResearchRequest, request: Request, db: Db):
+    from . import open_research
+
+    return open_research.execute(db, service_owner(request, db), body)
+
+
+@router.post("/market-observations")
+def market_observations(body: MarketObservationRequest, request: Request, db: Db):
+    from . import chat_market
+
+    return chat_market.observations(db, service_owner(request, db), body)
+
+
+@router.post("/project-read")
+def project_read(body: AssistantRead, request: Request, db: Db):
+    from . import assistant
+
+    return assistant.read(db, service_owner(request, db), body)
+
+
+@router.post("/project-action")
+def project_action(body: AssistantInvocation, request: Request, db: Db):
+    from . import assistant
+
+    return assistant.execute(db, service_owner(request, db), body)
 
 
 @router.post("/portfolio-research", status_code=202)
@@ -162,7 +193,7 @@ def research_status(job_id: str, request: Request, db: Db):
 def chat_context(request: Request, db: Db, report_id: str | None = None):
     from sqlalchemy import func
 
-    from . import chat, chat_research, services
+    from . import chat, chat_research, live_trading, services
 
     owner = service_owner(request, db)
     services.audit(
@@ -201,10 +232,29 @@ def chat_context(request: Request, db: Db, report_id: str | None = None):
     )
     connections = chat.config_view(db, owner)
     research_capabilities = chat_research.capabilities(db)
+    readiness = live_trading.state(db, owner)
     db.commit()
     return {
         "authority": "read_only",
-        "live_execution_enabled": False,
+        "live_execution_enabled": any(b.live_enabled for b in readiness.brokers),
+        "broker_trading": {
+            "brokers": [b.model_dump(mode="json") for b in readiness.brokers],
+            "valuation_worker_ready": readiness.valuation_worker_ready,
+            "forward_worker_ready": readiness.forward_worker_ready,
+            "forward_protocol_count": len(readiness.forward_protocols),
+            "latest_forward_reports": [
+                {
+                    "id": r.id,
+                    "provider": r.payload["provider"],
+                    "status": r.payload["status"],
+                    "maximum_risk_percent": r.payload["maximum_risk_percent"],
+                }
+                for r in readiness.forward_reports[:5]
+            ],
+            "native_approval_required": True,
+            "openclaw_may_raise_native_risk": False,
+            "chat_order_authority": False,
+        },
         "research_scope": research_capabilities["scope"],
         "research_capabilities": research_capabilities,
         "chat_connections": {
@@ -244,7 +294,14 @@ def chat_context(request: Request, db: Db, report_id: str | None = None):
         "capabilities": [
             "owner web chat",
             "owner Telegram/Discord DMs when configured",
-            "manual crypto scanner",
+            "crypto, Forex, stock and ETF scanners",
+            "scanner and candidate management",
+            "strategy version management and retrospective backtests",
+            "fresh registered-asset and account-verified XAU/USD market observations",
+            "backtest-first paper workflow through native evidence and Tauric governance",
+            "source audits and exact-context isolated code change workspaces",
+            "saved quant research notes",
+            "code upgrade proposals for owner review",
             "native daily research",
             "paper trading",
             "paper governance",

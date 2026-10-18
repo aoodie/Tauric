@@ -1,12 +1,13 @@
 """Cheap closed-bar screening and bounded escalation; never trading permission."""
 
 from datetime import datetime, timedelta
+from decimal import Decimal
 from time import perf_counter
 
 from fastapi import HTTPException
 from sqlalchemy import func, select
 
-from . import market, paper, services, strategies
+from . import market, paper, provider_requests, services, strategies
 from .models import (
     AnalysisJob,
     MarketSnapshot,
@@ -239,6 +240,7 @@ def normalized(db, owner, candidate, profile, trace_id=None):
         ),
         trace_id=trace_id or candidate.id,
         strategy_priority=scoring.priority if scoring else 0,
+        assessment=candidate.payload.get("assessment"),
     )
 
 
@@ -275,12 +277,18 @@ def discover(db, owner, body):
         )
         if last_run:
             last_evaluated = {
-                r["instrument_id"]: r.get("bar_close_time")
+                (r["instrument_id"], r.get("interval", parameters.interval)): r.get(
+                    "bar_close_time"
+                )
                 for r in checked(last_run).payload["results"]
             }
+    from . import scanner_context, scanner_scoring, scanner_universe
+
+    universe, universe_metrics = scanner_universe.resolve(db, owner, profile, parameters)
     results = []
+    context_cache = {}
     metrics = {
-        "universe_count": len(parameters.universe),
+        **universe_metrics,
         "prefilter_pass_count": 0,
         "strategy_detection_count": 0,
         "strategy_evaluation_count": 0,
@@ -288,18 +296,30 @@ def discover(db, owner, body):
         "candidate_gate_rejections": 0,
         "published_candidate_count": 0,
     }
-    for instrument_id in parameters.universe:
+    budget_exhausted = False
+    for instrument_id, interval in [(i, t) for i in universe for t in parameters.scan_intervals]:
+        if budget_exhausted:
+            results.append(
+                {
+                    "instrument_id": instrument_id,
+                    "interval": interval,
+                    "status": "unavailable",
+                    "reason_code": "BUDGET_DEFERRED",
+                }
+            )
+            continue
         if instrument_id in parameters.disabled_instruments:
             results.append(
                 {
                     "instrument_id": instrument_id,
+                    "interval": interval,
                     "status": "filtered",
                     "reason_code": "DISABLED_INSTRUMENT",
                 }
             )
             continue
         try:
-            feed = market.refresh(db, instrument_id, parameters.interval, commit=False)
+            feed = market.refresh(db, instrument_id, interval, commit=False)
             rejected = prefilter(feed, parameters, now())
             if rejected:
                 results.append(
@@ -307,6 +327,7 @@ def discover(db, owner, body):
                         "instrument_id": instrument_id,
                         "status": "filtered",
                         "reason_code": rejected,
+                        "interval": interval,
                         "snapshot_id": feed.snapshot_id,
                     }
                 )
@@ -316,28 +337,35 @@ def discover(db, owner, body):
                 b for b in feed.candles if b.closed and b.close_time <= feed.provider_time
             ][-1]
             bar_time = latest_bar.close_time.isoformat()
-            if last_evaluated.get(instrument_id) == bar_time:
+            if last_evaluated.get((instrument_id, interval)) == bar_time:
                 results.append(
                     {
                         "instrument_id": instrument_id,
                         "status": "filtered",
                         "reason_code": "CANDLE_UNCHANGED",
                         "bar_close_time": bar_time,
+                        "interval": interval,
                     }
                 )
                 continue
         except HTTPException as error:
+            if error.status_code == 429:
+                budget_exhausted = True
+                metrics["retry_after"] = int((error.headers or {}).get("Retry-After", "60"))
             results.append(
                 {
                     "instrument_id": instrument_id,
                     "status": "unavailable",
                     "reason": error.detail,
                     "reason_code": "DATA_UNAVAILABLE",
+                    "interval": interval,
                 }
             )
             continue
         for detector_id in parameters.detectors:
-            detector_parameters = parameters.model_copy(update={"detector_id": detector_id})
+            detector_parameters = parameters.model_copy(
+                update={"detector_id": detector_id, "interval": interval}
+            )
             metrics["strategy_evaluation_count"] += 1
             found, detail = detect(feed, detector_parameters)
             if not found:
@@ -348,6 +376,7 @@ def discover(db, owner, body):
                         "status": "filtered",
                         "reason": detail,
                         "reason_code": "NO_SETUP",
+                        "interval": interval,
                         "snapshot_id": feed.snapshot_id,
                         "bar_close_time": bar_time,
                     }
@@ -355,8 +384,43 @@ def discover(db, owner, body):
                 continue
             metrics["strategy_detection_count"] += 1
             score = setup_score(found["features"], parameters.minimum_volume_ratio)
+            assessment = None
+            if parameters.scoring_version == "multifactor_v1":
+                contexts = {}
+                for higher in scanner_scoring.HIGHER[interval]:
+                    cache_key = (instrument_id, higher)
+                    if cache_key not in context_cache:
+                        try:
+                            context_cache[cache_key] = market.refresh(
+                                db, instrument_id, higher, commit=False
+                            )
+                        except HTTPException as failure:
+                            context_cache[cache_key] = None
+                            if failure.status_code == 429:
+                                budget_exhausted = True
+                                metrics["retry_after"] = int(
+                                    (failure.headers or {}).get("Retry-After", "60")
+                                )
+                    if context_cache[cache_key]:
+                        contexts[higher] = context_cache[cache_key]
+                assessment = scanner_scoring.calculate_setup_score(
+                    feed,
+                    found["features"],
+                    detector_parameters,
+                    higher_feeds=contexts,
+                    macro=scanner_context.evidence(
+                        db, owner, feed.instrument, latest_bar.close_time
+                    ),
+                    direction=found.get("direction", "long"),
+                    stamp=latest_bar.close_time,
+                )
+                score = float(assessment["score"])
+                found["evidence"]["assessment"] = assessment
             scoring = parameters.strategy_scores.get(profile.strategy_version_id or detector_id)
-            if score < (scoring.minimum_score if scoring else parameters.minimum_setup_score):
+            exact_score = Decimal(assessment["score"]) if assessment else Decimal(str(score))
+            if exact_score < Decimal(
+                str(scoring.minimum_score if scoring else parameters.minimum_setup_score)
+            ):
                 results.append(
                     {
                         "instrument_id": instrument_id,
@@ -364,6 +428,7 @@ def discover(db, owner, body):
                         "status": "filtered",
                         "reason_code": "LOW_SCORE",
                         "setup_score": score,
+                        "interval": interval,
                         "bar_close_time": bar_time,
                     }
                 )
@@ -380,7 +445,7 @@ def discover(db, owner, body):
                 payload = {
                     **found,
                     "asset_class": feed.instrument.asset_type,
-                    "interval": parameters.interval,
+                    "interval": interval,
                     "snapshot_checksum": feed.checksum,
                     "received_at": feed.received_at.isoformat(),
                     "provider_time": feed.provider_time.isoformat(),
@@ -393,6 +458,8 @@ def discover(db, owner, body):
                     "detector_id": detector_id,
                     "scanner_version": "3",
                 }
+                if assessment:
+                    payload["assessment"] = assessment
                 candidate = ScannerCandidate(
                     owner_id=owner.id,
                     instrument_id=instrument_id,
@@ -449,8 +516,15 @@ def discover(db, owner, body):
                     "snapshot_id": feed.snapshot_id,
                     "setup_score": score,
                     "bar_close_time": bar_time,
+                    "interval": interval,
                 }
             )
+    scanner_universe.finish(metrics, results, parameters.scan_intervals)
+    if parameters.catalog:
+        provider = "oanda_v20" if parameters.catalog.provider == "oanda" else "alpaca_stocks"
+        metrics["request_budget_remaining"] = provider_requests.remaining(db, provider)
+    if metrics.get("retry_after") and not metrics.get("next_check_at"):
+        metrics["next_check_at"] = (now() + timedelta(seconds=metrics["retry_after"])).isoformat()
     payload = {
         "results": results,
         "profile_checksum": profile.checksum,
@@ -568,6 +642,7 @@ def candidate_view(db, owner, row):
         analysis=job,
         history=history,
         setup_score=potential[0].setup_score,
+        assessment=row.payload.get("assessment"),
         potential_candidates=potential,
     )
 

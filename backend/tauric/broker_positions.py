@@ -119,6 +119,28 @@ def close_submission(db, entry, request):
     return event.payload if event else None
 
 
+def close_not_submitted(db, entry, request):
+    return any(
+        e.kind == "close_not_submitted" and e.payload.get("close_request_id") == request.id
+        for e in execution.events(db, entry)
+    )
+
+
+def replacement_submissions(db, entry):
+    return [
+        event.payload
+        for event in execution.events(db, entry)
+        if event.kind == "protection_submission_started"
+    ]
+
+
+def alpaca_children(db, entry, broker, order):
+    result = facts.alpaca_children(broker, order)
+    for submission in replacement_submissions(db, entry):
+        result.extend(facts.alpaca_replacement(broker, submission))
+    return result
+
+
 def collect(db, entry, broker):
     with localcontext() as context:
         context.prec = 120
@@ -163,14 +185,14 @@ def _collect(db, entry, broker):
         else:
             entry_fills = facts.alpaca_fills(broker, order)
             entry_notional = sum((D(fill.quantity) * D(fill.price) for fill in entry_fills), D(0))
-            children = facts.alpaca_children(broker, order)
+            children = alpaca_children(db, entry, broker, order)
             for child, protection in children:
                 protections.append(protection)
                 if D(child.filled_quantity) > 0:
                     exits.extend(facts.alpaca_fills(broker, child))
             for request in close_rows(db, entry):
                 submitted = close_submission(db, entry, request)
-                if submitted:
+                if submitted and not close_not_submitted(db, entry, request):
                     close_order = broker.order(request.payload["client_order_id"])
                     verify_close_order(entry, request, submitted, close_order)
                     if D(close_order.filled_quantity) > 0:
@@ -245,6 +267,25 @@ def _collect(db, entry, broker):
         entry_fills=entry_fills,
         exit_fills=exits,
         trade_ids=trade_ids,
+        protection_status=(
+            "not_required"
+            if not remaining
+            else "covered"
+            if sum(
+                (
+                    D(p.remaining_quantity or "0")
+                    for p in protections
+                    if p.kind in {"stop_loss", "trailing_stop"}
+                    and p.status not in execution.TERMINAL
+                    and p.status not in {"unknown", "inactive"}
+                ),
+                D(0),
+            )
+            == remaining
+            else "incomplete"
+            if any(p.status == "unknown" for p in protections)
+            else "unprotected"
+        ),
         observed_at=now(),
         detail=(
             "Zero attributed quantity; waiting for entry/protection terminal states. "
@@ -366,6 +407,11 @@ def request_close(db, owner, entry_id, body):
         "initial_remaining_quantity": position.remaining_quantity,
         "trade_ids": position.trade_ids,
         "account_fingerprint": entry.account_fingerprint,
+        "protection": {
+            kind: entry.payload["order"].get(kind)
+            or next((p.price for p in position.protections if p.kind == kind and p.price), None)
+            for kind in ("stop_loss", "take_profit")
+        },
     }
     row = BrokerCloseRequest(
         id=close_id,
@@ -421,6 +467,73 @@ def note_close(db, owner, row, status, detail, kind="close_status", **extra):
     return close_view(db, row)
 
 
+def finish_close(db, owner, row, entry, broker, position, status, detail):
+    """Completion includes verified replacement protection for a surviving remainder."""
+    if entry.provider == "alpaca" and D(position.remaining_quantity) > 0:
+        levels = row.payload.get("protection", {})
+        if any(levels.values()):
+            existing = next(
+                reversed(
+                    [
+                        s
+                        for s in replacement_submissions(db, entry)
+                        if s.get("close_request_id") == row.id
+                    ]
+                ),
+                None,
+            )
+            if existing is None:
+                if position.holding_check != "covered":
+                    raise BrokerError(
+                        "Cannot restore protection while attributed holdings are unresolved."
+                    )
+                active = [p for p in position.protections if p.status not in execution.TERMINAL]
+                if active:
+                    # A protective fill may satisfy the requested partial close.
+                    # Preserve surviving broker coverage without adding another sell.
+                    if position.protection_status == "covered":
+                        return note_close(db, owner, row, status, detail)
+                    raise BrokerError("Existing protection must be reconciled before replacement.")
+                existing = {
+                    "close_request_id": row.id,
+                    "client_order_id": "tauric_protect_" + row.id.replace("-", ""),
+                    "symbol": position.symbol,
+                    "side": "sell" if position.side == "long" else "buy",
+                    "quantity": position.remaining_quantity,
+                    **levels,
+                }
+                note_close(
+                    db,
+                    owner,
+                    row,
+                    "unknown",
+                    "Restoring broker-held protection to the attributed remainder.",
+                    "protection_submission_started",
+                    **{k: v for k, v in existing.items() if k != "close_request_id"},
+                )
+                facts.alpaca_protect(broker, existing)
+            else:
+                # A lost submission response never grants permission to repeat.
+                facts.alpaca_replacement(broker, existing)
+            updated = collect(db, entry, broker)
+            save_position(db, owner, entry.id, updated)
+            replacements = facts.alpaca_replacement(broker, existing)
+            expected = {kind for kind, value in levels.items() if value}
+            active = {
+                p.kind
+                for _, p in replacements
+                if p.status not in execution.TERMINAL
+                and p.status not in {"unknown", "inactive"}
+                and D(p.remaining_quantity or "0") == D(updated.remaining_quantity)
+            }
+            if D(updated.remaining_quantity) and not expected.issubset(active):
+                raise BrokerError(
+                    "Replacement protection is unresolved or rejected; entry remains an operating incident."
+                )
+            detail += " Remainder protection verified at the broker."
+    return note_close(db, owner, row, status, detail)
+
+
 def process_close(db, owner, close_id):
     # A separate PostgreSQL transaction holds this lock across every durable
     # commit and network call. Worker/API races never issue the same mutation.
@@ -432,7 +545,9 @@ def process_close(db, owner, close_id):
     if not row:
         raise HTTPException(404, "This broker close request does not exist.")
     key = int.from_bytes(
-        blake2b(("broker-close:" + close_id).encode(), digest_size=8).digest(), "big", signed=True
+        blake2b(("broker-position:" + row.entry_intent_id).encode(), digest_size=8).digest(),
+        "big",
+        signed=True,
     )
     with db.get_bind().connect() as guard:
         acquired = guard.scalar(text("SELECT pg_try_advisory_xact_lock(:key)"), {"key": key})
@@ -470,21 +585,42 @@ def _process_close(db, owner, close_id):
             )
             if D(position.closed_quantity) >= target:
                 save_position(db, owner, entry.id, position)
-                return note_close(
-                    db, owner, row, "filled", "Actual broker exits fulfilled this close request."
+                return finish_close(
+                    db,
+                    owner,
+                    row,
+                    entry,
+                    broker,
+                    position,
+                    "filled",
+                    "Actual broker exits fulfilled this close request.",
                 )
             submitted = close_submission(db, entry, row)
             if submitted:
                 save_position(db, owner, entry.id, position)
+                if close_not_submitted(db, entry, row):
+                    return finish_close(
+                        db,
+                        owner,
+                        row,
+                        entry,
+                        broker,
+                        position,
+                        "rejected",
+                        "Close was not submitted; surviving protection restored.",
+                    )
                 status = "pending" if row.status != "unknown" else "unknown"
                 if entry.provider == "alpaca":
                     closing = broker.order(row.payload["client_order_id"])
                     verify_close_order(entry, row, submitted, closing)
                     if closing.status in ("cancelled", "rejected", "expired"):
-                        return note_close(
+                        return finish_close(
                             db,
                             owner,
                             row,
+                            entry,
+                            broker,
+                            position,
                             "rejected",
                             "The broker close order ended before completing the requested exit.",
                         )
@@ -497,7 +633,7 @@ def _process_close(db, owner, close_id):
                     "Close outcome remains unresolved; no submission is repeated.",
                 )
             if entry.provider == "alpaca":
-                children = facts.alpaca_children(broker, order)
+                children = alpaca_children(db, entry, broker, order)
                 issued = {
                     event.payload.get("broker_order_id")
                     for event in execution.events(db, entry)
@@ -521,7 +657,7 @@ def _process_close(db, owner, close_id):
                         broker.request(
                             "DELETE", "/v2/orders/" + facts.identifier(child.broker_order_id)
                         )
-                children = facts.alpaca_children(broker, order)
+                children = alpaca_children(db, entry, broker, order)
                 if any(child.status not in execution.TERMINAL for child, _ in children):
                     return note_close(
                         db,
@@ -534,10 +670,13 @@ def _process_close(db, owner, close_id):
             quantity = target - D(position.closed_quantity)
             if quantity <= 0:
                 save_position(db, owner, entry.id, position)
-                return note_close(
+                return finish_close(
                     db,
                     owner,
                     row,
+                    entry,
+                    broker,
+                    position,
                     "filled",
                     "Broker protection completed the exit before a manual close was submitted.",
                 )
@@ -561,32 +700,134 @@ def _process_close(db, owner, close_id):
                 "close_submission_started",
                 quantity=quantity_text,
             )
-            if entry.provider == "oanda":
-                facts.oanda_close_trade(broker, position.trade_ids[0], quantity_text)
-            else:
-                broker.submit(
-                    BrokerOrderRequest(
-                        client_order_id=row.payload["client_order_id"],
-                        symbol=position.symbol,
-                        side="sell" if position.side == "long" else "buy",
-                        quantity=quantity_text,
-                        order_type="market",
-                        time_in_force="day",
-                        position_effect="reduce",
+            try:
+                if entry.provider == "oanda":
+                    facts.oanda_close_trade(broker, position.trade_ids[0], quantity_text)
+                else:
+                    broker.submit(
+                        BrokerOrderRequest(
+                            client_order_id=row.payload["client_order_id"],
+                            symbol=position.symbol,
+                            side="sell" if position.side == "long" else "buy",
+                            quantity=quantity_text,
+                            order_type="market",
+                            time_in_force="day",
+                            position_effect="reduce",
+                        )
                     )
-                )
+            except BrokerError as error:
+                if error.not_submitted:
+                    note_close(db, owner, row, "unknown", str(error), "close_not_submitted")
+                raise
             updated = collect(db, entry, broker)
             save_position(db, owner, entry.id, updated)
+            if D(updated.closed_quantity) >= target:
+                return finish_close(
+                    db,
+                    owner,
+                    row,
+                    entry,
+                    broker,
+                    updated,
+                    "filled",
+                    "Broker close filled; actual executions recorded.",
+                )
             return note_close(
                 db,
                 owner,
                 row,
-                "filled" if D(updated.closed_quantity) >= target else "pending",
+                "pending",
                 "Broker close submitted; actual executions determine completion.",
             )
     except BrokerError as error:
         db.rollback()
         return note_close(db, owner, row, "unknown", str(error))
+
+
+def repair_protection(db, owner, close_id, body):
+    """A new attempt is allowed only after every previous replacement is terminal."""
+    row = owned_close(db, owner, close_id)
+    entry = execution.owned(db, owner, row.entry_intent_id, lock=True)
+    key = int.from_bytes(
+        blake2b(("broker-position:" + entry.id).encode(), digest_size=8).digest(),
+        "big",
+        signed=True,
+    )
+    with db.get_bind().connect() as guard:
+        if not guard.scalar(text("SELECT pg_try_advisory_xact_lock(:key)"), {"key": key}):
+            raise HTTPException(409, "This position is being reconciled. Try again shortly.")
+        with execution.matching_broker(db, entry) as broker:
+            try:
+                if entry.provider != "alpaca" or row.status in ("filled", "rejected"):
+                    raise HTTPException(
+                        409, "Only an unresolved Alpaca close can repair protection."
+                    )
+                attempts = [
+                    s
+                    for s in replacement_submissions(db, entry)
+                    if s.get("close_request_id") == row.id
+                ]
+                repeated = next(
+                    (s for s in attempts if s.get("repair_request_id") == str(body.request_id)),
+                    None,
+                )
+                if repeated:
+                    if repeated.get("repair_request") != body.model_dump(mode="json"):
+                        raise HTTPException(409, "This repair request ID has different inputs.")
+                    # Reconcile the same attempt; never repeat a lost response.
+                    return _process_close(db, owner, close_id)
+                if not attempts:
+                    raise HTTPException(
+                        409, "Reconcile the close before requesting protection repair."
+                    )
+                for attempt in attempts:
+                    if any(
+                        o.status not in execution.TERMINAL
+                        for o, _ in facts.alpaca_replacement(broker, attempt)
+                    ):
+                        raise HTTPException(
+                            409, "Previous protection is active or uncertain; reconcile it first."
+                        )
+                position = collect(db, entry, broker)
+                order = broker.order(entry.client_order_id)
+                children = alpaca_children(db, entry, broker, order)
+                if (
+                    position.holding_check != "covered"
+                    or not D(position.remaining_quantity)
+                    or any(o.status not in execution.TERMINAL for o, _ in children)
+                ):
+                    raise HTTPException(
+                        409, "Repair requires a verified remainder and no active protection."
+                    )
+                submitted = close_submission(db, entry, row)
+                if submitted and not close_not_submitted(db, entry, row):
+                    closing = broker.order(row.payload["client_order_id"])
+                    verify_close_order(entry, row, submitted, closing)
+                    if closing.status not in execution.TERMINAL:
+                        raise HTTPException(409, "The close order is still active or uncertain.")
+                replacement = {
+                    "client_order_id": "tauric_repair_" + body.request_id.hex,
+                    "symbol": position.symbol,
+                    "side": "sell" if position.side == "long" else "buy",
+                    "quantity": position.remaining_quantity,
+                    "repair_request_id": str(body.request_id),
+                    "repair_request": body.model_dump(mode="json"),
+                    **row.payload["protection"],
+                }
+                note_close(
+                    db,
+                    owner,
+                    row,
+                    "unknown",
+                    body.reason,
+                    "protection_submission_started",
+                    **replacement,
+                )
+                facts.alpaca_protect(broker, replacement)
+                return _process_close(db, owner, close_id)
+            except BrokerError as error:
+                db.rollback()
+                return note_close(db, owner, row, "unknown", str(error))
 
 
 def journal(db, owner):

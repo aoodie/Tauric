@@ -21,50 +21,53 @@ with sync_playwright() as p:
     page.get_by_role("button", name="Sign in", exact=True).click()
     expect(page.locator(".app")).to_be_visible()
     page.get_by_role("button", name="Settings", exact=True).click()
-    page.get_by_role("tab", name="Scanners", exact=True).click()
+    page.get_by_role("button", name="Scanners", exact=True).click()
+    page.get_by_role("tab", name="My scans", exact=False).click()
     expect(
-        page.get_by_text("Find opportunities before creating a strategy.", exact=False)
+        page.get_by_text("Choose a saved scan or create one.", exact=False)
     ).to_be_visible()
     state = page.evaluate("async()=>await(await fetch('/api/v1/paper')).json()")
     assert not state["strategy_versions"] and not state["accounts"]
     # Inspect the rendered empty state before following the creation flow.
-    assert "Add scanner profile" in page.locator(".scanner-settings").inner_text()
+    assert "New scanner" in page.locator(".scanner-settings").inner_text()
 
     def create(name, multiple=False):
-        page.get_by_role("button", name="Add scanner profile", exact=True).click()
+        page.get_by_role("button", name="New scanner", exact=True).click()
         form = page.get_by_role("form", name="Scanner profile form", exact=True)
-        expect(form.get_by_label("Scanner strategy version", exact=True)).to_have_value(
+        expect(form.locator("select[name=strategy_version_id]")).to_have_value(
             ""
         )
         form.get_by_label("Scanner name", exact=True).fill(name)
-        form.get_by_label("Candle interval", exact=True).select_option("15m")
+        form.get_by_label("Timeframe", exact=True).select_option("15m")
+        form.get_by_label("Setup scoring", exact=True).select_option("legacy_v1")
+        form.get_by_text("Advanced settings", exact=False).click()
         for label, value in {
-            "Minimum setup score": "0.50",
-            "Minimum research score": "0.65",
-            "Top candidates per cycle": "2",
-            "Normal scan interval (seconds)": "30",
-            "Candidate scan interval (seconds)": "10",
-            "Setup cooldown (seconds)": "0",
-            "Prior closed candles": "4" if multiple else "3",
-            "Minimum activity ratio": "2",
-            "Candidate lifetime (seconds)": "3600",
-            "New research runs per UTC day": "1",
-            "Scanner change reason": "Create independent synthetic scanner",
+            "Minimum setup score (0–1)": "0.50",
+            "Minimum research score (0–1)": "0.65",
+            "Research shortlist per scan": "2",
+            "Scan every (seconds)": "30",
+            "Recheck watching list every (seconds)": "10",
+            "Wait between repeated setups (seconds)": "0",
+            "Look back (closed candles)": "4" if multiple else "3",
+            "Minimum activity (× average)": "2",
+            "Opportunity valid for (seconds)": "3600",
+            "Tauric research runs per day": "1",
+            "Why save this change?": "Create independent synthetic scanner",
         }.items():
             form.get_by_label(label, exact=True).fill(value)
         form.get_by_label("Research AI connection", exact=True).select_option("local")
         form.get_by_label("BTC/USDT", exact=True).check()
-        form.get_by_label("Enable screening", exact=True).check()
+        form.get_by_label("Enable this scanner", exact=True).check()
         if multiple:
             form.get_by_label("Short breakdown", exact=True).check()
             form.get_by_label("Trend pullback", exact=True).check()
             form.get_by_label(
-                "Run scheduled screening (requires scanner worker)", exact=True
+                "Scan automatically", exact=True
             ).check()
             form.get_by_label(
-                "Automatically research qualified candidates", exact=True
+                "Ask Tauric to research matches automatically", exact=True
             ).check()
-        form.get_by_role("button", name="Save scanner profile", exact=True).click()
+        form.get_by_role("button", name="Save scanner", exact=True).click()
         profile = page.get_by_role(
             "article", name=name + " scanner profile", exact=True
         )
@@ -102,14 +105,14 @@ with sync_playwright() as p:
     row = page.locator(".scanner-panel").get_by_role(
         "article", name="binance:spot:BTCUSDT candidate"
     )
-    row.get_by_text("Setup evidence and actions", exact=True).click()
+    row.get_by_text("Review setup", exact=True).click()
     dropdown = row.get_by_label("Candidate scanner profile", exact=True)
     expect(dropdown).to_contain_text("Independent breakout watch")
     expect(dropdown).to_contain_text("Second market watch")
-    row.get_by_label("Candidate action reason", exact=True).fill(
+    row.get_by_label("Why take this action?", exact=True).fill(
         "Research this synthetic candidate"
     )
-    row.get_by_role("button", name="Request daily research", exact=True).click()
+    row.get_by_role("button", name="Ask Tauric for research", exact=True).click()
     expect(page.locator(".scanner-panel")).to_contain_text(
         "Daily research requested or reused."
     )
@@ -124,21 +127,22 @@ with sync_playwright() as p:
     )
 
     page.get_by_role("button", name="Settings", exact=True).click()
-    page.get_by_role("tab", name="Scanners", exact=True).click()
-    first.get_by_role("button", name="Edit scanner profile", exact=True).click()
+    page.get_by_role("button", name="Scanners", exact=True).click()
+    page.get_by_role("tab", name="My scans", exact=False).click()
+    first.get_by_role("button", name="Edit scanner", exact=True).click()
     form = first.get_by_role("form", name="Scanner profile form")
     form.get_by_label("Scanner name", exact=True).fill("Renamed discovery watch")
-    form.get_by_label("Enable screening", exact=True).uncheck()
-    form.get_by_label("Scanner change reason", exact=True).fill(
+    form.get_by_label("Enable this scanner", exact=True).uncheck()
+    form.get_by_label("Why save this change?", exact=True).fill(
         "Pause and rename this independent scanner"
     )
-    form.get_by_role("button", name="Save scanner profile", exact=True).click()
+    form.get_by_role("button", name="Save scanner", exact=True).click()
     renamed = page.get_by_role(
         "article", name="Renamed discovery watch scanner profile", exact=True
     )
     expect(renamed.get_by_role("button", name="Scan now", exact=True)).to_be_disabled()
     expect(second.get_by_role("button", name="Scan now", exact=True)).to_be_enabled()
-    renamed.get_by_role("button", name="Profile history", exact=True).click()
+    renamed.get_by_role("button", name="Version history", exact=True).click()
     expect(
         renamed.get_by_text(
             "Revision 1 · Create independent synthetic scanner · enabled", exact=True
@@ -149,7 +153,8 @@ with sync_playwright() as p:
     )
     page.reload()
     page.get_by_role("button", name="Settings", exact=True).click()
-    page.get_by_role("tab", name="Scanners", exact=True).click()
+    page.get_by_role("button", name="Scanners", exact=True).click()
+    page.get_by_role("tab", name="My scans", exact=False).click()
     expect(renamed.get_by_text("DISABLED", exact=True)).to_be_visible()
     expect(second.get_by_text("ENABLED", exact=True)).to_be_visible()
     page.screenshot(
@@ -184,7 +189,7 @@ with sync_playwright() as p:
         "Multiple setup selection and automatic research controls persist with coordinator status"
     )
     page.set_viewport_size({"width": 390, "height": 844})
-    page.get_by_role("button", name="Add scanner profile", exact=True).click()
+    page.get_by_role("button", name="New scanner", exact=True).click()
     expect(page.get_by_label("Scanner name", exact=True)).to_be_visible()
     assert not page.evaluate("document.documentElement.scrollWidth > innerWidth + 1")
     page.screenshot(

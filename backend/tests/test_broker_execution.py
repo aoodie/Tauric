@@ -444,3 +444,37 @@ def test_disabled_policy_revokes_unsubmitted_intent(signed_in, broker, database,
         owner = db.scalar(select(Owner))
         assert actual_submit(db, owner, result["id"]).status == "rejected"
     assert broker.submissions == []
+
+
+def test_account_limits_are_saved_as_revisioned_policy(signed_in):
+    payload = {
+        "request_id": str(uuid4()),
+        "expected_revision": 0,
+        "enabled": False,
+        "no_owner_limits": False,
+        "maximum_risk_percent": "5",
+        "maximum_drawdown_percent": "15",
+        "reason": "Owner starting mandate",
+    }
+    response = signed_in.put("/api/v1/brokers/oanda/policy", json=payload)
+    assert response.status_code == 200, response.text
+    assert response.json()["settings"]["maximum_risk_percent"] == "5"
+    assert response.json()["settings"]["maximum_drawdown_percent"] == "15"
+    assert signed_in.put("/api/v1/brokers/oanda/policy", json=payload).json() == response.json()
+    changed = {
+        **payload,
+        "request_id": str(uuid4()),
+        "expected_revision": 1,
+        "maximum_drawdown_percent": "12",
+        "reason": "Owner adjusted mandate",
+    }
+    updated = signed_in.put("/api/v1/brokers/oanda/policy", json=changed)
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["revision"] == 2
+    assert updated.json()["settings"]["maximum_drawdown_percent"] == "12"
+    assert (
+        signed_in.put("/api/v1/brokers/oanda/policy", json=payload).json()["settings"][
+            "maximum_drawdown_percent"
+        ]
+        == "15"
+    )

@@ -21,7 +21,13 @@ def copy_private(source, target):
 
 
 if os.getuid() == 0:
-    for name in ("model-profiles.json", "model-key", "openclaw-private.json", "market-data.json"):
+    for name in (
+        "model-profiles.json",
+        "model-key",
+        "openclaw-private.json",
+        "market-data.json",
+        "memory-private.json",
+    ):
         source = Path("/run/setup-" + name)
         if source.is_file():
             target = Path("/run/tauric") / name

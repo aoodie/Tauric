@@ -155,18 +155,9 @@ export function MarketChart({
           />
           Every 30s
         </label>
-        <button
-          className="text-button market-analyze"
-          onClick={analyze}
-          disabled={!spec?.native_research_ready}
-          title={
-            !spec?.native_research_ready
-              ? "Native research for this asset is pending"
-              : undefined
-          }
-        >
+        <button className="text-button market-analyze" onClick={analyze}>
           <Sparkles size={14} />
-          Daily research
+          Research
         </button>
       </div>
       <InstrumentDiscovery selectOnAdd />

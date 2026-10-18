@@ -1,0 +1,29 @@
+FROM node:24-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS node
+FROM python:3.13-slim-bookworm@sha256:5024f48ba9441d4b13a95d3945abc6365538e3a31109833367a1923523c6efed
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
+COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && apt-get update && apt-get install -y --no-install-recommends git postgresql-15 \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --uid 10001 engineer \
+    && mkdir /workspace && chown engineer:engineer /workspace
+COPY backend/requirements.lock /requirements.lock
+RUN pip install --no-cache-dir -r /requirements.lock \
+    && python -c 'import pathlib,site; (pathlib.Path(site.getsitepackages()[0])/"tauric-workspace.pth").write_text("/workspace/backend\n")'
+COPY backend/ /source/backend/
+COPY frontend/ /source/frontend/
+COPY openclaw/ /source/openclaw/
+COPY deploy/ /source/deploy/
+COPY .github/ /source/.github/
+COPY frontend/package.json frontend/package-lock.json /opt/engineering-deps/frontend/
+COPY openclaw/package.json openclaw/package-lock.json /opt/engineering-deps/openclaw/
+RUN npm --prefix /opt/engineering-deps/frontend ci --ignore-scripts --no-audit --no-fund \
+    && npm --prefix /opt/engineering-deps/openclaw ci --ignore-scripts --no-audit --no-fund
+COPY docs/ /source/docs/
+COPY scripts/ /source/scripts/
+COPY README.md AGENTS.md .gitignore .dockerignore /source/
+RUN python /source/scripts/project_tree.py --root /source --output /source-manifest.json
+COPY scripts/engineering_entry.py /engineering_entry.py
+USER 10001:10001
+WORKDIR /workspace
+ENTRYPOINT ["python", "/engineering_entry.py"]

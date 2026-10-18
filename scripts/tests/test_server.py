@@ -1,8 +1,10 @@
 """Deployment controls that can be checked without Docker or application data."""
 
+import hashlib
 import io
 import json
 import os
+import subprocess
 import sys
 import tarfile
 import tempfile
@@ -13,10 +15,58 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import github_source
 import release_bundle
+import release_smoke
 import server
 
 
 class ServerControls(unittest.TestCase):
+    def test_runtime_restore_streams_large_files_and_preserves_content_and_metadata(
+        self,
+    ):
+        data = b"saved runtime data" * 180000
+        stream = io.BytesIO()
+        with tarfile.open(fileobj=stream, mode="w") as archive:
+            member = tarfile.TarInfo("large-runtime-file")
+            member.size, member.mode, member.uid, member.gid = (
+                len(data),
+                0o640,
+                10001,
+                10001,
+            )
+            archive.addfile(member, io.BytesIO(data))
+        stream.seek(0)
+        with tarfile.open(fileobj=stream) as archive:
+            original = archive.extractfile
+            reads = []
+
+            class BoundedReader:
+                def __init__(self, member):
+                    self.source = original(member)
+
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *_):
+                    self.source.close()
+
+                def read(self, size=-1):
+                    self.assert_bounded(size)
+                    reads.append(size)
+                    return self.source.read(size)
+
+                @staticmethod
+                def assert_bounded(size):
+                    if not 0 < size <= 1024 * 1024:
+                        raise AssertionError("Restoration must bound each file read")
+
+            with patch.object(archive, "extractfile", side_effect=BoundedReader):
+                result = server.runtime_inventory(archive)
+        self.assertGreater(len(reads), 3)
+        self.assertEqual(
+            result["large-runtime-file"],
+            (tarfile.REGTYPE, 0o640, 10001, 10001, hashlib.sha256(data).hexdigest()),
+        )
+
     def setUp(self):
         self.folder = tempfile.TemporaryDirectory()
         self.root = Path(self.folder.name)
@@ -31,6 +81,37 @@ class ServerControls(unittest.TestCase):
 
     def tearDown(self):
         self.folder.cleanup()
+
+    def test_operation_errors_keep_private_diagnostics_out_of_the_exception_message(
+        self,
+    ):
+        failed = subprocess.CompletedProcess(
+            [], 1, stdout=b"private-output", stderr=b"private-password"
+        )
+        with (
+            patch("server.subprocess.run", return_value=failed),
+            self.assertRaises(server.ServerOperationError) as error,
+        ):
+            server.run(["docker", "compose", "up"])
+        self.assertNotIn("private-password", str(error.exception))
+        self.assertIn("private-password", error.exception.diagnostics)
+
+    def test_failure_diagnostics_remove_nested_tokens_and_encoded_passwords(self):
+        private = self.root / "secrets"
+        private.mkdir()
+        (private / "database-app").write_text("db/password?\n")
+        (private / "tokens").write_text(json.dumps({"tokens": ["gateway-secret"]}))
+        (private / "empty").write_text("\n")
+        text = "db/password? db%2Fpassword%3F gateway-secret owner-password service unhealthy"
+        redacted = release_smoke.redact_diagnostics(text, private, "owner-password")
+        for secret in (
+            "db/password?",
+            "db%2Fpassword%3F",
+            "gateway-secret",
+            "owner-password",
+        ):
+            self.assertNotIn(secret, redacted)
+        self.assertIn("service unhealthy", redacted)
 
     def test_setup_is_private_and_cannot_overwrite_existing_keys(self):
         state = self.root / "state"
@@ -55,6 +136,70 @@ class ServerControls(unittest.TestCase):
         )
         self.assertEqual(set(before), set(server.PRIVATE_FILES))
 
+    def test_engineering_restore_requires_root_before_creating_target_state(self):
+        def extracted(_archive, staging):
+            (staging / "secrets" / "engineering").mkdir(parents=True)
+            return {}
+
+        state = self.root / "restored"
+        with (
+            patch("server.extract_backup", side_effect=extracted),
+            patch("server.os.geteuid", return_value=1000),
+            self.assertRaisesRegex(ValueError, "requires root"),
+        ):
+            server.restore_check(state, "tauric_restore", self.root / "backup.tar.gz")
+        self.assertFalse(state.exists())
+
+    def test_backup_and_restore_do_not_require_system_temporary_storage(self):
+        state = self.root / "state"
+        server.setup(state, self.images)
+        disk = state / "secrets" / "engineering" / "workspaces" / "disk.ext4"
+        disk.parent.mkdir(parents=True)
+        disk.write_bytes(b"saved workspace" * 10000)
+        archive = self.root / "backups" / "backup.tar.gz"
+        snapshot = {"tables": {}, "schema": "fixture"}
+
+        def docker(args, **kwargs):
+            if "pg_dump" in args:
+                kwargs["stdout"].write(b"database fixture")
+            return subprocess.CompletedProcess(
+                args, 0, stdout=b"db\n" if "ps" in args else b""
+            )
+
+        # A RAM-backed /tmp can fill independently of the backup filesystem.
+        # Both operations must still extract and verify the real private archive.
+        with (
+            patch("server.tempfile.tempdir", str(self.root / "unavailable-tmp")),
+            patch("server.validate"),
+            patch("server.run", side_effect=docker),
+            patch("server.snapshot", return_value=snapshot),
+            patch("server.freeze_engineering", return_value=False),
+            patch("server.volume_name", return_value=None),
+        ):
+            result = server.backup(state, "tauric_fixture", archive)
+            self.assertTrue(result["backup_created"])
+            self.assertEqual(result["sha256"], server.checksum(archive))
+            with (
+                patch("server.os.geteuid", return_value=1000),
+                self.assertRaisesRegex(ValueError, "requires root"),
+            ):
+                server.restore_check(
+                    self.root / "restorations" / "state", "tauric_restore", archive
+                )
+        self.assertFalse((self.root / "restorations" / "state").exists())
+
+    def test_backup_refuses_staging_inside_the_private_tree_before_stopping_services(
+        self,
+    ):
+        state = self.root / "state"
+        server.setup(state, self.images)
+        with patch("server.validate"), patch("server.run") as run:
+            with self.assertRaisesRegex(ValueError, "outside the private files"):
+                server.backup(
+                    state, "tauric_fixture", state / "secrets" / "backup.tar.gz"
+                )
+            run.assert_not_called()
+
     def test_public_origin_and_cookie_settings(self):
         state = self.root / "state"
         server.setup(state, self.images, "trade.example.com")
@@ -73,6 +218,12 @@ class ServerControls(unittest.TestCase):
             "example.com/path",
             "localhost",
             "example.com\nSECRET=value",
+            "127.0.0.1",
+            "10.1.2.3",
+            "192.168.1.4",
+            "999.999.999.999",
+            "217.160.9.196:8081",
+            "::1",
         ):
             with self.assertRaises(ValueError):
                 server.setup(self.root / "state", self.images, domain)
@@ -87,6 +238,18 @@ class ServerControls(unittest.TestCase):
         server.validate_images(
             dict.fromkeys(server.IMAGE_KEYS, "sha256:" + "a" * 64), local=True
         )
+
+    def test_public_ip_uses_trusted_https_origin_and_dedicated_override(self):
+        state = self.root / "state"
+        server.setup(state, self.images, "217.160.9.196")
+        values = server.read_env(state / "server.env")
+        self.assertEqual(values["TAURIC_SECURE_COOKIES"], "true")
+        self.assertEqual(
+            json.loads(values["TAURIC_ALLOWED_ORIGINS"]), ["https://217.160.9.196"]
+        )
+        command = server.command(state, "tauric_test")
+        self.assertIn(str(server.ROOT / "deploy/compose.public-ip.yml"), command)
+        self.assertNotIn(str(server.ROOT / "deploy/compose.https.yml"), command)
 
     def test_config_rejects_public_internal_ports(self):
         state = self.root / "state"
@@ -143,6 +306,15 @@ class ServerControls(unittest.TestCase):
                     }
                 )
             )
+        (images / "engineering.json").write_text(
+            json.dumps(
+                {
+                    "image": "ghcr.io/owner/tauric-engineering@sha256:" + "c" * 64,
+                    "revision": revision,
+                    "repository": "owner/tauric",
+                }
+            )
+        )
         archive = release_bundle.build(
             images, self.root / "release", "owner/tauric", revision
         )
@@ -153,7 +325,9 @@ class ServerControls(unittest.TestCase):
                 if member.isfile()
             }
         self.assertEqual(
-            names, set(release_bundle.FILES) | {"images.env", "release-manifest.json"}
+            names,
+            set(release_bundle.FILES)
+            | {"images.env", "release-manifest.json", "engineering-image.json"},
         )
         self.assertFalse(
             any(".env." in name or "database.dump" in name for name in names)

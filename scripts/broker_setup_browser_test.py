@@ -22,10 +22,10 @@ with sync_playwright() as p:
     page.get_by_label("Password", exact=True).fill("Test-only-password-2026")
     page.get_by_role("button", name="Sign in", exact=True).click()
     expect(page.locator(".app")).to_be_visible()
-    page.get_by_role("button", name="Paper trading", exact=True).click()
-    page.get_by_text("Broker-connected demo trading", exact=True).click()
-    page.get_by_label("Demo broker", exact=True).select_option("alpaca")
-    section = page.get_by_role("region", name="Demo setup reviews", exact=True)
+    page.get_by_role("button", name="Trading", exact=True).click()
+    page.get_by_text("Broker trading and position protection", exact=True).click()
+    page.get_by_label("Broker", exact=True).select_option("alpaca")
+    section = page.get_by_role("region", name="Broker setup reviews", exact=True)
     section.screenshot(path=str(root / "artifacts/broker-setup-inspect.png"))
     section.get_by_label("Setup instrument", exact=True).select_option(
         "alpaca:equity:AAPL"
@@ -93,9 +93,9 @@ with sync_playwright() as p:
     page.reload()
     page.wait_for_load_state("domcontentloaded")
     expect(page.locator(".app")).to_be_visible()
-    page.get_by_role("button", name="Paper trading", exact=True).click()
-    page.get_by_text("Broker-connected demo trading", exact=True).click()
-    section = page.get_by_role("region", name="Demo setup reviews", exact=True)
+    page.get_by_role("button", name="Trading", exact=True).click()
+    page.get_by_text("Broker trading and position protection", exact=True).click()
+    section = page.get_by_role("region", name="Broker setup reviews", exact=True)
     expect(
         section.get_by_role("article", name="Saved setup review", exact=True)
     ).to_have_count(1)

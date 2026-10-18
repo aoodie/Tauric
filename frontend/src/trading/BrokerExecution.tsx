@@ -7,8 +7,9 @@ import {
 } from "../api/client";
 import { BrokerSetupReview } from "./BrokerSetupReview";
 import { BrokerRoutes } from "./BrokerRoutes";
+import { brokerPolicyLimits } from "./brokerPolicyLimits";
 
-const label = { oanda: "OANDA practice", alpaca: "Alpaca paper" };
+const label = { oanda: "OANDA", alpaca: "Alpaca" };
 const explain = (error: unknown) =>
   error instanceof Error
     ? error.message
@@ -38,6 +39,9 @@ export function BrokerExecution() {
   >(null);
   const policy = state?.policies.find((p) => p.provider === provider);
   const connection = connections[provider];
+  const live =
+    connection?.environment === "live" ||
+    policy?.settings.environment === "live";
   async function load() {
     const [orders, positions] = await Promise.all([
       api.brokers(),
@@ -47,7 +51,10 @@ export function BrokerExecution() {
     setJournal(positions);
   }
   useEffect(() => {
-    void load().catch((err) => setError(explain(err)));
+    const read = () => void load().catch((err) => setError(explain(err)));
+    read();
+    window.addEventListener("tauric-trading-changed", read);
+    return () => window.removeEventListener("tauric-trading-changed", read);
   }, []);
   async function act(work: () => Promise<void>) {
     setPending(true);
@@ -76,15 +83,39 @@ export function BrokerExecution() {
         request_id: crypto.randomUUID(),
         expected_revision: policy?.revision ?? 0,
         enabled: !policy?.settings.enabled,
-        no_owner_limits: true,
+        ...brokerPolicyLimits(policy?.settings),
+        live_acknowledged: false,
         reason: policy?.settings.enabled
-          ? "Owner stopped new demo broker orders"
-          : "Owner enabled demo broker orders with no additional owner caps",
+          ? "Owner stopped new broker orders"
+          : "Owner enabled demo broker orders with Tauric review available",
       });
       setNotice(
         policy?.settings.enabled
-          ? "New demo orders disabled. Existing broker orders remain visible."
+          ? "New broker entries paused. Position protection and exits continue."
           : "Demo broker orders enabled. Broker buying-power and instrument rules apply.",
+      );
+    });
+  }
+  async function saveLimits(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    await act(async () => {
+      await api.saveBrokerPolicy(provider, {
+        request_id: crypto.randomUUID(),
+        expected_revision: policy?.revision ?? 0,
+        enabled: policy?.settings.enabled === true,
+        no_owner_limits: false,
+        maximum_risk_percent: String(form.get("maximum_risk")),
+        maximum_drawdown_percent: String(form.get("maximum_drawdown")),
+        live_acknowledged: live && policy?.settings.enabled === true,
+        forward_report_id:
+          typeof policy?.settings.forward_report_id === "string"
+            ? policy.settings.forward_report_id
+            : undefined,
+        reason: "Owner updated account risk and drawdown limits",
+      });
+      setNotice(
+        "Account limits saved. Refresh assessments and affected route bindings before new entries.",
       );
     });
   }
@@ -148,18 +179,18 @@ export function BrokerExecution() {
   }
   return (
     <details className="paper-card">
-      <summary>Broker-connected demo trading</summary>
+      <summary>Broker trading and position protection</summary>
       <p>
-        Place orders in your OANDA practice or Alpaca paper account and inspect
-        actual broker fills. The reviews below can authorize one exact demo
-        entry. Saved automatic routes check current completed candles and
-        calculate order size from account equity and the strategy stop.
+        Inspect actual fills, protection and attributed exits for OANDA and
+        Alpaca. Automatic routes check completed candles, calculate size from
+        equity and the strategy stop, then require native Tauric approval and
+        OpenClaw review.
       </p>
       <div className="paper-actions">
         <label>
-          Demo broker
+          Broker
           <select
-            aria-label="Demo broker"
+            aria-label="Broker"
             value={provider}
             disabled={pending || !!retry}
             onChange={(e) => {
@@ -169,8 +200,8 @@ export function BrokerExecution() {
               setError("");
             }}
           >
-            <option value="oanda">OANDA practice</option>
-            <option value="alpaca">Alpaca paper</option>
+            <option value="oanda">OANDA</option>
+            <option value="alpaca">Alpaca</option>
           </select>
         </label>
         <button
@@ -184,13 +215,16 @@ export function BrokerExecution() {
           className="secondary"
           disabled={
             pending ||
+            (live && !policy?.settings.enabled) ||
             (!policy?.settings.enabled && !connection?.account?.trading_enabled)
           }
           onClick={() => void toggle()}
         >
           {policy?.settings.enabled
-            ? "Stop new demo orders"
-            : "Enable demo orders"}
+            ? "Pause new entries"
+            : live
+              ? "Activate through forward validation"
+              : "Enable demo orders"}
         </button>
         <button
           className="secondary"
@@ -202,6 +236,35 @@ export function BrokerExecution() {
       </div>
       {error && <p role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
+      <form onSubmit={saveLimits} key={`${provider}:${policy?.revision ?? 0}`}>
+        <label>
+          Maximum risk per trade (%)
+          <input
+            name="maximum_risk"
+            required
+            inputMode="decimal"
+            defaultValue={String(policy?.settings.maximum_risk_percent ?? "5")}
+          />
+        </label>
+        <label>
+          Maximum observed drawdown (%)
+          <input
+            name="maximum_drawdown"
+            required
+            inputMode="decimal"
+            defaultValue={String(
+              policy?.settings.maximum_drawdown_percent ?? "15",
+            )}
+          />
+        </label>
+        <button className="secondary" disabled={pending}>
+          Save account limits
+        </button>
+        <p>
+          Limits pause new live entries at the drawdown threshold. Position
+          exits and protection repair continue.
+        </p>
+      </form>
       {connection?.account && (
         <>
           <p>
@@ -213,7 +276,7 @@ export function BrokerExecution() {
           <p>
             Checked {new Date(connection.account.observed_at).toLocaleString()}.{" "}
             {policy?.settings.enabled
-              ? "Demo execution enabled · no additional owner caps."
+              ? `${connection.environment} execution enabled · Tauric governs reviewed entries.`
               : "New orders disabled."}
           </p>
           {(connection.positions ?? []).length ? (
@@ -242,86 +305,94 @@ export function BrokerExecution() {
           )}
         </>
       )}
-      <form className="paper-form-grid" onSubmit={(e) => void submit(e)}>
-        <label>
-          Instrument
-          <input
-            name="symbol"
-            required
-            placeholder={provider === "oanda" ? "EUR_USD" : "AAPL"}
-          />
-        </label>
-        <label>
-          Side
-          <select name="side" aria-label="Side">
-            <option value="buy">Buy</option>
-            <option value="sell">Sell</option>
-          </select>
-        </label>
-        <label>
-          Quantity
-          <input name="quantity" required inputMode="decimal" />
-        </label>
-        <label>
-          Order type
-          <select
-            aria-label="Order type"
-            value={orderType}
-            onChange={(e) => setOrderType(e.target.value as typeof orderType)}
-          >
-            <option value="market">Market</option>
-            <option value="limit">Limit</option>
-            <option value="stop">Stop entry</option>
-          </select>
-        </label>
-        {orderType !== "market" && (
+      {live ? (
+        <p>
+          Live entries use the reviewed strategy routes below. Each requires
+          Tauric approval, bounded OpenClaw review and verified protective
+          stops.
+        </p>
+      ) : (
+        <form className="paper-form-grid" onSubmit={(e) => void submit(e)}>
           <label>
-            Entry price
-            <input name="entry_price" required inputMode="decimal" />
+            Instrument
+            <input
+              name="symbol"
+              required
+              placeholder={provider === "oanda" ? "EUR_USD" : "AAPL"}
+            />
           </label>
-        )}
-        <label>
-          Position action
-          <select name="position_effect" aria-label="Position action">
-            <option value="open">Open / add</option>
-            <option value="reduce">Reduce existing position</option>
-          </select>
-        </label>
-        <label>
-          Duration
-          <select name="time_in_force" aria-label="Duration">
-            <option value="gtc">Until cancelled</option>
-            {provider === "alpaca" && <option value="day">Day</option>}
-          </select>
-        </label>
-        {orderType !== "stop" && (
-          <>
+          <label>
+            Side
+            <select name="side" aria-label="Side">
+              <option value="buy">Buy</option>
+              <option value="sell">Sell</option>
+            </select>
+          </label>
+          <label>
+            Quantity
+            <input name="quantity" required inputMode="decimal" />
+          </label>
+          <label>
+            Order type
+            <select
+              aria-label="Order type"
+              value={orderType}
+              onChange={(e) => setOrderType(e.target.value as typeof orderType)}
+            >
+              <option value="market">Market</option>
+              <option value="limit">Limit</option>
+              <option value="stop">Stop entry</option>
+            </select>
+          </label>
+          {orderType !== "market" && (
             <label>
-              Stop loss (optional)
-              <input name="stop_loss" inputMode="decimal" />
+              Entry price
+              <input name="entry_price" required inputMode="decimal" />
             </label>
-            <label>
-              Take profit (optional)
-              <input name="take_profit" inputMode="decimal" />
-            </label>
-          </>
-        )}
-        <label>
-          Reason
-          <input name="reason" required minLength={3} />
-        </label>
-        <button
-          disabled={
-            pending ||
-            !!retry ||
-            !policy?.settings.enabled ||
-            !connection?.account?.trading_enabled
-          }
-          type="submit"
-        >
-          Submit to {label[provider]}
-        </button>
-      </form>
+          )}
+          <label>
+            Position action
+            <select name="position_effect" aria-label="Position action">
+              <option value="open">Open / add</option>
+              <option value="reduce">Reduce existing position</option>
+            </select>
+          </label>
+          <label>
+            Duration
+            <select name="time_in_force" aria-label="Duration">
+              <option value="gtc">Until cancelled</option>
+              {provider === "alpaca" && <option value="day">Day</option>}
+            </select>
+          </label>
+          {orderType !== "stop" && (
+            <>
+              <label>
+                Stop loss (optional)
+                <input name="stop_loss" inputMode="decimal" />
+              </label>
+              <label>
+                Take profit (optional)
+                <input name="take_profit" inputMode="decimal" />
+              </label>
+            </>
+          )}
+          <label>
+            Reason
+            <input name="reason" required minLength={3} />
+          </label>
+          <button
+            disabled={
+              pending ||
+              !!retry ||
+              !policy?.settings.enabled ||
+              !connection?.account?.trading_enabled
+            }
+            type="submit"
+          >
+            Submit to {label[provider]}
+          </button>
+        </form>
+      )}
       {retry && (
         <p>
           A response was not received.{" "}
@@ -444,6 +515,16 @@ export function BrokerExecution() {
               {position.holding_check} · checked{" "}
               {new Date(position.observed_at).toLocaleString()}
             </p>
+            <p
+              className={
+                position.protection_status === "unprotected" ||
+                position.protection_status === "incomplete"
+                  ? "error"
+                  : "muted"
+              }
+            >
+              Protective stop: {position.protection_status.replaceAll("_", " ")}
+            </p>
             <p>
               {position.provider === "oanda"
                 ? `Broker realized P&L ${position.broker_realized_pnl_home ?? "—"} ${position.currency} · financing ${position.broker_financing_home ?? "—"} ${position.currency}`
@@ -500,7 +581,8 @@ export function BrokerExecution() {
                   ) && (
                     <p>
                       Closing cancels this entry’s attached protection first.
-                      Any remaining shares will need new protection.
+                      Tauric restores and verifies protection for any remaining
+                      shares before marking the close complete.
                     </p>
                   )}
                 <label>
@@ -538,16 +620,43 @@ export function BrokerExecution() {
         <p key={request.id}>
           Close {request.quantity} · {request.status} · {request.detail}{" "}
           {!["filled", "rejected"].includes(request.status) && (
-            <button
-              disabled={pending}
-              onClick={() =>
-                void act(async () => {
-                  await api.reconcileBrokerClose(request.id);
-                })
-              }
-            >
-              Reconcile close
-            </button>
+            <>
+              <button
+                disabled={pending}
+                onClick={() =>
+                  void act(async () => {
+                    await api.reconcileBrokerClose(request.id);
+                  })
+                }
+              >
+                Reconcile close
+              </button>
+              {request.status === "unknown" &&
+                journal.positions.find(
+                  (p) => p.entry_intent_id === request.entry_intent_id,
+                )?.protection_status === "unprotected" && (
+                  <button
+                    disabled={pending}
+                    onClick={() =>
+                      void act(async () => {
+                        const result = await api.repairBrokerProtection(
+                          request.id,
+                          {
+                            request_id: crypto.randomUUID(),
+                            reason:
+                              "Owner repaired confirmed failed remainder protection",
+                          },
+                        );
+                        setNotice(
+                          `Protection recovery ${result.status}. ${result.detail}`,
+                        );
+                      })
+                    }
+                  >
+                    Repair confirmed failed protection
+                  </button>
+                )}
+            </>
           )}
         </p>
       ))}

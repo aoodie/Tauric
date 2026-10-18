@@ -18,7 +18,16 @@ from .models import now
 
 VERSION = "tauric_fx_supplemental_v1"
 TRADINGVIEW_VERSION = "tauric_fx_tradingview_v1"
-COUNTRIES = {"USD": "United States", "EUR": "Euro Area", "GBP": "United Kingdom", "JPY": "Japan"}
+COUNTRIES = {
+    "USD": "United States",
+    "EUR": "Euro Area",
+    "GBP": "United Kingdom",
+    "JPY": "Japan",
+    "AUD": "Australia",
+    "CAD": "Canada",
+    "CHF": "Switzerland",
+    "NZD": "New Zealand",
+}
 HOST = "https://api.tradingeconomics.com"
 
 
@@ -207,7 +216,7 @@ def financing(payload, spec):
     ]
 
 
-def collect(db, spec):
+def collect(db, spec, *, deadline=None):
     from .forex_connection import saved
     from .market_connections import stored_connection
     from .tradingview_connection import saved as tradingview_saved
@@ -218,8 +227,8 @@ def collect(db, spec):
     use_tradingview = bool(tv_config.get("access_token")) or not key
     with httpx.Client(timeout=httpx.Timeout(6, connect=4), follow_redirects=False) as client:
         for currency in [spec.base_currency, spec.quote_currency]:
-            country = COUNTRIES[currency]
-            encoded = quote(country.lower(), safe="")
+            country = COUNTRIES.get(currency)
+            encoded = quote(country.lower(), safe="") if country else ""
             for kind in ("economic_calendar", "policy_rate"):
                 url = (
                     f"{HOST}/calendar/country/{encoded}/{(stamp - timedelta(days=7)).date()}/{(stamp + timedelta(days=14)).date()}"
@@ -230,14 +239,22 @@ def collect(db, spec):
                     "currency": currency,
                     "kind": kind,
                     "provider": "Trading Economics",
-                    "url": url,
+                    "url": url if country else HOST,
                     "status": "unavailable",
                     "items": [],
                     "checked_at": stamp.isoformat(),
                     "warning": "Configure Trading Economics calendar and indicators access in Settings.",
                     "connection_revision": revision,
                 }
-                if key and not use_tradingview:
+                if not country:
+                    source["warning"] = (
+                        f"No verified economic country mapping for {currency}; this coverage is unavailable."
+                    )
+                if deadline is not None and time.monotonic() >= deadline:
+                    source["warning"] = (
+                        "Economic-source check exceeded its time budget; coverage remains unavailable."
+                    )
+                elif country and key and not use_tradingview:
                     try:
                         data = fetch(client, url, {"Authorization": key})
                         source["items"] = (
@@ -283,7 +300,11 @@ def collect(db, spec):
             "warning": "Save an OANDA account ID and token to read account-specific instrument financing.",
             "connection_revision": revision,
         }
-        if config.account_id and config.token.get_secret_value():
+        if deadline is not None and time.monotonic() >= deadline:
+            source["warning"] = (
+                "Financing-source check exceeded its time budget; coverage remains unavailable."
+            )
+        elif config.account_id and config.token.get_secret_value():
             try:
                 host = (
                     "api-fxpractice.oanda.com"
@@ -305,7 +326,11 @@ def collect(db, spec):
     if use_tradingview:
         from .tradingview_sources import collect as tradingview_collect
 
-        sources[:4] = tradingview_collect(db, spec)
+        sources[:4] = (
+            tradingview_collect(db, spec, deadline=deadline)
+            if deadline is not None
+            else tradingview_collect(db, spec)
+        )
         for source in sources[:4]:
             source["checked_at"] = stamp.isoformat()
     data = {

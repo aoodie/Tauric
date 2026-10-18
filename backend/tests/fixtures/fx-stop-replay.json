@@ -1,0 +1,158 @@
+{
+  "candles": [
+    {
+      "open_time": "2026-09-21T21:00:00+00:00",
+      "close_time": "2026-09-22T21:00:00+00:00",
+      "open": "1.10",
+      "high": "1.10",
+      "low": "1.10",
+      "close": "1.10",
+      "volume": "10",
+      "closed": true,
+      "bid": {
+        "open": "1.0999",
+        "high": "1.0999",
+        "low": "1.0999",
+        "close": "1.0999"
+      },
+      "ask": {
+        "open": "1.1001",
+        "high": "1.1001",
+        "low": "1.1001",
+        "close": "1.1001"
+      }
+    },
+    {
+      "open_time": "2026-09-22T21:00:00+00:00",
+      "close_time": "2026-09-23T21:00:00+00:00",
+      "open": "1.08",
+      "high": "1.08",
+      "low": "1.08",
+      "close": "1.08",
+      "volume": "10",
+      "closed": true,
+      "bid": {
+        "open": "1.0799",
+        "high": "1.0799",
+        "low": "1.0799",
+        "close": "1.0799"
+      },
+      "ask": {
+        "open": "1.0801",
+        "high": "1.0801",
+        "low": "1.0801",
+        "close": "1.0801"
+      }
+    },
+    {
+      "open_time": "2026-09-23T21:00:00+00:00",
+      "close_time": "2026-09-24T21:00:00+00:00",
+      "open": "1.06",
+      "high": "1.06",
+      "low": "1.06",
+      "close": "1.06",
+      "volume": "10",
+      "closed": true,
+      "bid": {
+        "open": "1.0599",
+        "high": "1.0599",
+        "low": "1.0599",
+        "close": "1.0599"
+      },
+      "ask": {
+        "open": "1.0601",
+        "high": "1.0601",
+        "low": "1.0601",
+        "close": "1.0601"
+      }
+    },
+    {
+      "open_time": "2026-09-24T21:00:00+00:00",
+      "close_time": "2026-09-25T21:00:00+00:00",
+      "open": "1.10",
+      "high": "1.10",
+      "low": "1.10",
+      "close": "1.10",
+      "volume": "10",
+      "closed": true,
+      "bid": {
+        "open": "1.0999",
+        "high": "1.0999",
+        "low": "1.0999",
+        "close": "1.0999"
+      },
+      "ask": {
+        "open": "1.1001",
+        "high": "1.1001",
+        "low": "1.1001",
+        "close": "1.1001"
+      }
+    },
+    {
+      "open_time": "2026-09-27T21:00:00+00:00",
+      "close_time": "2026-09-28T21:00:00+00:00",
+      "open": "1.12",
+      "high": "1.12",
+      "low": "1.1090",
+      "close": "1.12",
+      "volume": "10",
+      "closed": true,
+      "bid": {
+        "open": "1.1199",
+        "high": "1.1199",
+        "low": "1.1087",
+        "close": "1.1199"
+      },
+      "ask": {
+        "open": "1.1201",
+        "high": "1.1201",
+        "low": "1.1093",
+        "close": "1.1201"
+      }
+    },
+    {
+      "open_time": "2026-09-28T21:00:00+00:00",
+      "close_time": "2026-09-29T21:00:00+00:00",
+      "open": "1.14",
+      "high": "1.14",
+      "low": "1.14",
+      "close": "1.14",
+      "volume": "10",
+      "closed": true,
+      "bid": {
+        "open": "1.1399",
+        "high": "1.1399",
+        "low": "1.1399",
+        "close": "1.1399"
+      },
+      "ask": {
+        "open": "1.1401",
+        "high": "1.1401",
+        "low": "1.1401",
+        "close": "1.1401"
+      }
+    }
+  ],
+  "parameters": {
+    "engine": "sma_cross_spot_v1",
+    "strategy_version_id": null,
+    "fast_window": 1,
+    "slow_window": 2,
+    "starting_balance": "1000",
+    "allocation_percent": "90",
+    "risk_percent": "100",
+    "stop_percent": "1",
+    "quantity_step": "1",
+    "fee_bps": "0",
+    "slippage_bps": "0",
+    "asset_costs": {
+      "asset_type": "fx",
+      "spread_bps": "0",
+      "commission_per_unit": "0",
+      "minimum_commission": "0",
+      "sell_tax_bps": "0",
+      "financing_daily_bps": "0",
+      "triple_rollover_weekday": 2
+    }
+  }
+}

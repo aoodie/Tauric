@@ -17,16 +17,22 @@ class InstrumentView(Contract):
     name: str
     provider: str
     provider_symbol: str
-    asset_type: Literal["crypto_spot", "fx", "equity", "etf"]
+    asset_type: Literal["crypto_spot", "fx", "equity", "etf", "commodity", "cfd"]
     base_currency: str
     quote_currency: str
     volume_type: Literal["exchange_base", "provider_ticks", "feed_shares"]
     native_symbol: str
-    native_asset_type: Literal["crypto", "forex", "stock"]
+    native_asset_type: Literal["crypto", "forex", "stock", "none"]
+    provider_product_type: Literal["CURRENCY", "METAL", "CFD"] | None = None
     analysis_scope: str
-    calendar_id: Literal["crypto_24x7", "oanda_fx", "us_equity"] = "crypto_24x7"
+    calendar_id: Literal["crypto_24x7", "oanda_fx", "us_equity", "provider_observed"] = (
+        "crypto_24x7"
+    )
     price_side: Literal["trades", "midpoint", "bid_ask"] = "trades"
     supported_intervals: list[Interval] = ["1m", "5m", "15m", "1h", "4h", "1d"]
+    classification_source: Literal[
+        "seed", "owner_selection", "provider_currency", "provider_product", "unclassified"
+    ] = "seed"
 
     @field_validator("name")
     @classmethod
@@ -39,14 +45,19 @@ class InstrumentView(Contract):
     @computed_field
     @property
     def native_research_ready(self) -> bool:
-        return native_scope.supported(self)
+        return self.classification_source != "unclassified" and native_scope.supported(self)
 
     @model_validator(mode="after")
     def current_scope(self):
         # Registry definitions remain immutable; expose today's integration scope.
         self.analysis_scope = native_scope.daily_scope(self.asset_type)
+        if self.classification_source == "unclassified":
+            self.analysis_scope = "US listing: charts and deterministic screening. Choose Stock or ETF before native research."
         if self.asset_type == "fx" and not self.native_research_ready:
             self.analysis_scope = "Forex charts, deterministic screening and retrospective replay. Daily AI research is unavailable until both currencies have supported policy/economic adapters."
+        if self.asset_type in {"commodity", "cfd"}:
+            self.analysis_scope = "Account-verified OANDA product. Open research and observed intraday prices are available. Governed broker entries require a separate exact-setup native assessment, OpenClaw review and current broker checks. No daily graph report or futures substitution."
+            self.supported_intervals = ["1m", "5m", "15m", "1h", "4h"]
         return self
 
 
@@ -82,7 +93,7 @@ class MarketSession(Contract):
 
 
 class DataContext(Contract):
-    calendar_id: Literal["crypto_24x7", "oanda_fx", "us_equity"]
+    calendar_id: Literal["crypto_24x7", "oanda_fx", "us_equity", "provider_observed"]
     timezone: Literal["UTC", "America/New_York"]
     price_side: Literal["trades", "midpoint", "bid_ask"]
     volume_type: Literal["exchange_base", "provider_ticks", "feed_shares"]

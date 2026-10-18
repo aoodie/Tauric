@@ -170,6 +170,16 @@
 .chat-bubble.assistant .eyebrow {
   color: #24c8f4;
 }
+.chat-bubble .report-prose {
+  margin-top: 8px;
+  font-size: inherit;
+}
+.chat-bubble .report-prose p {
+  white-space: normal;
+}
+.chat-bubble .report-prose > :last-child {
+  margin-bottom: 0;
+}
 .chat-compose {
   display: flex;
   align-items: flex-end;

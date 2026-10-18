@@ -32,6 +32,9 @@ commands = {
     "worker": [str(root / ".runtime-venv/bin/python"), "-m", "tauric.worker"],
     "scanner": [python, "-m", "tauric.scanner_worker"],
     "candidate-research": [python, "-m", "tauric.candidate_research_worker"],
+    "valuation": [python, "-m", "tauric.valuation_worker"],
+    "forward-validation": [python, "-m", "tauric.forward_worker"],
+    "broker": [python, "-m", "tauric.broker_worker"],
     "migrate": [python, "-m", "alembic", "upgrade", "head"],
     "api": [
         python,
@@ -46,9 +49,11 @@ commands = {
     ],
     "create-owner": [python, "-m", "tauric.cli", "create-owner", *sys.argv[2:]],
     "test": [python, "-m", "pytest", *sys.argv[2:]],
+    "quant-lean": [python, "-m", "tauric.quant_worker", "--engine", "lean", *sys.argv[2:]],
+    "quant-qlib": [python, "-m", "tauric.quant_worker", "--engine", "qlib", "--python", str(root / ".qlib-venv/bin/python"), *sys.argv[2:]],
 }
 if command not in commands:
     raise SystemExit(
-        "Use: local.py migrate | api | worker | scanner | candidate-research | create-owner --username NAME | test"
+        "Use: local.py migrate | api | worker | scanner | candidate-research | broker | valuation | forward-validation | create-owner --username NAME | test"
     )
 raise SystemExit(subprocess.call(commands[command], cwd=root / "backend", env=env))

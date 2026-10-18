@@ -55,19 +55,36 @@ def artifact(state, rating, request, settings, runtime_version):
 
 def run(request, directory):
     spec = request["request"]["instrument"]
-    if NATIVE_ASSET_TYPES.get(spec["asset_type"]) != spec["native_asset_type"]:
+    product_setup = spec["asset_type"] in {"commodity", "cfd"} and request["request"].get(
+        "broker_context"
+    )
+    if (
+        NATIVE_ASSET_TYPES.get(spec["asset_type"]) != spec["native_asset_type"]
+        and not product_setup
+    ):
         raise ValueError("Unsupported native asset route")
     broker_context = request["request"].get("broker_context")
     if broker_context:
+        from .execution_scope import provider as execution_provider
+        from .market_contracts import InstrumentView
         from .native_broker_setup import verify
 
         evidence, binding = verify(broker_context)
+        expected_provider = (
+            execution_provider(
+                InstrumentView.model_validate(
+                    {k: v for k, v in spec.items() if k != "native_research_ready"}
+                )
+            )
+            if product_setup
+            else {"fx": "oanda", "equity": "alpaca", "etf": "alpaca"}.get(spec["asset_type"])
+        )
         if (
             request["request"].get("mode") != "broker_entry_assessment"
             or binding["instrument_id"] != spec["id"]
             or evidence["instrument"]["asset_type"] != spec["asset_type"]
-            or binding["provider"] != ("oanda" if spec["asset_type"] == "fx" else "alpaca")
-            or spec["asset_type"] not in {"fx", "equity", "etf"}
+            or binding["provider"] != expected_provider
+            or spec["asset_type"] not in {"fx", "equity", "etf", "commodity", "cfd"}
             or any(
                 request["request"].get(key)
                 for key in (
@@ -121,6 +138,38 @@ def run(request, directory):
             "checkpoint_enabled": True,
         }
     )
+    if product_setup:
+        from tradingagents.llm_clients import build_llm_kwargs, create_llm_client
+
+        from .native_broker_setup import assess as assess_broker
+
+        config["llm_max_retries"] = 0
+        kwargs = build_llm_kwargs(config)
+        deep = create_llm_client(
+            provider=profile.provider,
+            model=profile.deep_model,
+            base_url=profile.base_url or None,
+            **kwargs,
+        ).get_llm()
+        assessment = assess_broker(deep, broker_context, {}, "SETUP_REVIEW")
+        return {
+            "runtime": "Tauric exact OANDA product setup / TradingAgents LLM client",
+            "version": tradingagents.__version__,
+            "upstream_revision": UPSTREAM_REVISION,
+            "request": request["request"],
+            "effective_config": {
+                "llm_provider": profile.provider,
+                "deep_think_llm": profile.deep_model,
+                "llm_max_retries": 0,
+                "model_invocations": assessment["model_invocations"],
+            },
+            "reports": {"final_trade_decision": assessment["rationale"]},
+            "native_rating": "SETUP_REVIEW",
+            "broker_setup_assessment": assessment,
+            "execution_authority": False,
+            "governance": None,
+            "data_context": "Separate exact-product assessment of frozen broker/strategy evidence. No daily graph report, futures substitution, strategy qualification or order authority.",
+        }
     if spec["asset_type"] == "fx":
         from tradingagents.llm_clients import build_llm_kwargs, create_llm_client
 

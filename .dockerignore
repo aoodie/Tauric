@@ -1,5 +1,7 @@
 .git
 .venv
+.qlib-venv
+mlruns
 **/__pycache__
 **/.pytest_cache
 **/node_modules
@@ -9,3 +11,6 @@ frontend/dist
 artifacts
 .runtime-src
 .runtime-venv
+.runtime-honcho
+private/
+latest-source/

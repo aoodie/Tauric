@@ -1,0 +1,22 @@
+services:
+  api:
+    volumes:
+      - ../backend/tauric/tradingview_connection.py:/app/tauric/tradingview_connection.py:ro
+      - ../backend/tauric/tradingview_mcp.py:/app/tauric/tradingview_mcp.py:ro
+      - ../backend/tauric/chat_instructions.txt:/app/tauric/chat_instructions.txt:ro
+      - ../backend/tauric/chat_instructions.txt:/app/project-source/backend/tauric/chat_instructions.txt:ro
+      - ../docs/OPENCLAW_PROJECT_OWNERSHIP.md:/app/project-source/docs/OPENCLAW_PROJECT_OWNERSHIP.md:ro
+      - ../README.md:/app/project-source/README.md:ro
+  chat_worker:
+    volumes:
+      - ../backend/tauric/chat_instructions.txt:/app/tauric/chat_instructions.txt:ro
+  worker:
+    volumes:
+      - ../backend/tauric/tradingview_connection.py:/app/tauric/tradingview_connection.py:ro
+      - ../backend/tauric/tradingview_mcp.py:/app/tauric/tradingview_mcp.py:ro
+  openclaw:
+    mem_limit: 1610612736
+    volumes:
+      - ../openclaw/start.mjs:/app/start.mjs:ro
+      - ../openclaw/config.mjs:/app/config.mjs:ro
+      - ../backend/tauric/chat_instructions.txt:/app/chat_instructions.txt:ro

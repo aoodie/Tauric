@@ -5,6 +5,8 @@ from sqlalchemy import select, text
 from sqlalchemy.exc import SQLAlchemyError
 
 from . import services
+from .agent_api import router as agent_router
+from .assistant_api import router as assistant_router
 from .auth import COOKIE_NAME, CurrentOwner, Db, csrf, login
 from .broker_api import router as broker_router
 from .chat_api import router as chat_router
@@ -14,6 +16,8 @@ from .forex_connection import router as forex_connection_router
 from .governance_api import resource as governance_resource
 from .governance_api import router as governance_router
 from .intelligence_api import router as intelligence_router
+from .knowledge_api import router as knowledge_router
+from .live_api import router as live_router
 from .market_api import resource as market_resource
 from .market_api import router as market_router
 from .market_connections import connection_view as market_connection_view
@@ -25,6 +29,7 @@ from .owner_settings import router as owner_settings_router
 from .portfolio_api import router as portfolio_router
 from .portfolio_research_api import router as portfolio_research_router
 from .qualification_api import router as qualification_router
+from .quant_api import router as quant_router
 from .research_api import resource as research_resource
 from .research_api import router as research_router
 from .scanner_api import resource as scanner_resource
@@ -52,13 +57,18 @@ from .trading_api import router as trading_router
 from .tradingview_connection import CALLBACK_PATH, OAUTH_COOKIE
 from .tradingview_connection import router as tradingview_connection_router
 
-app = FastAPI(title="Tauric platform", version="0.11.0", docs_url=None, redoc_url=None)
+app = FastAPI(title="Tauric platform", version="0.12.0", docs_url=None, redoc_url=None)
 app.include_router(broker_router)
+app.include_router(live_router)
 app.include_router(intelligence_router)
 app.include_router(chat_router)
+app.include_router(assistant_router)
+app.include_router(agent_router)
+app.include_router(knowledge_router)
 app.include_router(portfolio_router)
 app.include_router(portfolio_research_router)
 app.include_router(qualification_router)
+app.include_router(quant_router)
 app.include_router(market_connections_router)
 
 app.include_router(forex_connection_router)
@@ -327,6 +337,15 @@ def audit_history(
 @app.get("/api/v1/resources/{resource_type}/{resource_id}", response_model=ResourceView)
 def open_resource(resource_type: str, resource_id: str, db: Db, owner: CurrentOwner):
     ref = ResourceRef(type=resource_type, id=resource_id)
+    if resource_type == "assistant_receipt":
+        from .assistant_activity import receipt_item
+        from .models import AssistantRecord
+
+        row = db.get(AssistantRecord, resource_id)
+        if not row or row.owner_id != owner.id:
+            raise HTTPException(404, "This assistant receipt does not exist.")
+        view = receipt_item(db, owner, row)
+        return ResourceView(resource=ref, title=view.title, data=view.model_dump(mode="json"))
     if resource_type == "setting":
         view = services.setting_view(db, owner, resource_id)
         return ResourceView(

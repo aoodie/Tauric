@@ -103,7 +103,7 @@ export function BrokerRoutes({
       setState(await api.brokerRoutes());
       setNotice(
         result.settings.enabled
-          ? "Automatic demo route enabled. Fresh signals can request AI reviews and place one exact approved entry."
+          ? "Automatic route enabled. Fresh signals can request AI reviews and place one exact approved entry."
           : "Automatic route paused. Pending entries stop; existing positions keep their protection and exit monitoring.",
       );
     } catch (err) {
@@ -143,8 +143,8 @@ export function BrokerRoutes({
         expected_revision: route.revision,
         enabled: !route.settings.enabled,
         reason: route.settings.enabled
-          ? "Owner paused the automatic demo strategy route"
-          : "Owner resumed the saved automatic demo strategy route with current broker and AI settings",
+          ? "Owner paused the automatic strategy route"
+          : "Owner resumed the saved automatic strategy route with current broker and AI settings",
       },
     });
   }
@@ -165,35 +165,34 @@ export function BrokerRoutes({
   }
   const eligible = instruments.filter((item) =>
     provider === "oanda"
-      ? item.asset_type === "fx" &&
-        [item.base_currency, item.quote_currency].every((c) =>
-          ["USD", "EUR", "GBP", "JPY"].includes(c),
-        )
+      ? ["fx", "commodity", "cfd"].includes(item.asset_type) &&
+        (item.native_research_ready ||
+          item.classification_source === "provider_product")
       : ["equity", "etf"].includes(item.asset_type),
   );
   const routes =
     state?.routes.filter((route) => route.settings.provider === provider) ?? [];
   return (
-    <section className="paper-card" aria-label="Automatic demo strategy routes">
-      <h3>Automatic demo strategy routes</h3>
+    <section className="paper-card" aria-label="Automatic strategy routes">
+      <h3>Automatic strategy routes</h3>
       <p>
         Size each order from account equity, the strategy stop distance and the
-        risk percentage below. Start at 1% for demo testing and adjust it when
-        saving a route. OANDA uses the broker’s account-currency conversions;
-        Alpaca uses whole shares. Broker buying power, margin and order
-        increments apply.
+        risk ceiling below. Live routes must stay within their validated risk
+        ceiling. OANDA uses the broker’s account-currency conversions; Alpaca
+        uses whole shares. Broker buying power, margin and order increments
+        apply.
       </p>
       <p>
         The stop-risk amount is an estimate: gaps, slippage and costs can
-        increase the loss. Your no-limits preference adds no extra exposure,
-        position-count or daily-loss caps. Each new completed-candle signal
+        increase the loss. Tauric must approve the size and portfolio exposure;
+        OpenClaw may reduce that approved size. Each new completed-candle signal
         needs fresh evidence, a Tauric setup approval and a separate OpenClaw
         approval.
       </p>
       {error && <p role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
       <p>
-        Demo worker: {state?.worker_ready ? "ready" : "unavailable"}. Both AI
+        Trading worker: {state?.worker_ready ? "ready" : "unavailable"}. Both AI
         reviews may incur charges through your selected connection.
       </p>
       {!versions.length && (
@@ -288,12 +287,12 @@ export function BrokerRoutes({
             <input
               name="route_enabled"
               type="checkbox"
-              aria-label="Enable automatic demo entries"
+              aria-label="Enable automatic entries"
             />{" "}
-            Enable automatic demo entries and attributed channel exits
+            Enable automatic entries and attributed channel exits
           </label>
           <button type="submit" disabled={!versions.length || !eligible.length}>
-            Save automatic demo route
+            Save automatic route
           </button>
         </fieldset>
       </form>
@@ -310,7 +309,7 @@ export function BrokerRoutes({
         <article
           className="paper-card"
           key={route.id}
-          aria-label="Saved automatic demo route"
+          aria-label="Saved automatic route"
         >
           <p>
             <strong>{route.settings.enabled ? "Enabled" : "Paused"}</strong> ·{" "}
@@ -392,7 +391,7 @@ export function BrokerRoutes({
           {state?.workflows
             .filter((flow) => flow.route_id === route.id)
             .map((flow) => (
-              <div key={flow.id} aria-label="Automatic demo signal">
+              <div key={flow.id} aria-label="Automatic signal">
                 <p>
                   {flow.status} · signal{" "}
                   {new Date(flow.signal_bar_close).toLocaleString()} ·

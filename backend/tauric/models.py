@@ -57,6 +57,21 @@ class ChatTurn(Base):
     usage: Mapped[dict] = mapped_column(JSON, default=dict)
 
 
+class AssistantRecord(Base):
+    __tablename__ = "assistant_records"
+    __table_args__ = (UniqueConstraint("owner_id", "request_id", "stage"),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=identifier)
+    owner_id: Mapped[str] = mapped_column(ForeignKey("owners.id"))
+    turn_id: Mapped[str | None] = mapped_column(ForeignKey("chat_turns.id"))
+    request_id: Mapped[str] = mapped_column(String(36))
+    stage: Mapped[str] = mapped_column(String(20))
+    operation: Mapped[str] = mapped_column(String(64))
+    title: Mapped[str] = mapped_column(String(120))
+    payload: Mapped[dict] = mapped_column(JSON)
+    checksum: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
 class ChatResearch(Base):
     __tablename__ = "chat_research"
     __table_args__ = (UniqueConstraint("owner_id", "request_key"),)

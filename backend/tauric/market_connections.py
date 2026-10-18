@@ -228,6 +228,63 @@ def save_connection(provider: Provider, body: MarketConnectionChange, db: Db, ow
     current, revision, _ = stored_connection(db, provider)
     if revision != body.expected_revision:
         raise HTTPException(409, "This connection changed in another tab. Reload its settings.")
+    from .broker_models import BrokerCloseRequest, BrokerOrderIntent, BrokerPositionCursor
+    from .models import Owner
+
+    # Entry admission uses this owner lock; account changes cannot cross an in-flight mutation.
+    db.scalar(select(Owner).where(Owner.id == owner.id).with_for_update(key_share=True))
+    authority_changed = (
+        body.environment != current.environment
+        or (
+            provider == "oanda"
+            and body.account_id is not None
+            and body.account_id != current.account_id
+        )
+        or body.credential_action == "clear"
+    )
+    pending_fingerprints = set()
+    if authority_changed or body.credential_action == "replace":
+        pending_fingerprints.update(
+            db.scalars(
+                select(BrokerOrderIntent.account_fingerprint).where(
+                    BrokerOrderIntent.owner_id == owner.id,
+                    BrokerOrderIntent.provider == provider,
+                    BrokerOrderIntent.status.not_in(["filled", "cancelled", "rejected", "expired"]),
+                )
+            )
+        )
+        pending_fingerprints.update(
+            db.scalars(
+                select(BrokerOrderIntent.account_fingerprint)
+                .select_from(BrokerPositionCursor)
+                .join(
+                    BrokerOrderIntent, BrokerOrderIntent.id == BrokerPositionCursor.entry_intent_id
+                )
+                .where(
+                    BrokerOrderIntent.owner_id == owner.id,
+                    BrokerOrderIntent.provider == provider,
+                    BrokerPositionCursor.status.not_in(["closed", "unfilled"]),
+                )
+            )
+        )
+        pending_fingerprints.update(
+            db.scalars(
+                select(BrokerOrderIntent.account_fingerprint)
+                .select_from(BrokerCloseRequest)
+                .join(BrokerOrderIntent, BrokerOrderIntent.id == BrokerCloseRequest.entry_intent_id)
+                .where(
+                    BrokerOrderIntent.owner_id == owner.id,
+                    BrokerOrderIntent.provider == provider,
+                    BrokerCloseRequest.status.not_in(["filled", "rejected"]),
+                )
+            )
+        )
+        if pending_fingerprints:
+            if authority_changed:
+                raise HTTPException(
+                    409,
+                    "Reconcile and close attributed positions and orders before switching accounts. Position monitoring needs the original connection.",
+                )
     if body.environment not in (("practice", "live") if provider == "oanda" else ("paper", "live")):
         raise HTTPException(422, "Choose a valid environment for this provider.")
     if provider != "oanda" and body.account_id:
@@ -267,6 +324,22 @@ def save_connection(provider: Provider, body: MarketConnectionChange, db: Db, ow
         )
     if provider == "alpaca":
         payload.update(feed=body.feed, delay_minutes=body.delay_minutes)
+    if pending_fingerprints:
+        from . import broker_execution
+        from .broker_adapters import BrokerError
+
+        proposed = (OandaConnection if provider == "oanda" else AlpacaConnection).model_validate(
+            payload
+        )
+        try:
+            with broker_execution.adapter(provider, proposed) as broker:
+                if {broker.account().account_fingerprint} != pending_fingerprints:
+                    raise BrokerError("Replacement credentials identify a different account.")
+        except BrokerError:
+            raise HTTPException(
+                409,
+                "Active positions require replacement credentials for the same verified account. Resolve positions before selecting a different account.",
+            ) from None
     try:
         encrypted = encryption().encrypt(json.dumps(payload).encode()).decode()
     except (OSError, ValueError):

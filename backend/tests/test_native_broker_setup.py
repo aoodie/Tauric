@@ -154,3 +154,17 @@ def test_native_runner_rejects_changed_research_route_before_sdk_import(tmp_path
         request["qualification_context"] = {"fixture": True}
     with pytest.raises(ValueError, match="research route"):
         run({"request": request}, tmp_path)
+
+
+@pytest.mark.parametrize("asset", ["commodity", "cfd"])
+def test_exact_product_assessment_has_no_daily_buy_requirement(asset):
+    frozen = context(asset)
+    frozen["assessment_input"]["request"].update(
+        provider="oanda", instrument_id="oanda:" + asset + ":XAU_USD"
+    )
+    frozen["evidence_checksum"] = native_broker_setup.checksum(frozen["assessment_input"])
+    model = Model()
+    result = native_broker_setup.assess(model, frozen, {}, "SETUP_REVIEW")
+    assert result["decision"] == "approve" and result["execution_authority"] is False
+    assert len(model.calls) == 1
+    assert "financing" in str(model.calls[0]).lower()

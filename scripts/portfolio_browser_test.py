@@ -21,7 +21,7 @@ with sync_playwright() as p:
     page.get_by_label("Username", exact=True).fill("test-owner")
     page.get_by_label("Password", exact=True).fill("Test-only-password-2026")
     page.get_by_role("button", name="Sign in", exact=True).click()
-    page.get_by_role("button", name="OpenClaw chat", exact=True).click()
+    page.get_by_role("button", name="OpenClaw", exact=True).click()
     page.get_by_label("Conversation context", exact=True).select_option(first)
     workspace = page.get_by_role("region", name="Portfolio workspace")
     # Sections without headings are named by aria-label but expose a generic role in some browsers.
@@ -90,7 +90,7 @@ with sync_playwright() as p:
     ).to_be_visible()
     checks.append("Scoped conversations and durable action receipt")
     page.reload()
-    page.get_by_role("button", name="OpenClaw chat", exact=True).click()
+    page.get_by_role("button", name="OpenClaw", exact=True).click()
     expect(page.get_by_label("Conversation context", exact=True)).to_have_value(first)
     page.get_by_role(
         "button", name="Pause my existing paper strategy", exact=True

@@ -65,6 +65,7 @@ def enqueue(
     portfolio_research_context=None,
     qualification_context=None,
     broker_context=None,
+    prepared_fx_context=None,
 ):
     if broker_context is not None and any(
         context is not None
@@ -78,7 +79,10 @@ def enqueue(
     ):
         raise HTTPException(422, "A broker setup assessment requires its own research context.")
     spec = market.instrument(db, body.instrument_id)
-    if not native_scope.supported(spec):
+    from . import execution_scope
+
+    separate_setup = broker_context is not None and execution_scope.provider(spec) is not None
+    if not native_scope.supported(spec) and not separate_setup:
         raise HTTPException(
             422,
             "Native research for this asset is not enabled; chart data and retrospective replay are available separately.",
@@ -86,14 +90,13 @@ def enqueue(
     if spec.asset_type == "fx" and any(
         context is not None
         for context in (
-            chat_context,
             autonomous_context,
             portfolio_research_context,
         )
     ):
         raise HTTPException(
             422,
-            "Forex supports owner-requested daily, scanner and exact-strategy research. Automated/chat research is not enabled.",
+            "Forex supports owner-requested daily research through chat or the analysis screen, scanner and exact-strategy research. Automated portfolio research is not enabled.",
         )
     existing = db.scalar(
         select(AnalysisJob).where(
@@ -177,7 +180,13 @@ def enqueue(
     if spec.asset_type == "fx":
         from .native_fx import prepare
 
-        fx_context = prepare(db, spec)
+        if prepared_fx_context is None:
+            fx_context = prepare(db, spec, supplemental_budget_seconds=40)
+        else:
+            from .native_fx import evidence
+
+            evidence(db, spec.model_dump(), prepared_fx_context)
+            fx_context = prepared_fx_context
     job = AnalysisJob(
         id=identifier(),
         owner_id=owner.id,

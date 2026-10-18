@@ -19,9 +19,16 @@ import {
 } from "../api/client";
 import { useMarket } from "../market/MarketContext";
 import { InstrumentDiscovery } from "../market/InstrumentDiscovery";
+import {
+  assetLabel,
+  opportunityLabels,
+  timeframeLabels,
+} from "../ui/workflowLabels";
+import { WorkflowTabs } from "../ui/WorkflowTabs";
 import { usePaper } from "../trading/PaperTrading";
 import { Radar, ArrowRight, RefreshCw } from "lucide-react";
 import "./scanner.css";
+import type { components } from "../api/schema";
 
 const detectorLabels = {
   closed_bar_breakout_v1: "Long breakout",
@@ -103,7 +110,7 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
   const value = useScannerState();
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
-function useScanner() {
+export function useScanner() {
   const value = useContext(Context);
   if (!value) throw new Error("Scanner context required");
   return value;
@@ -148,12 +155,19 @@ function ProfileForm({
     s = useScanner();
   const p = profile?.parameters;
   const [setupError, setSetupError] = useState("");
+  const [universe, setUniverse] = useState<string[]>(p?.universe ?? []);
+  const [marketSearch, setMarketSearch] = useState("");
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     const detectors = f
       .getAll("detector_ids")
       .map(String) as ScannerParameters["detector_id"][];
+    const provider = String(f.get("catalog_provider") ?? "");
+    if (!universe.length && !provider) {
+      setSetupError("Choose saved markets or an available provider catalog.");
+      return;
+    }
     if (!detectors.length) {
       setSetupError("Choose at least one setup family.");
       return;
@@ -161,6 +175,8 @@ function ProfileForm({
     setSetupError("");
     const parameters: ScannerParameters = {
       ...p,
+      disabled_instruments:
+        p?.disabled_instruments?.filter((id) => universe.includes(id)) ?? [],
       evaluate_on_candle_close: p?.evaluate_on_candle_close ?? true,
       max_data_age_seconds: p?.max_data_age_seconds ?? 960,
       require_active_session: p?.require_active_session ?? false,
@@ -183,6 +199,19 @@ function ProfileForm({
       enabled: f.get("enabled") === "on",
       universe: f.getAll("universe").map(String),
       interval: String(f.get("interval")) as ScannerParameters["interval"],
+      intervals: f
+        .getAll("intervals")
+        .map(String) as ScannerParameters["interval"][],
+      scoring_version: String(
+        f.get("scoring_version"),
+      ) as ScannerParameters["scoring_version"],
+      catalog: provider
+        ? {
+            provider: provider as "oanda" | "alpaca",
+            all_catalog: true,
+            instruments_per_cycle: Number(f.get("instruments_per_cycle")),
+          }
+        : null,
       detector_id: detectors[0],
       detector_ids: detectors,
       lookback: Number(f.get("lookback")),
@@ -215,7 +244,16 @@ function ProfileForm({
       onSubmit={save}
     >
       <fieldset disabled={s.pending}>
-        <h2>{profile ? "Edit scanner profile" : "Add scanner profile"}</h2>
+        <div className="paper-card-head">
+          <h2>{profile ? "Edit scanner" : "New scanner"}</h2>
+          <span className="badge">
+            {profile ? `Version ${profile.revision + 1}` : "Research only"}
+          </span>
+        </div>
+        <p className="muted">
+          Choose where to look and what to look for. Scanning uses market rules;
+          Tauric research is a separate step.
+        </p>
         <div className="paper-form-grid">
           <label>
             Scanner name
@@ -226,194 +264,144 @@ function ProfileForm({
               minLength={3}
               maxLength={80}
               defaultValue={profile?.name ?? ""}
-              placeholder="e.g. Crypto breakout watch"
+              placeholder="e.g. Forex trend watch"
             />
           </label>
           <label>
-            Strategy link (optional)
+            Timeframe
             <select
-              name="strategy_version_id"
-              aria-label="Scanner strategy version"
-              defaultValue={profile?.strategy_version_id ?? ""}
+              name="interval"
+              aria-label="Timeframe"
+              defaultValue={p?.interval ?? "15m"}
+              required
             >
-              <option value="">
-                No strategy — screening and research only
-              </option>
-              {paper?.strategy_versions.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {label(v)}
+              {Object.entries(timeframeLabels).map(([value, name]) => (
+                <option key={value} value={value}>
+                  {name}
                 </option>
               ))}
             </select>
           </label>
           <label>
-            Candle interval
+            Setup scoring
             <select
-              name="interval"
-              aria-label="Candle interval"
-              required
-              defaultValue={p?.interval ?? ""}
+              name="scoring_version"
+              aria-label="Setup scoring"
+              defaultValue={p?.scoring_version ?? "multifactor_v1"}
             >
-              <option value="" disabled>
-                Choose an interval
+              <option value="legacy_v1">Legacy rules · saved behavior</option>
+              <option value="multifactor_v1">
+                Multifactor v1 · experimental
               </option>
-              {["1m", "5m", "15m", "1h", "4h", "1d"].map((v) => (
-                <option key={v}>{v}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Prior closed candles
-            <input
-              name="lookback"
-              type="number"
-              required
-              min={2}
-              max={100}
-              defaultValue={p?.lookback}
-            />
-          </label>
-          <label>
-            Minimum activity ratio
-            <input
-              name="minimum_volume_ratio"
-              required
-              inputMode="decimal"
-              defaultValue={p?.minimum_volume_ratio}
-            />
-          </label>
-          <label>
-            Candidate lifetime (seconds)
-            <input
-              name="candidate_ttl_seconds"
-              required
-              type="number"
-              min={60}
-              max={86400}
-              defaultValue={p?.candidate_ttl_seconds}
-            />
-          </label>
-          <label>
-            Minimum setup score
-            <input
-              name="minimum_setup_score"
-              type="number"
-              min={0}
-              max={1}
-              step={0.01}
-              required
-              defaultValue={p?.minimum_setup_score ?? 0.5}
-            />
-          </label>
-          <label>
-            Minimum research score
-            <input
-              name="ranking_minimum_score"
-              type="number"
-              min={0}
-              max={1}
-              step={0.01}
-              required
-              defaultValue={p?.ranking?.minimum_score ?? 0.65}
-            />
-          </label>
-          <label>
-            Top candidates per cycle
-            <input
-              name="max_candidates_per_cycle"
-              type="number"
-              min={1}
-              max={100}
-              required
-              defaultValue={p?.ranking?.max_candidates_per_cycle ?? 2}
-            />
-          </label>
-          <label>
-            Normal scan interval (seconds)
-            <input
-              name="scan_seconds"
-              type="number"
-              min={5}
-              max={3600}
-              required
-              defaultValue={p?.scan_seconds ?? 30}
-            />
-          </label>
-          <label>
-            Candidate scan interval (seconds)
-            <input
-              name="watch_scan_seconds"
-              type="number"
-              min={5}
-              max={3600}
-              required
-              defaultValue={p?.watch_scan_seconds ?? 10}
-            />
-          </label>
-          <label>
-            Setup cooldown (seconds)
-            <input
-              name="cooldown_seconds"
-              type="number"
-              min={0}
-              max={86400}
-              required
-              defaultValue={p?.cooldown_seconds ?? 0}
-            />
-          </label>
-          <label>
-            New research runs per UTC day
-            <input
-              name="max_analyses_per_day"
-              required
-              type="number"
-              min={0}
-              max={100}
-              defaultValue={p?.max_analyses_per_day}
-            />
-          </label>
-          <label>
-            Research AI connection
-            <select
-              name="model_profile"
-              aria-label="Research AI connection"
-              required
-              defaultValue={p?.model_profile ?? ""}
-            >
-              <option value="" disabled>
-                Choose a connection
-              </option>
-              <option value="local">{connectionLabel("local")}</option>
-              <option value="cloud">{connectionLabel("cloud")}</option>
             </select>
           </label>
         </div>
-        <fieldset className="scanner-universe">
-          <legend>Crypto, Forex, stock & ETF universe</legend>
-          <InstrumentDiscovery />
-          {market.instruments
-            .filter((v) =>
-              ["crypto_spot", "fx", "equity", "etf"].includes(v.asset_type),
-            )
-            .map((v) => (
-              <label key={v.id} className="checkbox">
+        <details className="workflow-advanced">
+          <summary>Additional timeframes</summary>
+          <p className="muted">
+            Select multiple timeframes to replace the primary timeframe above.
+            Each uses its own closed bars.
+          </p>
+          <div className="scanner-universe">
+            {Object.entries(timeframeLabels).map(([value, name]) => (
+              <label key={value} className="checkbox">
                 <input
-                  name="universe"
                   type="checkbox"
-                  value={v.id}
-                  defaultChecked={p?.universe.includes(v.id) ?? false}
+                  name="intervals"
+                  value={value}
+                  defaultChecked={p?.intervals?.includes(
+                    value as ScannerParameters["interval"],
+                  )}
                 />
-                {v.symbol}
+                {name}
               </label>
             ))}
+          </div>
+        </details>
+        <fieldset className="scanner-market-picker">
+          <legend>1. Markets to scan</legend>
+          <div className="paper-form-grid">
+            <label>
+              Provider catalog
+              <select
+                name="catalog_provider"
+                aria-label="Provider catalog"
+                defaultValue={p?.catalog?.provider ?? ""}
+              >
+                <option value="">Saved symbols only</option>
+                <option value="oanda">Available OANDA currency pairs</option>
+                <option value="alpaca">Available Alpaca US listings</option>
+              </select>
+            </label>
+            <label>
+              Catalog symbols per cycle
+              <input
+                name="instruments_per_cycle"
+                aria-label="Catalog symbols per cycle"
+                type="number"
+                min={1}
+                max={100}
+                required
+                defaultValue={p?.catalog?.instruments_per_cycle ?? 10}
+              />
+            </label>
+          </div>
+          <p className="muted">
+            Catalog scans progress in bounded slices and require an existing
+            data connection. New US listings need stock or ETF classification
+            before native research.
+          </p>
+          <label>
+            Find a saved symbol
+            <input
+              type="search"
+              value={marketSearch}
+              onChange={(e) => setMarketSearch(e.target.value)}
+              placeholder="Search Bitcoin, EUR/USD, Apple…"
+            />
+          </label>
+          <div className="scanner-market-options">
+            {market.instruments
+              .filter((v) =>
+                ["crypto_spot", "fx", "equity", "etf"].includes(v.asset_type),
+              )
+              .filter((v) =>
+                `${v.symbol} ${v.name}`
+                  .toLowerCase()
+                  .includes(marketSearch.toLowerCase()),
+              )
+              .map((v) => (
+                <label key={v.id} className="checkbox">
+                  <input
+                    type="checkbox"
+                    aria-label={v.symbol}
+                    checked={universe.includes(v.id)}
+                    onChange={(e) =>
+                      setUniverse((prev) =>
+                        e.target.checked
+                          ? [...prev, v.id]
+                          : prev.filter((id) => id !== v.id),
+                      )
+                    }
+                  />
+                  {v.symbol}
+                  <small>{assetLabel(v.asset_type)}</small>
+                </label>
+              ))}
+          </div>
+          {universe.map((id) => (
+            <input key={id} type="hidden" name="universe" value={id} />
+          ))}
+          <p className="muted">
+            {universe.length} selected
+            {universe.length > 0
+              ? ` · ${universe.map((id) => market.instruments.find((v) => v.id === id)?.symbol ?? id.split(":").at(-1)).join(" / ")}`
+              : " · choose at least one symbol"}
+          </p>
+          <InstrumentDiscovery />
         </fieldset>
         <fieldset className="scanner-universe">
-          <legend>Setup families</legend>
-          {setupError && (
-            <p className="form-error" role="alert">
-              {setupError}
-            </p>
-          )}
+          <legend>2. Setups to find</legend>
           {Object.entries(detectorLabels).map(([id, name]) => (
             <label className="checkbox" key={id}>
               <input
@@ -429,51 +417,185 @@ function ProfileForm({
             </label>
           ))}
         </fieldset>
-        <label className="checkbox">
-          <input
-            name="enabled"
-            type="checkbox"
-            defaultChecked={p?.enabled ?? false}
-          />
-          Enable screening
-        </label>
-        <label className="checkbox">
-          <input
-            name="automatic_enabled"
-            type="checkbox"
-            defaultChecked={p?.automatic_enabled ?? false}
-          />
-          Run scheduled screening (requires scanner worker)
-        </label>
-        <label className="checkbox">
-          <input
-            name="automatic_research_enabled"
-            type="checkbox"
-            defaultChecked={p?.automatic_research_enabled ?? false}
-          />
-          Automatically research qualified candidates
-        </label>
-        <p className="muted">
-          Breakouts cross prior highs; breakdowns cross prior lows. Trend
-          pullbacks recover through the prior average in the observed trend
-          direction. All setups require closed candles and your activity ratio.
-          Forex activity is provider tick count. Missing activity or candle gaps
-          block detection. Forming candles are excluded.
-        </p>
-        <p className="muted">
-          Research remains the full daily Tauric graph. Screening never calls
-          AI. When automatic research is enabled, a separate coordinator admits
-          published candidates after checking the gate, ranking and allowance.
-          The allowance counts newly admitted research jobs, including failed or
-          interrupted jobs; it is not a monetary spending limit.
-        </p>
+        {setupError && (
+          <p className="form-error" role="alert">
+            {setupError}
+          </p>
+        )}
+        <fieldset className="scanner-automation">
+          <legend>3. When to run</legend>
+          <label className="checkbox">
+            <input
+              name="enabled"
+              type="checkbox"
+              defaultChecked={p?.enabled ?? false}
+            />
+            Enable this scanner
+          </label>
+          <label className="checkbox">
+            <input
+              name="automatic_enabled"
+              type="checkbox"
+              defaultChecked={p?.automatic_enabled ?? false}
+            />
+            Scan automatically
+          </label>
+          <label className="checkbox">
+            <input
+              name="automatic_research_enabled"
+              type="checkbox"
+              defaultChecked={p?.automatic_research_enabled ?? false}
+            />
+            Ask Tauric to research matches automatically
+          </label>
+          <p className="muted">
+            Automatic scanning needs a ready scanner service. Automatic research
+            also needs a research allowance below and a ready research
+            coordinator.
+          </p>
+        </fieldset>
+        <details className="workflow-advanced">
+          <summary>
+            Advanced settings <span>Filters, timing and research limits</span>
+          </summary>
+          <div className="paper-form-grid">
+            {[
+              [
+                "lookback",
+                "Look back (closed candles)",
+                p?.lookback ?? 20,
+                2,
+                100,
+                1,
+              ],
+              [
+                "minimum_volume_ratio",
+                "Minimum activity (× average)",
+                p?.minimum_volume_ratio ?? "1.5",
+                0,
+                undefined,
+                "any",
+              ],
+              [
+                "candidate_ttl_seconds",
+                "Opportunity valid for (seconds)",
+                p?.candidate_ttl_seconds ?? 3600,
+                60,
+                86400,
+                1,
+              ],
+              [
+                "minimum_setup_score",
+                "Minimum setup score (0–1)",
+                p?.minimum_setup_score ?? 0.5,
+                0,
+                1,
+                0.01,
+              ],
+              [
+                "ranking_minimum_score",
+                "Minimum research score (0–1)",
+                p?.ranking?.minimum_score ?? 0.65,
+                0,
+                1,
+                0.01,
+              ],
+              [
+                "max_candidates_per_cycle",
+                "Research shortlist per scan",
+                p?.ranking?.max_candidates_per_cycle ?? 2,
+                1,
+                100,
+                1,
+              ],
+              [
+                "scan_seconds",
+                "Scan every (seconds)",
+                p?.scan_seconds ?? 30,
+                5,
+                3600,
+                1,
+              ],
+              [
+                "watch_scan_seconds",
+                "Recheck watching list every (seconds)",
+                p?.watch_scan_seconds ?? 10,
+                5,
+                3600,
+                1,
+              ],
+              [
+                "cooldown_seconds",
+                "Wait between repeated setups (seconds)",
+                p?.cooldown_seconds ?? 0,
+                0,
+                86400,
+                1,
+              ],
+              [
+                "max_analyses_per_day",
+                "Tauric research runs per day",
+                p?.max_analyses_per_day ?? 0,
+                0,
+                100,
+                1,
+              ],
+            ].map(([key, name, value, min, max, step]) => (
+              <label key={String(key)}>
+                {name}
+                <input
+                  name={String(key)}
+                  type="number"
+                  required
+                  min={min}
+                  max={max}
+                  step={step}
+                  defaultValue={value}
+                />
+              </label>
+            ))}
+            <label>
+              Research AI connection
+              <select
+                name="model_profile"
+                aria-label="Research AI connection"
+                defaultValue={p?.model_profile ?? "local"}
+                required
+              >
+                <option value="local">{connectionLabel("local")}</option>
+                <option value="cloud">{connectionLabel("cloud")}</option>
+              </select>
+            </label>
+            <label>
+              Link a strategy (optional)
+              <select
+                name="strategy_version_id"
+                aria-label="Scanner strategy version"
+                defaultValue={profile?.strategy_version_id ?? ""}
+              >
+                <option value="">Screening and research only</option>
+                {paper?.strategy_versions.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {label(v)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <p className="muted">
+            Only completed candles count. Activity means traded volume for
+            crypto and stocks, and provider tick count for Forex. Missing data
+            blocks a setup. Research allowance counts new jobs, including failed
+            jobs; zero allows scanning without research.
+          </p>
+        </details>
         <label>
-          Scanner change reason
+          Why save this change?
           <input name="reason" required minLength={3} maxLength={500} />
         </label>
         <div className="paper-actions">
           <button className="primary small" type="submit">
-            Save scanner profile
+            Save scanner
           </button>
           <button className="secondary small" type="button" onClick={close}>
             Cancel
@@ -483,6 +605,7 @@ function ProfileForm({
     </form>
   );
 }
+
 function ProfileCard({ p }: { p: ScannerProfile }) {
   const s = useScanner();
   const [editing, setEditing] = useState(false);
@@ -527,20 +650,25 @@ function ProfileCard({ p }: { p: ScannerProfile }) {
         {" · "}Automatic research{" "}
         {p.parameters.automatic_research_enabled ? "on" : "off"}
       </p>
-      <p>
-        {p.parameters.interval} · {p.parameters.lookback} prior candles ·
-        activity ≥ {p.parameters.minimum_volume_ratio}× · expires after{" "}
-        {p.parameters.candidate_ttl_seconds}s
+      <p className="scanner-symbols">
+        {timeframeLabels[p.parameters.interval] ?? p.parameters.interval} ·{" "}
+        {(p.parameters.universe ?? [])
+          .map((v) => v.split(":").at(-1))
+          .join(" / ")}
       </p>
-      <p className="muted">
-        Research allowance: {p.charged_analyses_today}/
-        {p.parameters.max_analyses_per_day} new runs today ·{" "}
-        {connectionLabel(p.parameters.model_profile)} · profile revision{" "}
-        {p.revision}
-      </p>
-      <p className="mono scanner-symbols">
-        {p.parameters.universe.map((v) => v.split(":").at(-1)).join(" / ")}
-      </p>
+      <details className="workflow-advanced">
+        <summary>Filters &amp; research allowance</summary>
+        <p>
+          {p.parameters.lookback} prior candles · activity ≥{" "}
+          {p.parameters.minimum_volume_ratio}× · opportunities expire after{" "}
+          {p.parameters.candidate_ttl_seconds}s
+        </p>
+        <p className="muted">
+          {p.charged_analyses_today}/{p.parameters.max_analyses_per_day} Tauric
+          runs used today · {connectionLabel(p.parameters.model_profile)} ·
+          version {p.revision}
+        </p>
+      </details>
       <div className="paper-actions">
         <button
           className="primary small"
@@ -565,10 +693,10 @@ function ProfileCard({ p }: { p: ScannerProfile }) {
           disabled={s.pending}
           onClick={() => setEditing(!editing)}
         >
-          Edit scanner profile
+          Edit scanner
         </button>
         <button className="text-button" onClick={() => void showHistory()}>
-          Profile history
+          Version history
         </button>
       </div>
       {editing && (
@@ -601,13 +729,10 @@ export function ScannerSettings() {
       <div className="paper-intro">
         <Radar size={22} />
         <div>
-          <h2>Scanners</h2>
+          <h2>My scans</h2>
           <p>
-            Find opportunities before creating a strategy. Give each scanner a
-            name and choose its markets and setup families. Enable scheduled
-            screening to keep scanning with the browser closed. Enable automatic
-            research to send qualified candidates to Tauric within your
-            allowance. Strategy links are optional.
+            Choose a saved scan or create one. Scans find setups; Tauric checks
+            their market context when you request research.
           </p>
         </div>
       </div>
@@ -629,21 +754,116 @@ export function ScannerSettings() {
         disabled={s.pending}
         onClick={() => setAdding(!adding)}
       >
-        {adding ? "Close scanner form" : "Add scanner profile"}
+        {adding ? "Close scanner form" : "New scanner"}
       </button>
       {adding && <ProfileForm close={() => setAdding(false)} />}
       {s.state?.profiles.map((p) => (
         <ProfileCard key={p.profile_id} p={p} />
       ))}
-      <p className="muted">
-        Crypto, Forex and registered stocks/ETFs support closed-bar screening.
-        Stock volume describes the selected feed. Small-cap universes, event
-        detectors and crypto futures remain separate capabilities.
-      </p>
+      {s.state && !s.state.profiles.length && !adding && (
+        <p className="empty-copy">
+          Your first scan needs a name, markets and a setup. You can create it
+          here or ask OpenClaw to prepare it.
+        </p>
+      )}
     </div>
   );
 }
-function CandidateDetail({
+function PaperReadiness({
+  c,
+  reason,
+  open,
+}: {
+  c: ScannerCandidate;
+  reason: string;
+  open: (kind: string, id: string) => void;
+}) {
+  const s = useScanner();
+  const [readiness, setReadiness] =
+    useState<components["schemas"]["CandidatePaperReadiness"]>();
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  async function load() {
+    setLoading(true);
+    try {
+      setReadiness(await api.candidatePaperReadiness(c.id));
+      setError("");
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Paper prerequisites are unavailable.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+  return (
+    <details
+      className="candidate-paper"
+      onToggle={(e) => {
+        if (e.currentTarget.open && !readiness && !loading) void load();
+      }}
+    >
+      <summary>Paper plan prerequisites</summary>
+      {error && (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
+      )}
+      {loading && <p className="muted">Checking saved evidence…</p>}
+      {readiness && (
+        <>
+          <ol className="paper-prerequisites">
+            {readiness.prerequisites.map((p) => (
+              <li key={p.name}>
+                <strong>
+                  {p.ready ? "Ready" : "Needed"} · {p.name}
+                </strong>
+                <p>{p.detail}</p>
+              </li>
+            ))}
+          </ol>
+          <p className="muted">{readiness.detail}</p>
+        </>
+      )}
+      <div className="paper-actions">
+        <button
+          className="secondary small"
+          disabled={s.pending || !readiness?.ready || reason.trim().length < 3}
+          onClick={() => {
+            if (!readiness?.decision_id || !readiness.backtest_id) return;
+            void s.act(
+              `paper-${c.id}-${readiness.decision_id}-${readiness.backtest_id}-${reason}`,
+              async (request_id) => {
+                const plan = await api.stageCandidatePaper(c.id, {
+                  request_id,
+                  decision_id: readiness.decision_id!,
+                  backtest_id: readiness.backtest_id!,
+                  reason,
+                });
+                open("trading_record", plan.id);
+              },
+              "Governed paper plan staged. Review the plan before a separate execution action.",
+            );
+          }}
+        >
+          Stage paper plan
+        </button>
+        <button
+          className="text-button"
+          disabled={loading}
+          onClick={() => void load()}
+        >
+          Recheck prerequisites
+        </button>
+      </div>
+      {reason.trim().length < 3 && (
+        <p className="muted">Add an action reason above before staging.</p>
+      )}
+    </details>
+  );
+}
+
+export function CandidateDetail({
   c,
   open,
   chart,
@@ -677,20 +897,23 @@ function CandidateDetail({
   }
   return (
     <details className="scanner-detail">
-      <summary>Setup evidence and actions</summary>
-      <div className="scanner-features">
-        {Object.entries(c.features).map(([k, v]) => (
-          <div key={k}>
-            <span>{k.replaceAll("_", " ")}</span>
-            <strong className="mono">{v}</strong>
-          </div>
-        ))}
-      </div>
-      <ul>
-        {c.reasons.map((r) => (
-          <li key={r}>{r}</li>
-        ))}
-      </ul>
+      <summary>Review setup</summary>
+      <details className="workflow-advanced">
+        <summary>Why this setup matched</summary>
+        <div className="scanner-features">
+          {Object.entries(c.features).map(([k, v]) => (
+            <div key={k}>
+              <span>{k.replaceAll("_", " ")}</span>
+              <strong className="mono">{v}</strong>
+            </div>
+          ))}
+        </div>
+        <ul>
+          {c.reasons.map((r) => (
+            <li key={r}>{r}</li>
+          ))}
+        </ul>
+      </details>
       <p className="muted">
         Detected {new Date(c.detected_at).toLocaleString()} · expires{" "}
         {new Date(c.expires_at).toLocaleString()} · research only
@@ -714,7 +937,7 @@ function CandidateDetail({
         </button>
       </div>
       <label>
-        Scanner profile for research
+        Use this scan for research
         <select
           aria-label="Candidate scanner profile"
           value={String(match?.profile_version_id ?? "")}
@@ -732,9 +955,9 @@ function CandidateDetail({
         </select>
       </label>
       <label>
-        Candidate action reason
+        Why take this action?
         <input
-          aria-label="Candidate action reason"
+          aria-label="Why take this action?"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           maxLength={500}
@@ -746,7 +969,7 @@ function CandidateDetail({
           disabled={s.pending || !available || !match || !reasonReady}
           onClick={() => void research()}
         >
-          Request daily research
+          Ask Tauric for research
         </button>
         <button
           className="secondary small"
@@ -760,11 +983,11 @@ function CandidateDetail({
                   action: "watch",
                   reason,
                 }),
-              "Candidate added to watch.",
+              "Setup added to your watching list.",
             )
           }
         >
-          Watch
+          Watch setup
         </button>
         <button
           className="secondary small"
@@ -778,18 +1001,18 @@ function CandidateDetail({
                   action: "ignore",
                   reason,
                 }),
-              "Candidate ignored. Queued research cannot start from it.",
+              "Setup dismissed. Queued research cannot start from it.",
             )
           }
         >
-          Ignore
+          Dismiss setup
         </button>
       </div>
       <p className="muted">
-        The native graph currently researches daily context. Scanner features
-        are retained as evidence and are not injected into that graph. Intraday
-        screening does not establish intraday trading permission.
+        Tauric researches daily market context. This timeframe’s setup stays
+        separate evidence; trading still follows the route’s required approvals.
       </p>
+      <PaperReadiness c={c} reason={reason} open={open} />
       {c.analysis && (
         <p>
           Daily research:{" "}
@@ -828,6 +1051,8 @@ export function ScannerPanel({
 }) {
   const s = useScanner();
   const [family, setFamily] = useState("All");
+  const [status, setStatus] = useState("active");
+  const [search, setSearch] = useState("");
   const families: Record<string, string[]> = {
     Crypto: ["crypto_spot"],
     Forex: ["fx"],
@@ -835,14 +1060,22 @@ export function ScannerPanel({
   };
   const candidates =
     s.state?.candidates.filter(
-      (c) => family === "All" || families[family]?.includes(c.asset_class),
+      (c) =>
+        (family === "All" || families[family]?.includes(c.asset_class)) &&
+        (status === "all" ||
+          (status === "active"
+            ? ["candidate", "watch"].includes(c.status)
+            : c.status === "watch")) &&
+        `${c.instrument_id} ${c.matches.map((m) => m.profile_name).join(" ")}`
+          .toLowerCase()
+          .includes(search.toLowerCase()),
     ) ?? [];
   return (
     <div className="scanner-panel">
       <div className="scanner-panel-head">
         <div>
-          <span className="eyebrow">DETERMINISTIC SCREENING</span>
-          <h3>Setup candidates</h3>
+          <span className="eyebrow">MARKET SETUPS</span>
+          <h3>Opportunities</h3>
         </div>
         <button
           className="icon-button"
@@ -854,27 +1087,41 @@ export function ScannerPanel({
       </div>
       <div
         className="scanner-families"
-        role="tablist"
-        aria-label="Scanner families"
+        role="group"
+        aria-label="Filter by market"
       >
-        {["All", "Crypto", "Forex", "Stocks", "Small Caps", "Events"].map(
-          (v) => (
-            <button
-              key={v}
-              role="tab"
-              aria-selected={v === family}
-              disabled={v === "Small Caps" || v === "Events"}
-              onClick={() => setFamily(v)}
-              title={
-                v === "Small Caps" || v === "Events"
-                  ? "Universe and detector pending"
-                  : undefined
-              }
-            >
-              {v}
-            </button>
-          ),
-        )}
+        {["All", "Crypto", "Forex", "Stocks"].map((v) => (
+          <button
+            key={v}
+            aria-pressed={v === family}
+            onClick={() => setFamily(v)}
+          >
+            {v}
+          </button>
+        ))}
+      </div>
+      <div className="scanner-filters">
+        <label>
+          Search opportunities
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Symbol or scan name"
+          />
+        </label>
+        <label>
+          Status
+          <select
+            aria-label="Opportunity status"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+          >
+            <option value="active">Ready &amp; watching</option>
+            <option value="watch">Watching only</option>
+            <option value="all">All recent results</option>
+          </select>
+        </label>
       </div>
       <Notices />
       <div className="scanner-panel-summary">
@@ -882,22 +1129,22 @@ export function ScannerPanel({
           {s.state?.candidates.filter(
             (c) => c.status === "candidate" || c.status === "watch",
           ).length ?? 0}{" "}
-          eligible contexts · no AI during screening
+          ready or watching · scanning uses market rules
         </span>
         <button className="text-button" onClick={setup}>
-          Scanner settings <ArrowRight size={13} />
+          Manage scans <ArrowRight size={13} />
         </button>
       </div>
       {!s.loadError && !s.state?.profiles.length && (
         <p className="empty-copy">
-          Add a scanner profile in Settings, then run screening with your chosen
-          instruments and thresholds.
+          Create your first scanner in My scans, choose markets, then run it to
+          find opportunities.
         </p>
       )}
       {!!s.state?.profiles.length && !candidates.length && (
         <p className="empty-copy">
-          No candidates yet. Run a configured scanner; its results show which
-          instruments passed, were filtered, or lacked evidence.
+          No opportunities match this view. Run a saved scan or choose All
+          recent results to see earlier setups.
         </p>
       )}
       {candidates.map((c) => (
@@ -911,17 +1158,18 @@ export function ScannerPanel({
               {c.instrument_id.split(":").at(-1)}
             </strong>
             <span>
-              {c.interval} · score {c.setup_score?.toFixed(2)}
+              {timeframeLabels[c.interval] ?? c.interval} · setup score{" "}
+              {Math.round(c.setup_score * 100)}%
             </span>
             <span className={`badge ${c.status === "candidate" ? "cyan" : ""}`}>
-              {c.status.toUpperCase()}
+              {opportunityLabels[c.status] ?? c.status}
             </span>
           </div>
           <p className="muted">
             {detectorLabels[c.detector_id as keyof typeof detectorLabels] ??
               c.detector_id}
             {" · "}
-            {c.direction?.toUpperCase() ?? "LONG"}
+            {c.direction === "short" ? "Short setup" : "Long setup"}
           </p>
           <p className="scanner-match-names">
             {c.matches.map((m) => String(m.profile_name)).join(" / ")}
@@ -931,7 +1179,7 @@ export function ScannerPanel({
       ))}
       {!!s.state?.runs.length && (
         <details className="scanner-runs">
-          <summary>Recent screening results</summary>
+          <summary>Scan history</summary>
           {s.state.runs.map((r) => (
             <div key={r.id}>
               <button
@@ -948,7 +1196,7 @@ export function ScannerPanel({
               {r.results.map((v, i) => (
                 <p key={i}>
                   {String(v.instrument_id).split(":").at(-1)} ·{" "}
-                  {String(v.status)}
+                  {String(v.status).replaceAll("_", " ")}
                   {v.reason ? ` · ${String(v.reason)}` : ""}
                   {v.gate_reason_code || v.ranking_reason_code || v.reason_code
                     ? ` · ${String(v.gate_reason_code || v.ranking_reason_code || v.reason_code)}`
@@ -959,6 +1207,73 @@ export function ScannerPanel({
           ))}
         </details>
       )}
+    </div>
+  );
+}
+
+export function ScannerWorkspace({
+  open,
+  chart,
+  ask,
+}: {
+  open: (kind: string, id: string) => void;
+  chart: () => void;
+  ask: (draft: string) => void;
+}) {
+  const s = useScanner();
+  const [tab, setTab] = useState("opportunities");
+  const ready = s.state?.candidates.filter(
+    (c) => c.status === "candidate" || c.status === "watch",
+  ).length;
+  return (
+    <div className="page-scroll workflow-page">
+      <div className="page-heading">
+        <div>
+          <span className="eyebrow">DISCOVER → RESEARCH → TEST</span>
+          <h1>Scanners</h1>
+          <p>
+            Find a setup, review its evidence, then ask Tauric for research.
+          </p>
+        </div>
+        <button
+          className="secondary"
+          onClick={() =>
+            ask(
+              "Review my scanners. Suggest a simpler setup for my registered markets, explain the tradeoffs, and preserve my current research allowances and automation settings.",
+            )
+          }
+        >
+          Ask OpenClaw
+        </button>
+      </div>
+      <WorkflowTabs
+        label="Scanner views"
+        value={tab}
+        select={setTab}
+        options={[
+          { id: "opportunities", label: "Opportunities", count: ready },
+          { id: "scans", label: "My scans", count: s.state?.profiles.length },
+        ]}
+      />
+      <section
+        role="tabpanel"
+        id={`workflow-panel-${tab}`}
+        aria-labelledby={`workflow-${tab}`}
+      >
+        {tab === "opportunities" ? (
+          <ScannerPanel
+            open={open}
+            chart={chart}
+            setup={() => setTab("scans")}
+          />
+        ) : (
+          <ScannerSettings />
+        )}
+      </section>
+      <p className="workflow-authority">
+        Scanners find setups. Tauric supplies the required intelligence. A setup
+        alone cannot authorize a trade.
+      </p>
     </div>
   );
 }

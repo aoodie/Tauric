@@ -55,7 +55,7 @@ with sync_playwright() as p:
     discovery.get_by_role("button", name="Search symbols", exact=True).click()
     expect(
         discovery.get_by_role("article", name="Discovered AUD_CAD", exact=True)
-    ).to_contain_text("daily AI research pending")
+    ).to_contain_text("Daily research; economic coverage varies by currency")
     checks.append(
         "ETF classification and additional FX crosses work; unsupported daily FX context is disclosed"
     )
@@ -63,8 +63,9 @@ with sync_playwright() as p:
     expect(page.locator(".app")).to_be_visible()
     chart.get_by_label("Chart instrument").select_option("alpaca:equity:NVDA")
     page.get_by_role("button", name="Settings", exact=True).click()
-    page.get_by_role("tab", name="Scanners", exact=True).click()
-    page.get_by_role("button", name="Add scanner profile", exact=True).click()
+    page.get_by_role("button", name="Scanners", exact=True).click()
+    page.get_by_role("tab", name="My scans", exact=False).click()
+    page.get_by_role("button", name="New scanner", exact=True).click()
     form = page.get_by_role("form", name="Scanner profile form", exact=True)
     nested = form.locator(".instrument-discovery")
     nested.locator("summary").first.click()
@@ -75,22 +76,23 @@ with sync_playwright() as p:
         nested.get_by_role("article", name="Discovered NVDA", exact=True)
     ).to_contain_text("Saved · Stock")
     expect(
-        form.get_by_role("button", name="Save scanner profile", exact=True)
+        form.get_by_role("button", name="Save scanner", exact=True)
     ).to_be_visible()
     nested.locator("summary").first.click()
     form.get_by_label("Scanner name", exact=True).fill("Discovered stock universe")
-    form.get_by_label("Candle interval", exact=True).select_option("15m")
+    form.get_by_label("Timeframe", exact=True).select_option("15m")
+    form.get_by_text("Advanced settings", exact=False).click()
     for label, value in {
-        "Prior closed candles": "3",
-        "Minimum activity ratio": "2",
-        "Candidate lifetime (seconds)": "600",
-        "New research runs per UTC day": "0",
-        "Scanner change reason": "Save discovered stock for research",
+        "Look back (closed candles)": "3",
+        "Minimum activity (× average)": "2",
+        "Opportunity valid for (seconds)": "600",
+        "Tauric research runs per day": "0",
+        "Why save this change?": "Save discovered stock for research",
     }.items():
         form.get_by_label(label, exact=True).fill(value)
     form.get_by_label("Research AI connection", exact=True).select_option("local")
     form.get_by_label("NVDA", exact=True).check()
-    form.get_by_role("button", name="Save scanner profile", exact=True).click()
+    form.get_by_role("button", name="Save scanner", exact=True).click()
     expect(
         page.get_by_role(
             "article", name="Discovered stock universe scanner profile", exact=True
@@ -99,7 +101,7 @@ with sync_playwright() as p:
     checks.append(
         "New registry selection persists in an independent scanner without starting a scan"
     )
-    page.get_by_role("button", name="OpenClaw chat", exact=True).click()
+    page.get_by_role("button", name="OpenClaw", exact=True).click()
     page.get_by_label("Conversation context", exact=True).select_option(portfolio)
     page.get_by_text("Daily opportunity and strategy research", exact=True).click()
     panel = page.locator(".portfolio-research")
@@ -110,7 +112,7 @@ with sync_playwright() as p:
     panel.get_by_role("button", name="Save research settings", exact=True).click()
     expect(panel).to_contain_text("Research settings saved.")
     page.reload()
-    page.get_by_role("button", name="OpenClaw chat", exact=True).click()
+    page.get_by_role("button", name="OpenClaw", exact=True).click()
     expect(page.get_by_label("Conversation context", exact=True)).to_have_value(
         portfolio
     )
