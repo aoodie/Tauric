@@ -15,12 +15,14 @@ TESTS = (
 )
 
 
-def verify_report(path):
+def verify_report(path, expected_count=None):
+    if expected_count is None:
+        expected_count = len(TESTS)
     cases = ElementTree.parse(path).getroot().findall(".//testcase")
-    if len(cases) != len(TESTS) or any(
+    if len(cases) != expected_count or any(
         case.find(tag) is not None for case in cases for tag in ("skipped", "failure", "error")
     ):
-        raise ValueError("Every critical browser workflow must execute and pass; skips are failures.")
+        raise ValueError("Every required workflow must execute and pass; skips are failures.")
 
 
 def main():

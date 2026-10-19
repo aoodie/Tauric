@@ -33,7 +33,7 @@ jobs:
       - name: Backend and deployment checks
         run: |
           .venv/bin/ruff check backend scripts
-          .venv/bin/python scripts/local.py test -q -m 'not browser'
+          .venv/bin/python scripts/local.py test -q -m 'not browser' --ignore=tests/test_quant_runtimes.py
           .venv/bin/python -m unittest discover -s scripts/tests -v
       - name: Frontend and OpenClaw contracts
         run: |
@@ -53,6 +53,37 @@ jobs:
         run: |
           export PATH="$GITHUB_WORKSPACE/.venv/bin:$PATH"
           .venv/bin/python scripts/run_browser_checks.py
+      - name: Remove disposable storage
+        if: always()
+        run: docker compose --env-file .env -f deploy/compose.dev.yml down -v
+  quant-runtimes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Reserve disposable runner disk for the pinned LEAN image
+        run: |
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /usr/share/swift
+          df -h /
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+      - name: Install application test runtime
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -r backend/requirements.lock
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - name: Install isolated research runtimes
+        run: .venv/bin/python scripts/setup_quant.py --python python3.12
+      - name: Prepare disposable test storage
+        run: |
+          .venv/bin/python scripts/dev_setup.py
+          docker compose --env-file .env -f deploy/compose.dev.yml up -d --wait db
+      - name: Real research engine workflows
+        run: .venv/bin/python scripts/run_quant_checks.py
       - name: Remove disposable storage
         if: always()
         run: docker compose --env-file .env -f deploy/compose.dev.yml down -v
