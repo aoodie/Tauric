@@ -3609,6 +3609,16 @@ export interface components {
       /** Market Value */
       market_value?: string | null;
     };
+    /** BrokerProtectionReplay */
+    BrokerProtectionReplay: {
+      /** Price Step */
+      price_step: string;
+      /**
+       * Entry Delay Seconds
+       * @default 0
+       */
+      entry_delay_seconds: number;
+    };
     /** BrokerProtectionView */
     BrokerProtectionView: {
       /** Broker Order Id */
@@ -7147,6 +7157,45 @@ export interface components {
       /** Reason */
       reason: string;
     };
+    /** ReplayExecutionEvidence */
+    ReplayExecutionEvidence: {
+      /**
+       * Model
+       * @constant
+       */
+      model: "broker_protected_ohlc_long_v1";
+      /** Entry Delay Seconds */
+      entry_delay_seconds: number;
+      signal_to_fill: components["schemas"]["ReplayTiming"];
+      /** Expired Entries */
+      expired_entries: number;
+      /** Unfilled Entries */
+      unfilled_entries: number;
+      /** Same Bar Exits */
+      same_bar_exits: number;
+      /** Ambiguous Exits */
+      ambiguous_exits: {
+        [key: string]: unknown;
+      }[];
+      /**
+       * Partial Fills Modeled
+       * @default false
+       * @constant
+       */
+      partial_fills_modeled: false;
+      /**
+       * Intrabar Path Observed
+       * @default false
+       * @constant
+       */
+      intrabar_path_observed: false;
+      /**
+       * Broker Parity Verified
+       * @default false
+       * @constant
+       */
+      broker_parity_verified: false;
+    };
     /** ReplayParameters */
     ReplayParameters: {
       /**
@@ -7203,6 +7252,8 @@ export interface components {
        */
       slippage_bps: string;
       asset_costs?: components["schemas"]["AssetCosts"] | null;
+      broker_protection?:
+        components["schemas"]["BrokerProtectionReplay"] | null;
     };
     /** ReplayResult */
     ReplayResult: {
@@ -7242,6 +7293,19 @@ export interface components {
       financing_events?: {
         [key: string]: unknown;
       }[];
+      execution_evidence?:
+        components["schemas"]["ReplayExecutionEvidence"] | null;
+    };
+    /** ReplayTiming */
+    ReplayTiming: {
+      /** Observations */
+      observations: number;
+      /** Median Seconds */
+      median_seconds: string | null;
+      /** P95 Seconds */
+      p95_seconds: string | null;
+      /** Maximum Seconds */
+      maximum_seconds: string | null;
     };
     /** ReplayView */
     ReplayView: {

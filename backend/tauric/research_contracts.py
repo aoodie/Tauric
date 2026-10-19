@@ -85,6 +85,11 @@ class DatasetImport(Contract):
     data_context: DataContext | None = None
 
 
+class BrokerProtectionReplay(Contract):
+    price_step: Money
+    entry_delay_seconds: int = Field(default=0, ge=0, le=86400, strict=True)
+
+
 class ReplayParameters(Contract):
     engine: Literal["sma_cross_spot_v1", "closed_bar_breakout_v1"] = "sma_cross_spot_v1"
     strategy_version_id: UUID | None = None
@@ -98,6 +103,9 @@ class ReplayParameters(Contract):
     fee_bps: Cost = "10"
     slippage_bps: Cost = "5"
     asset_costs: AssetCosts | None = None
+    broker_protection: BrokerProtectionReplay | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
 
     @model_validator(mode="after")
     def limits(self):
@@ -111,6 +119,10 @@ class ReplayParameters(Contract):
             raise ValueError("The stop distance must be below 100%.")
         if max(Decimal(self.fee_bps), Decimal(self.slippage_bps)) >= 10000:
             raise ValueError("Costs must be below 10,000 basis points.")
+        if self.broker_protection and (
+            self.engine != "closed_bar_breakout_v1" or not self.asset_costs
+        ):
+            raise ValueError("Broker protection replay requires saved breakout rules and asset costs.")
         return self
 
 
@@ -142,6 +154,26 @@ class EquityPoint(Contract):
     drawdown_percent: str
 
 
+class ReplayTiming(Contract):
+    observations: int
+    median_seconds: str | None
+    p95_seconds: str | None
+    maximum_seconds: str | None
+
+
+class ReplayExecutionEvidence(Contract):
+    model: Literal["broker_protected_ohlc_long_v1"]
+    entry_delay_seconds: int
+    signal_to_fill: ReplayTiming
+    expired_entries: int
+    unfilled_entries: int
+    same_bar_exits: int
+    ambiguous_exits: list[dict]
+    partial_fills_modeled: Literal[False] = False
+    intrabar_path_observed: Literal[False] = False
+    broker_parity_verified: Literal[False] = False
+
+
 class ReplayResult(Contract):
     metrics: OutcomeMetrics
     final_equity: str
@@ -156,6 +188,9 @@ class ReplayResult(Contract):
     bars: int
     financing_cost: str = "0"
     financing_events: list[dict] = Field(default_factory=list)
+    execution_evidence: ReplayExecutionEvidence | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
 
 
 class DatasetView(Contract):

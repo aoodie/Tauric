@@ -37,7 +37,10 @@ with sync_playwright() as p:
     lab.get_by_label("Session preset", exact=True).select_option("All trading hours")
     lab.get_by_role("button", name="Save session report", exact=True).click()
     expect(lab.get_by_role("status")).to_contain_text("Session report saved")
-    study = lab.locator(".lab-history details.research-block").first
+    study = lab.locator(".lab-history details.research-block").filter(
+        has=page.get_by_text("London-compatible evidence study", exact=True)
+    )
+    expect(study).to_have_count(1)
     study.locator("summary").first.click()
     expect(study).to_contain_text("Upside breakout")
     expect(study).to_contain_text("Record checksum")
@@ -56,7 +59,12 @@ with sync_playwright() as p:
     ).to_be_visible()
     lab.get_by_role("button", name="Queue experiment", exact=True).click()
     expect(lab.get_by_role("status")).to_contain_text("Experiment queued")
-    job = lab.locator(".lab-history details.research-block").first
+    # The queued notice appears before the refreshed history arrives. Wait for
+    # this experiment, rather than opening whichever row was first beforehand.
+    job = lab.locator(".lab-history details.research-block").filter(
+        has=page.get_by_text("Held-out model experiment", exact=True)
+    )
+    expect(job).to_have_count(1)
     job.locator("summary").first.click()
     job.get_by_role("button", name="Cancel experiment", exact=True).click()
     expect(job.locator("summary").first).to_contain_text("cancelled")

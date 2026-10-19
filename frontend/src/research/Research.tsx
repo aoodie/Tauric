@@ -461,6 +461,11 @@ export function ResearchPage({ open }: { open: Open }) {
           dataset?.asset_type === "crypto_spot"
             ? undefined
             : parameters.asset_costs,
+        broker_protection:
+          parameters.engine === "closed_bar_breakout_v1" &&
+          dataset?.asset_type !== "crypto_spot"
+            ? parameters.broker_protection
+            : undefined,
       },
       reason: "Explicit owner research experiment",
     };
@@ -486,6 +491,10 @@ export function ResearchPage({ open }: { open: Open }) {
   }
   const dataset = state?.datasets.find((d) => d.id === datasetId);
   const breakout = parameters.engine === "closed_bar_breakout_v1";
+  const protectedReplay =
+    breakout &&
+    dataset?.asset_type !== "crypto_spot" &&
+    !!parameters.broker_protection;
   const version = versions.find(
     (value) => value.id === parameters.strategy_version_id,
   );
@@ -618,8 +627,8 @@ export function ResearchPage({ open }: { open: Open }) {
       {tab === "research" && (
         <>
           <p className="research-context">
-            Retrospective asset replay · closed-candle signals · next-open fills
-            · no AI calls
+            Retrospective asset replay · closed-candle signals · explicit fill
+            assumptions · no AI calls
           </p>
           <div className="research-setup">
             <section className="research-block">
@@ -706,7 +715,13 @@ export function ResearchPage({ open }: { open: Open }) {
                 <select
                   aria-label="Saved dataset"
                   value={datasetId}
-                  onChange={(e) => setDatasetId(e.target.value)}
+                  onChange={(e) => {
+                    setDatasetId(e.target.value);
+                    setParameters({
+                      ...parameters,
+                      broker_protection: undefined,
+                    });
+                  }}
                 >
                   <option value="">Select saved evidence</option>
                   {state?.datasets.map((d) => (
@@ -762,7 +777,9 @@ export function ResearchPage({ open }: { open: Open }) {
               </h2>
               <p>
                 {breakout
-                  ? "Replay the exact saved breakout and volume filters, opening stop reference and stop/target/channel exits. Every signal fills at the next open, not at its trigger price. No approvals or orders are created."
+                  ? protectedReplay
+                    ? "Replay saved breakout signals with fixed stop and target protection from entry. Candle ranges approximate fills; ambiguous exits and delayed signals remain visible. No approvals or orders are created."
+                    : "Replay the exact saved breakout and volume filters, opening stop reference and stop/target/channel exits. Every signal fills at the next open, not at its trigger price. No approvals or orders are created."
                   : "Buy after the fast SMA crosses above the slow SMA. Exit after a downward cross or a simulated stop."}
               </p>
               <form onSubmit={replay}>
@@ -777,6 +794,7 @@ export function ResearchPage({ open }: { open: Open }) {
                           ...parameters,
                           engine: event.target.value as Parameters["engine"],
                           strategy_version_id: undefined,
+                          broker_protection: undefined,
                         })
                       }
                     >
@@ -788,6 +806,81 @@ export function ResearchPage({ open }: { open: Open }) {
                       </option>
                     </select>
                   </label>
+                  {breakout &&
+                    dataset &&
+                    dataset.asset_type !== "crypto_spot" && (
+                      <>
+                        <label>
+                          Execution model
+                          <select
+                            aria-label="Execution model"
+                            value={protectedReplay ? "protected" : "closed_bar"}
+                            onChange={(event) =>
+                              setParameters({
+                                ...parameters,
+                                broker_protection:
+                                  event.target.value === "protected"
+                                    ? { price_step: "", entry_delay_seconds: 0 }
+                                    : undefined,
+                              })
+                            }
+                          >
+                            <option value="closed_bar">
+                              Closed-bar exits at next open
+                            </option>
+                            <option value="protected">
+                              Broker protection · candle approximation
+                            </option>
+                          </select>
+                        </label>
+                        {protectedReplay && (
+                          <div className="research-fields">
+                            <label>
+                              Assumed price increment
+                              <input
+                                required
+                                inputMode="decimal"
+                                value={parameters.broker_protection!.price_step}
+                                onChange={(event) =>
+                                  setParameters({
+                                    ...parameters,
+                                    broker_protection: {
+                                      ...parameters.broker_protection!,
+                                      price_step: event.target.value,
+                                    },
+                                  })
+                                }
+                              />
+                            </label>
+                            <label>
+                              Assumed entry delay · seconds
+                              <input
+                                required
+                                type="number"
+                                min={0}
+                                max={86400}
+                                step={1}
+                                value={
+                                  parameters.broker_protection!
+                                    .entry_delay_seconds ?? 0
+                                }
+                                onChange={(event) =>
+                                  setParameters({
+                                    ...parameters,
+                                    broker_protection: {
+                                      ...parameters.broker_protection!,
+                                      entry_delay_seconds: Number(
+                                        event.target.value,
+                                      ),
+                                    },
+                                  })
+                                }
+                              />
+                            </label>
+                          </div>
+                        )}
+                      </>
+                    )}
                   {breakout && (
                     <>
                       <label>
@@ -828,11 +921,11 @@ export function ResearchPage({ open }: { open: Open }) {
                       {version && (
                         <p>
                           Saved capital ceiling{" "}
-                          {amount(version.parameters.capital_limit)} USDT ·
-                          strategy risk {version.parameters.risk_percent}% of
-                          that ceiling · quantity step{" "}
-                          {version.parameters.quantity_step}. Experiment caps
-                          can only tighten these limits.
+                          {amount(version.parameters.capital_limit)}{" "}
+                          {dataset?.quote_currency ?? "USDT"} · strategy risk{" "}
+                          {version.parameters.risk_percent}% of that ceiling ·
+                          quantity step {version.parameters.quantity_step}.
+                          Experiment caps can only tighten these limits.
                         </p>
                       )}
                       {intervalMismatch && (
@@ -1125,6 +1218,55 @@ export function ResearchPage({ open }: { open: Open }) {
                 </button>
               </div>
               <p>{selectedRun.hypothesis}</p>
+              {selectedRun.result.execution_evidence && (
+                <div aria-label="Replay execution evidence">
+                  <p>
+                    Broker protection · candle approximation · assumed full
+                    fills
+                  </p>
+                  <dl className="research-metrics">
+                    {[
+                      [
+                        "Assumed entry delay · seconds",
+                        selectedRun.result.execution_evidence
+                          .entry_delay_seconds,
+                      ],
+                      [
+                        "Median signal to fill · seconds",
+                        selectedRun.result.execution_evidence.signal_to_fill
+                          .median_seconds,
+                      ],
+                      [
+                        "95th percentile signal to fill · seconds",
+                        selectedRun.result.execution_evidence.signal_to_fill
+                          .p95_seconds,
+                      ],
+                      [
+                        "Expired signals",
+                        selectedRun.result.execution_evidence.expired_entries,
+                      ],
+                      [
+                        "Unfilled signals",
+                        selectedRun.result.execution_evidence.unfilled_entries,
+                      ],
+                      [
+                        "Ambiguous exit candles",
+                        selectedRun.result.execution_evidence.ambiguous_exits
+                          .length,
+                      ],
+                    ].map(([label, value]) => (
+                      <div key={label}>
+                        <dt>{label}</dt>
+                        <dd>{value ?? "—"}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                  <p>
+                    Delays are simulated. Candle data cannot establish the
+                    actual intrabar path, partial fills or broker parity.
+                  </p>
+                </div>
+              )}
               {selectedRun.parameters.asset_costs?.asset_type === "fx" && (
                 <p>
                   FX financing debit / credit:{" "}

@@ -185,7 +185,11 @@ def freeze(db, owner, body):
         "engine_sources": snapshot,
         "engine_checksum": paper.checksum(snapshot),
         "assumptions": (
-            research.asset_assumptions(
+            research.protected_assumptions(
+                market.instrument(db, dataset.payload["instrument_id"]), context
+            )
+            if body.parameters.broker_protection
+            else research.asset_assumptions(
                 market.instrument(db, dataset.payload["instrument_id"]), context
             )
             + (

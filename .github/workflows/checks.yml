@@ -45,6 +45,14 @@ jobs:
           node openclaw/plugin.test.mjs
           node openclaw/config.test.mjs
           node openclaw/heartbeat-status.test.mjs
+      - name: Install critical browser test tooling
+        run: |
+          .venv/bin/python -m pip install -r backend/requirements.browser.lock
+          .venv/bin/python -m playwright install --with-deps chromium
+      - name: Critical browser workflows
+        run: |
+          export PATH="$GITHUB_WORKSPACE/.venv/bin:$PATH"
+          .venv/bin/python scripts/run_browser_checks.py
       - name: Remove disposable storage
         if: always()
         run: docker compose --env-file .env -f deploy/compose.dev.yml down -v
