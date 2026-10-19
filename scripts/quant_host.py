@@ -12,6 +12,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from urllib.parse import quote
@@ -195,6 +196,37 @@ def cleanup(engine):
                 capture(["docker", "rm", "-f", container["Id"]])
 
 
+def worker(engine):
+    """Cache the controller's DB settings before any engine import/probe is spawned."""
+    from tauric.config import runtime_config
+
+    runtime_config()
+    keep = {
+        "PATH",
+        "HOME",
+        "LANG",
+        "LC_ALL",
+        "PYTHONPATH",
+        "PYTHONDONTWRITEBYTECODE",
+        "PYTHONUNBUFFERED",
+    }
+    for key in list(os.environ):
+        if key not in keep:
+            del os.environ[key]
+    from tauric.quant_worker import main as run_worker
+
+    sys.argv = [
+        "tauric.quant_worker",
+        "--engine",
+        engine,
+        "--python",
+        str(ROOT / "runtimes/qlib/bin/python"),
+        "--artifacts",
+        str(ROOT / "artifacts" / engine),
+    ]
+    run_worker()
+
+
 def unit(engine):
     if engine not in ENGINES:
         raise ValueError("Unknown research engine")
@@ -218,7 +250,7 @@ Group=tauric-quant-{engine}
 {docker}WorkingDirectory={ROOT}
 EnvironmentFile=-/run/tauric-quant/{engine}.env
 ExecStartPre=+/usr/bin/python3 {helper} prepare --engine {engine}
-ExecStart={ROOT}/runtimes/app/bin/python -m tauric.quant_worker --engine {engine} --python {ROOT}/runtimes/qlib/bin/python --artifacts {artifact}
+ExecStart={ROOT}/runtimes/app/bin/python {helper} worker --engine {engine}
 ExecStopPost=+/usr/bin/python3 {helper} cleanup --engine {engine}
 Restart=on-failure
 RestartSec=15
@@ -246,11 +278,17 @@ WantedBy=multi-user.target tauric-engineering.service
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("prepare", "cleanup", "unit"))
+    parser.add_argument("action", choices=("prepare", "cleanup", "unit", "worker"))
     parser.add_argument("--engine", choices=ENGINES, required=True)
     args = parser.parse_args()
     if args.action == "unit":
         print(unit(args.engine), end="")
+    elif args.action == "worker":
+        if os.geteuid() == 0:
+            raise SystemExit(
+                "Run the research controller as its dedicated service user"
+            )
+        worker(args.engine)
     else:
         if os.geteuid() != 0:
             raise SystemExit("The fixed host preparation helper requires root")

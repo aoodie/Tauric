@@ -3,9 +3,12 @@
 import hashlib
 import importlib.util
 import json
+import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import ModuleType
 from unittest.mock import patch
 
 SPEC = importlib.util.spec_from_file_location(
@@ -16,6 +19,39 @@ SPEC.loader.exec_module(host)
 
 
 class ResearchHostTests(unittest.TestCase):
+    def test_engine_probes_never_inherit_the_controller_database_or_provider_credentials(
+        self,
+    ):
+        config_module = ModuleType("tauric.config")
+        worker_module = ModuleType("tauric.quant_worker")
+        observations = []
+        config_module.runtime_config = lambda: observations.append(
+            ("cached", dict(os.environ))
+        )
+        worker_module.main = lambda: observations.append(("worker", dict(os.environ)))
+        modules = {
+            "tauric": ModuleType("tauric"),
+            "tauric.config": config_module,
+            "tauric.quant_worker": worker_module,
+        }
+        with (
+            patch.dict(sys.modules, modules),
+            patch.dict(
+                os.environ,
+                {
+                    "TAURIC_DATABASE_URL": "private database",
+                    "PROVIDER_SECRET": "private provider",
+                    "PATH": "/usr/bin:/bin",
+                },
+                clear=True,
+            ),
+            patch.object(sys, "argv", []),
+        ):
+            host.worker("qlib")
+            self.assertEqual(sys.argv[2], "qlib")
+        self.assertIn("TAURIC_DATABASE_URL", observations[0][1])
+        self.assertEqual(observations[1], ("worker", {"PATH": "/usr/bin:/bin"}))
+
     def test_source_mismatch_and_changed_release_fail_before_worker_startup(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
