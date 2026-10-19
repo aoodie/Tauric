@@ -6,10 +6,12 @@ import math
 import shutil
 import subprocess
 import time
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import server
+
+UTC = timezone.utc  # Native host tools support Python 3.10.
 
 
 def observe(directory, project):

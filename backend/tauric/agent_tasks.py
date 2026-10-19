@@ -203,12 +203,17 @@ def for_turn(db, turn, *, effect=False, operation=None):
         not task
         or not root
         or task.owner_id != turn.owner_id
-        or wake.task_revision != task.revision
         or task.status in TERMINAL | {"paused", "requires_owner"}
         or root.status in TERMINAL | {"paused", "requires_owner"}
         or task.deadline <= now()
     ):
         fail("This delegated project task is stopped or expired.", 403)
+    if wake.task_revision != task.revision:
+        fail(
+            "This continuation has handed off or was superseded. Return now; the supervisor "
+            "follows the saved task. Do not repeat its effects.",
+            403,
+        )
     if effect and task.status != "running":
         fail("This task is waiting; no additional effect is authorized.", 403)
     if operation and operation not in PROJECT_OPERATIONS:

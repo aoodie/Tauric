@@ -6,15 +6,16 @@ import json
 import re
 import tarfile
 import zipfile
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import PurePosixPath
 from urllib.parse import quote
 
 from release_identity import REPOSITORY_ID, ReleaseAccessError
 from release_publish import save
 
+UTC = timezone.utc  # Native host tools support Python 3.10.
 WORKFLOW = ".github/workflows/release.yml"
-REQUIRED_JOBS = {"checks / checks", "bundle"} | {
+REQUIRED_JOBS = {"checks / checks", "checks / quant-runtimes", "checks / host-tools-310", "bundle"} | {
     "images (" + kind + ", " + dockerfile + ")"
     for kind, dockerfile in {
         "api": "deploy/Dockerfile.release-api",

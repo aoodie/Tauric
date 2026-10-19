@@ -2,6 +2,16 @@
 
 Implementation started 9 October 2026, verification continued 10 October 2026. Deployment and runtime acceptance are recorded separately below. The standing authority is [the project mandate](OPENCLAW_PROJECT_OWNERSHIP.md).
 
+## Oracle-only direction: 19 October 2026
+
+The owner selected Oracle as the sole deployment target. The canonical workstation is [tauric.aoodie.xyz](https://tauric.aoodie.xyz). Fresh verification found Oracle source `d40048849e6cb4c226447fa5311aeaea8092c524`, 12 healthy services, trusted HTTPS and working authenticated owner access. Its financial execution workers remain disabled. Upgrades must preserve that service set; the separate legacy server's 16-service profile is not permission to enable additional Oracle workers.
+
+The legacy IONOS source `0a11da8d26bec3c5f5377544a29cb4199ded6478` was independently verified at 07:52 UTC after [complete release validation](https://github.com/aoodie/Tauric/actions/runs/39214835389): 16 healthy services, 163 matching Python/instruction files, matching plugin/saved instructions and a successful isolated restoration of its actual backup. Protected settings, 15,996 original readiness rows, private configuration and execution receipts were retained. This does not establish Oracle installation or acceptance.
+
+The legacy model-driven goal (`67e8cb0b-1897-5343-9bdc-435ea5fbc7bf`) created an engineering child, received verified signed command results and executed 20 protected-replay regressions. Its timing draft required operator review. It used its original 24 wakes and escalated over invalid effect-key arguments without completing its new tests, release or research criteria. Neither the key constraints nor the budget were relaxed. It is now paused under the owner's Oracle-only direction, with errors and source artifacts retained. No full autonomous ownership completion is claimed.
+
+Legacy data is recovery history, not a replacement for Oracle's active settings or ledgers. The dated checkpoints below are historical records. Strategy qualification and broker execution authority remain separate gates. Oracle upgrade and legacy retirement will be recorded only after their independent backup/restore and installed-source checks pass.
+
 ## Implemented in this candidate
 
 - Durable owner goals, child work and dependencies use persisted identities, scope, criteria, deadlines, shared wake/recovery budgets, revision checks, append-only lifecycle history and existing chat leases. A cheap supervisor observes service jobs and queues model work only when actionable. Stable effect keys bind repeated research, management and engineering requests to their original inputs.

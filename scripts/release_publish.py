@@ -9,7 +9,7 @@ import hashlib
 import json
 import os
 import re
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import PurePosixPath
 from uuid import UUID
 
@@ -17,6 +17,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from release_identity import ReleaseAccessError
 
+UTC = timezone.utc  # Native host tools support Python 3.10.
 PROTECTED_PREFIXES = (".github/", "deploy/")
 PROTECTED_FILES = {
     "AGENTS.md",

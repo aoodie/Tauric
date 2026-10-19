@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -79,6 +80,19 @@ def engineering_idle(state):
     )
 
 
+def resume_services(server, compose, services):
+    """Restore the recorded service set without activating optional profiles."""
+    if not isinstance(services, list) or not services or "db" not in services or any(
+        not isinstance(name, str) or not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]*", name)
+        for name in services
+    ):
+        raise ValueError("A recorded service set including the database is required.")
+    server.run(
+        compose + ["up", "-d", "--no-deps", "--wait", "--wait-timeout", "600", *services],
+        stdout=subprocess.PIPE,
+    )
+
+
 def recover_before_migration(active_release, state, project, progress):
     """Resume the unchanged services if preparation stops before any migration."""
     if progress.get("phase") not in {
@@ -102,10 +116,7 @@ def recover_before_migration(active_release, state, project, progress):
     )
     installer.install(active_release, state)
     compose = server.command(state, project) + ["--profile", "*"]
-    server.run(
-        compose + ["up", "-d", "--wait", "--wait-timeout", "600"],
-        stdout=subprocess.PIPE,
-    )
+    resume_services(server, compose, progress["previous_services"])
     return True
 
 
@@ -284,10 +295,7 @@ def install(
         # A chat that drained during shutdown may have submitted one last job.
         # Resume unchanged services and wait for that original execution.
         if not engineering_idle(state):
-            old.run(
-                old_compose + ["up", "-d", "--wait", "--wait-timeout", "600"],
-                stdout=subprocess.PIPE,
-            )
+            resume_services(old, old_compose, progress["previous_services"])
             progress.clear()
             save(journal_path, journal)
             raise EngineeringBusy()
@@ -461,10 +469,7 @@ def install(
             progress["startup_attempts"] += 1
             save(journal_path, journal)
             new.validate(state, project)
-            new.run(
-                compose + ["up", "-d", "--wait", "--wait-timeout", "600"],
-                stdout=subprocess.PIPE,
-            )
+            resume_services(new, compose, progress["previous_services"])
         progress["phase"] = "verify_requested"
         save(journal_path, journal)
     if progress["phase"] == "verify_requested":
