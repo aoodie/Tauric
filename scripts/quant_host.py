@@ -158,6 +158,8 @@ def prepare(engine):
         "PYTHONPATH": str(source / "backend"),
         "PYTHONDONTWRITEBYTECODE": "1",
         "PYTHONUNBUFFERED": "1",
+        "HOME": str(ROOT / "artifacts" / engine),
+        "LC_ALL": "C.UTF-8",
         "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
     }
     target = Path("/run/tauric-quant") / (engine + ".env")
