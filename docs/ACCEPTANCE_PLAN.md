@@ -1,8 +1,8 @@
 # Trading and operational acceptance
 
-Owner authorized this work on 8 October 2026. The first milestone is reliable governed demo trading on IONOS. Strategy promotion and completion of the agreed full platform remain separate milestones.
+Owner authorized this work on 8 October 2026 and selected Oracle as the sole deployment target on 19 October. Work continues at [tauric.aoodie.xyz](https://tauric.aoodie.xyz); the IONOS runtime is retired, with its final archive independently restored on Oracle. See the [current deployment and recovery record](ORACLE_ONLY_2026-10-19.md). Oracle's financial execution workers remain disabled. Strategy qualification, governed demo acceptance and completion of the agreed full platform remain separate milestones.
 
-## Baseline
+## Historical IONOS baseline and research work
 
 Verified starting source: `0e30a3bdfb6206544cb6bff242c8e0ac5b223eaf`. Its [hosted release](https://github.com/aoodie/Tauric/actions/runs/37677136199) passed 968 backend tests, 11 deployment checks, frontend/OpenClaw checks, four amd64/arm64 image publications and installation/full restoration; 20 browser tests were deselected. Saved IONOS evidence records trusted public-IP HTTPS, reboot recovery, restored backups and encrypted off-host backups. A fresh 8 October read-only SSH check found all 15 services healthy using the verified project host key.
 
@@ -39,7 +39,7 @@ Provider references: [OANDA candles](https://developer.oanda.com/rest-live-v20/i
 
 The unchanged baseline failed the frozen screening criteria. Training produced 41 closed trades and a −1.9183% return. The separate holdout produced 16 closed trades (required 20), zero winning trades and a −1.4614% return (required ≥0), with 1.4902% sampled drawdown. Higher-cost replay returned −3.7942%. Coverage passed at 1,730 bars. No exact-version native assessment was requested because the numerical prerequisites failed. No prospective protocol or execution route was created.
 
-Protocol `29781c2e-ee38-4897-9d1f-7c55f826be0c` checksum `6048b556234f835981c588977e19570c00e49614c54b4ddc4187ddfa959a18e9`; evaluation checksum `91fc974738452c5bbd4a6c23fa7516c061010c95fb8309a7d6b00e69fe9a3f76`; failed report `024ae0c0-d882-43d2-af39-b3921ec03b43`. These immutable records remain on the target host. The local evidence export is `artifacts/acceptance-eurusd-research-20261008.json`.
+Protocol `29781c2e-ee38-4897-9d1f-7c55f826be0c` checksum `6048b556234f835981c588977e19570c00e49614c54b4ddc4187ddfa959a18e9`; evaluation checksum `91fc974738452c5bbd4a6c23fa7516c061010c95fb8309a7d6b00e69fe9a3f76`; failed report `024ae0c0-d882-43d2-af39-b3921ec03b43`. These immutable records remain in the separately restored legacy archive on Oracle; they were not rewritten into Oracle's active ledger. The local evidence export is `artifacts/acceptance-eurusd-research-20261008.json`.
 
 Step 2 is evaluated but failed; prospective registration and the connected-cycle acceptance remain blocked for this strategy. Monitoring deployment can proceed independently. A later strategy revision requires a stated new hypothesis, a new registered trial and unused holdout evidence; these failed results must remain visible.
 

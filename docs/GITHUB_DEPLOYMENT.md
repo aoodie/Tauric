@@ -2,7 +2,7 @@
 
 **Monitoring candidate — 8 October 2026:** the separate `codex/trading-acceptance-monitoring` branch is deployed at `18b3d34`; [PR 6](https://github.com/aoodie/Tauric/pull/6) retains it for review. [Hosted release](https://github.com/aoodie/Tauric/actions/runs/37734549950) passed checks, image publication and full installation/restoration. The shared deployment branch and concurrent research work were preserved.
 
-**8 October status:** hosted publication and native amd64 installation/restore passed for deployed source `0e30a3b`. The IONOS candidate serves trusted public-IP HTTPS and has reboot/backup evidence. Current acceptance work is described in [the acceptance plan](ACCEPTANCE_PLAN.md); earlier pending-publication statements below are historical.
+**Current target — 19 October 2026:** use Oracle at [tauric.aoodie.xyz](https://tauric.aoodie.xyz). The IONOS runtime is retired. See the [Oracle-only deployment and recovery record](ORACLE_ONLY_2026-10-19.md) for installed source and current evidence, and the [acceptance plan](ACCEPTANCE_PLAN.md) for remaining gates. The dated IONOS examples and results below are historical; do not use its address for a new deployment.
 
 The repository now contains a GitHub Actions delivery path and a server-only Compose package. It remains a **deployment candidate** until the target Linux host, connected automatic trading cycle and soak/recovery gates pass. GitHub stores source, runs checks and publishes images; the application runs on a Linux server. GitHub Pages cannot host its database, API or background workers.
 

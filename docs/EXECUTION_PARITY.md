@@ -1,6 +1,6 @@
 # Execution evidence and improvement sequence
 
-Recorded 18 October 2026. Source implementation, test results and production acceptance are separate states. The existing [ownership mandate](OPENCLAW_PROJECT_OWNERSHIP.md) and all financial gates remain authoritative.
+Recorded 18 October 2026; Oracle installation verified 19 October. Source implementation, test results and production acceptance are separate states. The existing [ownership mandate](OPENCLAW_PROJECT_OWNERSHIP.md) and all financial gates remain authoritative.
 
 ## Protected replay
 
@@ -41,6 +41,6 @@ The fixed release bridge was also reconciled with the independently verified pre
 
 ## Oracle-only direction
 
-The owner selected Oracle as the sole deployment target on 19 October. The canonical workstation is [tauric.aoodie.xyz](https://tauric.aoodie.xyz). Fresh checks found source `d40048849e6cb4c226447fa5311aeaea8092c524`, 12 healthy services, trusted HTTPS and working owner authentication. Financial execution services remain disabled. Legacy installation evidence must not be presented as Oracle acceptance, and legacy data must not overwrite Oracle's active settings or ledgers.
+The owner selected Oracle as the sole deployment target on 19 October. The canonical workstation is [tauric.aoodie.xyz](https://tauric.aoodie.xyz). Source `e6b1b656c0f5d552c89ca1fe95e6bdf0445d072e` is installed and independently verified, with 12 healthy services, matching source/images/instructions, trusted HTTPS and working owner authentication. Financial execution services remain disabled. Legacy installation evidence must not be presented as Oracle acceptance, and legacy data must not overwrite Oracle's active settings or ledgers.
 
-The checked upgrade must retain the exact previously running service set, including during preparation recovery and an engineering-busy handoff. Explicit service selection with `--no-deps` prevents the enabled Compose profile inventory from activating previously disabled workers. The fixed host tools support Oracle's Python 3.10 runtime, with a separate mandatory native-host CI lane. Oracle installation and legacy retirement require their own backup/restore and final verification records.
+The checked upgrade retains the exact previously running service set, including during preparation recovery and an engineering-busy handoff. Explicit service selection with `--no-deps` prevents the enabled Compose profile inventory from activating previously disabled workers. The fixed host tools support Oracle's Python 3.10 runtime, with a separate mandatory native-host CI lane. The actual Oracle installation backup passed full isolated restoration; all 42 protected tables and private configuration were preserved. IONOS is retired after its final archive also passed isolated restoration on Oracle. See the [deployment and recovery record](ORACLE_ONLY_2026-10-19.md). These installation checks do not establish broker execution parity or a qualifying strategy.

@@ -1,8 +1,10 @@
 # Oracle Cloud deployment
 
-Fresh installation verified on 15 October 2026 at `ubuntu@132.145.27.115`. No existing Tauric data or model/broker credentials were migrated.
+**Current target — 19 October 2026:** Oracle is the sole active workstation at [tauric.aoodie.xyz](https://tauric.aoodie.xyz). The existing AI and demo-data connections are migrated, and the IONOS runtime is retired with its final archive independently restored on Oracle. Current installed source, exact service scope and recovery evidence are recorded in the [Oracle-only deployment record](ORACLE_ONLY_2026-10-19.md). Financial execution remains disabled.
 
-## Verified installation
+The following records the fresh installation on 15 October at `ubuntu@132.145.27.115`, before source reconciliation, HTTPS and connection migration. No existing Tauric data or model/broker credentials were migrated at that initial checkpoint.
+
+## Historical initial installation
 
 Release `1a3f0766b9e78934c1d0c7a43c69550c4bc08074` from [successful hosted release 38058314563](https://github.com/aoodie/Tauric/actions/runs/38058314563) is installed at `/srv/tauric/current`, linked to `/srv/tauric/releases/1a3f0766b9e78934c1d0c7a43c69550c4bc08074/tauric-release`. Private state is `/srv/tauric-private`.
 
@@ -16,15 +18,7 @@ Ubuntu 22.04 supplies Python 3.10. `/srv/tauric/run-python.py` supplies Python 3
 
 ## Access and initial login
 
-The application binds only to server loopback. A private SSH tunnel was opened during deployment. Open [Tauric](http://localhost:18080).
-
-To reopen the tunnel later, run on the Mac and keep it running:
-
-```sh
-ssh -N -L 127.0.0.1:18080:127.0.0.1:8080 -i ~/Downloads/ssh-key-2026-10-15.key ubuntu@132.145.27.115
-```
-
-Port 18080 avoids the Mac's occupied port 8080. The exact allowed browser origin is `http://localhost:18080`. Server ingress remains `127.0.0.1:8080`; database, API, worker and gateway ports are private.
+Current access is [tauric.aoodie.xyz](https://tauric.aoodie.xyz) over trusted HTTPS. Use the existing Oracle owner login. The old loopback tunnel and its HTTP origin described during initial setup are superseded.
 
 Owner username: `aoodie`. Retrieve the randomly generated initial password privately in your Terminal:
 
@@ -32,7 +26,7 @@ Owner username: `aoodie`. Retrieve the randomly generated initial password priva
 ssh -i ~/Downloads/ssh-key-2026-10-15.key ubuntu@132.145.27.115 'cat ~/tauric-initial-login.json'
 ```
 
-The login file is owned by `ubuntu` with mode 0600. Change the initial password in **Settings → Security**, then remove that file. The SSH private key remains on the Mac. Configure AI/data connections in Settings; none were imported.
+The initial login file is owned by `ubuntu` with mode 0600. Password changes belong in **Settings → Security**. The SSH private key remains on the Mac. Existing AI and demo-data connections were migrated on 19 October; the original empty connection state is retained in the pre-migration backup.
 
 ## Recovery evidence
 
