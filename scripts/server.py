@@ -14,9 +14,10 @@ import shutil
 import subprocess
 import tarfile
 import tempfile
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
+UTC = timezone.utc  # Native host tools support Python 3.10.
 ROOT = Path(__file__).resolve().parents[1]
 IMAGE_KEYS = (
     "TAURIC_API_IMAGE",

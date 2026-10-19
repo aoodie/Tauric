@@ -17,7 +17,7 @@ import signal
 import stat
 import subprocess
 import time
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID
 
@@ -38,6 +38,7 @@ from release_workflow import (
     zip_files,
 )
 
+UTC = timezone.utc  # Native host tools support Python 3.10.
 STOP = False
 STATE = Path("/srv/tauric-private")
 OPERATIONS = STATE / "secrets/operations"
