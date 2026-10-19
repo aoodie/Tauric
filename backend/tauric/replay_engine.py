@@ -296,6 +296,16 @@ def _simulate(candles, p, strategy, data_context):
                 bar,
                 "stop",
             )
+        if (
+            protection
+            and pending
+            and pending["side"] == "buy"
+            and datetime.fromisoformat(bar["close_time"])
+            >= datetime.fromisoformat(pending["expires_at"])
+        ):
+            pending["execution"] = "expired_before_entry"
+            expired_entries += 1
+            pending = None
         closes.append(D(bar["close"]))
         if rules and not (protection and pending):
             held = (

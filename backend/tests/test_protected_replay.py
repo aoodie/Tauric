@@ -103,7 +103,9 @@ def test_expired_signal_does_not_enter_or_become_an_sma_trade():
     bars[3].update(open="14", high="17", close="16", volume="100")
     result = replay(bars, delay=120, rules={"signal_ttl_seconds": 60})
     assert result.fills == []
-    assert result.execution_evidence.expired_entries == 1
+    # After the first expiry, a distinct closed-bar signal can be admitted;
+    # that signal also expires without reaching its delayed entry time.
+    assert result.execution_evidence.expired_entries == 2
     assert result.signals[0]["execution"] == "expired_before_entry"
 
 
@@ -112,6 +114,14 @@ def test_unobserved_pending_entry_is_retained_as_unfilled_not_executed():
     assert result.fills == []
     assert result.execution_evidence.unfilled_entries == 1
     assert result.execution_evidence.signal_to_fill.observations == 0
+
+
+def test_expiry_at_the_final_close_is_expired_instead_of_unfilled():
+    result = replay(candles()[:4], delay=120, rules={"signal_ttl_seconds": 60})
+    assert result.fills == []
+    assert result.execution_evidence.expired_entries == 1
+    assert result.execution_evidence.unfilled_entries == 0
+    assert result.signals[0]["execution"] == "expired_before_entry"
 
 
 def test_quantity_and_capital_ceilings_survive_the_new_execution_model():
