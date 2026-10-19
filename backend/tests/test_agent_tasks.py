@@ -405,6 +405,39 @@ def test_pause_propagates_and_stale_wake_loses_effect_authority(database):
         assert db.get(AgentTask, child["id"]).status == "queued"
 
 
+def test_handed_off_continuation_is_rejected_without_reporting_task_stopped(signed_inspection):
+    db, owner, saved, job, finish = signed_inspection
+    finish("The original inspection finished")
+    task = db.get(AgentTask, saved["id"])
+    task.status = "running"
+    turn = ChatTurn(
+        id=str(uuid4()), owner_id=owner.id, request_id=str(uuid4()),
+        conversation_id=task.conversation_id, user_text="Continue the authorized work",
+        status="running", profile="local", routing_fingerprint="a" * 64,
+    )
+    db.add(turn)
+    db.flush()
+    db.add(AgentTaskWake(turn_id=turn.id, task_id=task.id, task_revision=task.revision))
+    db.commit()
+    waiting = agent_tasks.invoke(
+        db, owner, turn,
+        invocation(task.id, "wait", {
+            "job": {"kind": "engineering", "id": job.id},
+            "reason": "Follow the original signed execution",
+        }),
+    )
+    assert waiting["status"] == "waiting" and task.deadline > now()
+    revision, next_check = task.revision, task.next_check_at
+    for effect in (False, True):
+        with pytest.raises(HTTPException, match="continuation has handed off") as caught:
+            agent_tasks.for_turn(db, turn, effect=effect)
+        assert caught.value.status_code == 403
+        assert "supervisor follows the saved task" in caught.value.detail
+    assert task.status == "waiting" and task.revision == revision
+    assert task.next_check_at == next_check and task.attempts == 0
+    assert task.waiting["job"]["id"] == job.id
+
+
 def test_children_inherit_scope_deadline_and_budget(database):
     with Session(database[0]) as db:
         owner = db.scalar(select(Owner))
