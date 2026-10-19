@@ -10,14 +10,19 @@ from run_browser_checks import verify_report
 
 
 class BrowserReport(unittest.TestCase):
-    def check(self, cases):
+    def check(self, cases, expected_count=4):
         with tempfile.TemporaryDirectory() as directory:
             report = Path(directory) / "results.xml"
             report.write_text(f"<testsuites><testsuite>{cases}</testsuite></testsuites>")
-            verify_report(report)
+            verify_report(report, expected_count=expected_count)
 
     def test_every_workflow_must_pass(self):
         self.check("<testcase/>" * 4)
+
+    def test_quant_workflows_require_two_actual_passes(self):
+        self.check("<testcase/>" * 2, expected_count=2)
+        with self.assertRaises(ValueError):
+            self.check("<testcase/><testcase><skipped/></testcase>", expected_count=2)
 
     def test_skipped_failed_or_missing_workflow_rejects_the_report(self):
         for cases in (

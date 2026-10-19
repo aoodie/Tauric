@@ -28,6 +28,8 @@ def run(database, identity, kind, tmp_path):
     token, job = claimed[1:]
     args = SimpleNamespace(engine=kind, artifacts=tmp_path, python=root / ".qlib-venv/bin/python")
     result = quant_worker.execute(identity, token, job, args)
+    if kind == "lean":
+        assert (tmp_path / identity / "result.json").stat().st_uid == os.getuid()
     with Session(database[0]) as db:
         assert quant_worker.finish(db, identity, token, result=result)
     return result

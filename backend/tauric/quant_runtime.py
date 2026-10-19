@@ -1,6 +1,7 @@
 """Fixed, separately installed research runtimes. No arbitrary submitted code."""
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -158,6 +159,14 @@ def command(engine, folder, python):
         "256",
         "--cap-drop",
         "ALL",
+        "--user",
+        f"{os.getuid()}:{os.getgid()}",
+        "--env",
+        "HOME=/job",
+        "--env",
+        "DOTNET_CLI_HOME=/job",
+        "--env",
+        "OMP_NUM_THREADS=2",
         "--security-opt",
         "no-new-privileges",
         "--mount",
