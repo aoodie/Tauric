@@ -9,6 +9,7 @@ import sys
 import tarfile
 import tempfile
 import unittest
+from contextlib import nullcontext
 from pathlib import Path
 from unittest.mock import patch
 
@@ -187,6 +188,93 @@ class ServerControls(unittest.TestCase):
                     self.root / "restorations" / "state", "tauric_restore", archive
                 )
         self.assertFalse((self.root / "restorations" / "state").exists())
+
+    def test_backup_recovers_only_original_containers_after_success_or_failure(self):
+        state = self.root / "state"
+        server.setup(state, self.images)
+        containers = ["a" * 64, "b" * 64]
+        for failure in (None, "dump", "application", "engineering"):
+            with self.subTest(failure=failure):
+                calls = []
+
+                def docker(args, _calls=calls, _failure=failure, **kwargs):
+                    _calls.append(args)
+                    if "ps" in args:
+                        output = (
+                            b"db\napi\nworker\n"
+                            if "--services" in args
+                            else ("\n".join(containers) + "\n").encode()
+                        )
+                        return subprocess.CompletedProcess(args, 0, stdout=output)
+                    if "pg_dump" in args:
+                        if _failure == "dump":
+                            raise RuntimeError("dump failed")
+                        kwargs["stdout"].write(b"database fixture")
+                    if args[:2] == ["docker", "start"] and _failure == "application":
+                        raise RuntimeError("application failed")
+                    if args[:2] == ["systemctl", "start"] and _failure == "engineering":
+                        raise RuntimeError("engineering failed")
+                    return subprocess.CompletedProcess(args, 0, stdout=b"")
+
+                with (
+                    patch("server.validate"),
+                    patch("server.run", side_effect=docker),
+                    patch(
+                        "server.snapshot",
+                        return_value={"tables": {}, "schema": "fixture"},
+                    ),
+                    patch("server.freeze_engineering", return_value=True),
+                    patch("server.volume_name", return_value=None),
+                    self.assertRaisesRegex(RuntimeError, failure + " failed")
+                    if failure
+                    else nullcontext(),
+                ):
+                    server.backup(
+                        state, "tauric_fixture", self.root / f"{failure}.tar.gz"
+                    )
+                resume = [c for c in calls if c[:2] == ["docker", "start"]]
+                self.assertEqual(resume, [["docker", "start", *containers]])
+                self.assertIn(
+                    ["systemctl", "start", "tauric-engineering.service"], calls
+                )
+                self.assertLess(
+                    calls.index(resume[0]),
+                    calls.index(["systemctl", "start", "tauric-engineering.service"]),
+                )
+                self.assertFalse(
+                    any(
+                        "start" in c and c[0] == "docker" and "compose" in c
+                        for c in calls
+                    )
+                )
+                self.assertFalse(
+                    any("migrate" in c or "broker_execution" in c for c in calls)
+                )
+
+    def test_backup_missing_or_invalid_container_identity_fails_before_stopping(self):
+        state = self.root / "state"
+        server.setup(state, self.images)
+        for output in (b"", b"not-a-container\n", ("a" * 64 + "\n").encode() * 2):
+            with self.subTest(output=output):
+                calls = []
+
+                def docker(args, _calls=calls, _output=output, **kwargs):
+                    _calls.append(args)
+                    return subprocess.CompletedProcess(
+                        args,
+                        0,
+                        stdout=b"db\napi\n" if "--services" in args else _output,
+                    )
+
+                with (
+                    patch("server.validate"),
+                    patch("server.run", side_effect=docker),
+                    self.assertRaisesRegex(
+                        ValueError, "identify the running containers"
+                    ),
+                ):
+                    server.backup(state, "tauric_fixture", self.root / "unused.tar.gz")
+                self.assertFalse(any("stop" in c or "start" in c for c in calls))
 
     def test_backup_refuses_staging_inside_the_private_tree_before_stopping_services(
         self,

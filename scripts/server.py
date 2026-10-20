@@ -410,6 +410,22 @@ def backup(directory, project, output, local=False):
     if "db" not in active:
         raise ValueError("The database must be running before backup.")
     stopped = [name for name in active if name != "db"]
+    containers = (
+        run(
+            compose + ["ps", "--status", "running", "-q", *stopped],
+            stdout=subprocess.PIPE,
+        )
+        .stdout.decode()
+        .split()
+        if stopped
+        else []
+    )
+    if stopped and (
+        len(containers) < len(set(stopped))
+        or len(containers) != len(set(containers))
+        or any(not re.fullmatch(r"[a-f0-9]{12,64}", value) for value in containers)
+    ):
+        raise ValueError("Cannot identify the running containers for backup recovery.")
     engineering_active = False
     # Hosts may mount /tmp in RAM. Saved engineering disks must use the backup
     # filesystem rather than competing with production services for memory.
@@ -501,13 +517,17 @@ def backup(directory, project, output, local=False):
                 for path in sorted(staging.iterdir()):
                     archive.add(path, arcname=path.name)
         finally:
-            if engineering_active:
-                run(
-                    ["systemctl", "start", "tauric-engineering.service"],
-                    stdout=subprocess.PIPE,
-                )
-            if stopped:
-                run(compose + ["start", *stopped], stdout=subprocess.PIPE)
+            try:
+                if containers:
+                    # Compose start traverses dependencies, including obsolete
+                    # migration containers. Resume only the exact previous set.
+                    run(["docker", "start", *containers], stdout=subprocess.PIPE)
+            finally:
+                if engineering_active:
+                    run(
+                        ["systemctl", "start", "tauric-engineering.service"],
+                        stdout=subprocess.PIPE,
+                    )
     return {
         "backup_created": True,
         "sha256": checksum(output),

@@ -2,6 +2,8 @@
 
 Implementation work recorded 20 October 2026. Deployment and connected acceptance are separate evidence; this document alone does not establish either.
 
+Oracle deployment and connected acceptance are now recorded in [the 20 October operating record](ORACLE_STRATEGY_RESEARCH_2026-10-20.md). Saved OANDA history, offline reuse, actual Qlib/LEAN jobs and a completed automatic cycle were verified. Both initial hypotheses were rejected; broker execution remains disabled.
+
 Research & analytics → Strategy discovery separates Strategies, Results, Data library, Activity and Research papers. Settings → Research versions the enabled schedule, instrument/timeframe/family scope, experiment ceilings, research costs, screening criteria and optional AI budget. Research work runs in the existing portfolio research process rather than another container. Explicit pause, resume and cancellation remain visible.
 
 ## Persistent data
