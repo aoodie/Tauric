@@ -492,12 +492,16 @@ def resolve_job(db, owner, reference):
 
 
 def completed_trades(fills):
-    quantity, completed = Decimal(0), 0
+    quantity, scale, completed = Decimal(0), Decimal(1), 0
     for fill in fills:
         previous = quantity
         quantity += Decimal(str(fill["quantity"]))
-        if quantity == 0 and previous > 0:
-            completed += 1
+        scale = max(scale, abs(previous), abs(quantity))
+        # Engine receipts serialize decimal fills as floats; partial exits can leave numerical dust.
+        if abs(quantity) <= max(Decimal("0.00000001"), scale * Decimal("1e-12")):
+            quantity = Decimal(0)
+            if previous > 0:
+                completed += 1
     return completed
 
 

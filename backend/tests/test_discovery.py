@@ -618,3 +618,19 @@ def test_automatic_rotation_explores_valid_distinct_parameters():
     assert {d.mode for d in definitions} == {"single", "blend", "regime_switch"}
     assert len({c.slow_window for d in definitions for c in d.components}) >= 3
     assert {c.family for d in definitions for c in d.components} == set(p.families)
+
+
+def test_partial_exits_close_with_float_serialization_dust_only():
+    assert (
+        discovery.completed_trades(
+            [
+                {"quantity": 0.1},
+                {"quantity": 0.2},
+                {"quantity": -0.30000000000000004},
+                {"quantity": 1.0},
+                {"quantity": -0.5},
+                {"quantity": -0.499999},
+            ]
+        )
+        == 1
+    )
