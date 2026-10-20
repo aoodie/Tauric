@@ -18,6 +18,8 @@ A saved enabled schedule creates one durable discovery cycle. Cycles pin setting
 
 Without optional AI, a deterministic bounded rotation explores supported hypotheses and parameter/context combinations. With AI enabled, a saved configured OpenAI-compatible connection proposes structured hypotheses within the same supported family and timeframe schema. Ideas are validated, recorded and evaluated; generated Python or arbitrary orders are never executed. Prior recorded results supply bounded feedback. Unsupported providers/ideas remain visible errors rather than a substitute model call.
 
+A cycle has a frozen 14-day deadline. Transient input failures have at most three recovery attempts across the cycle; permanent input/source failures pause it for review immediately. A resume or new tool call does not reset that recovery counter or the deadline. Daily allowance waits retain the original work, and uncertain model calls retain their reservation without another call. Activity displays the deadline and required review.
+
 AI calls require a positive saved daily USD ceiling, explicit input/output token prices and an output-token bound. Each call reserves a conservative maximum under an owner lock before making the request. Verified usage reconciles the reservation at those saved prices. Missing/malformed usage, transport uncertainty and lost processes retain the reservation and do not automatically retry the request. The control accounts at configured prices; it does not independently verify a provider invoice, surcharge, tokenizer or pricing change. Reducing the current budget constrains new requests. Paid ideas default off with a zero ceiling; rule-based exploration has no model charge.
 
 ## Supported research rules

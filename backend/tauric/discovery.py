@@ -248,6 +248,7 @@ def start(db, owner, body, *, scheduled=False):
         "as_of": as_of.isoformat(),
         "first_trial_number": total,
         "source_checksum": source_checksum(),
+        "deadline_at": (now() + timedelta(days=14)).isoformat(),
         "scheduled": scheduled,
         "source_keys": {
             key: history_store.source_key(market.instrument(db, key), history_store.connections(db))
@@ -655,12 +656,21 @@ def process_one(db):
     if not campaign:
         return schedule_one(db)
     journal.checked(campaign)
+    deadline = quant_features.stamp(
+        campaign.payload["input"].get("deadline_at")
+        or (campaign.created_at + timedelta(days=14)).isoformat()
+    )
     retry = campaign.payload.get("next_check_at")
-    if retry and quant_features.stamp(retry) > now():
+    if retry and quant_features.stamp(retry) > now() and now() < deadline:
         return False
     owner = db.get(Owner, campaign.owner_id)
     journal.lock(db, owner)
     try:
+        if now() >= deadline:
+            raise HTTPException(
+                409,
+                "This research cycle reached its 14-day deadline; review its saved work before registering another cycle",
+            )
         if campaign.payload["input"]["source_checksum"] != source_checksum():
             raise HTTPException(
                 409, "Research source changed; cancel this cycle and register a new one"
@@ -692,7 +702,9 @@ def process_one(db):
             freeze_trials(db, owner, campaign, result["ideas"], "ai:" + result["usage_id"])
             journal.update(campaign, ai_ideas=result)
             db.commit()
-        journal.update(campaign, status="running", error=None, next_check_at=None)
+        journal.update(
+            campaign, status="running", error=None, next_check_at=None, requires_owner=False
+        )
         db.commit()
         for trial_id in campaign.payload["trial_ids"]:
             trial = journal.owned(db, owner, trial_id, "trial")
@@ -745,11 +757,23 @@ def process_one(db):
             if isinstance(error, HTTPException) and isinstance(error.detail, str)
             else "Research inputs could not be verified"
         )
+        attempts = campaign.payload.get("recovery_attempts", 0) + 1
+        code = error.status_code if isinstance(error, HTTPException) else 500
+        paused = attempts >= 3 or code in {400, 404, 409, 422}
+        budget_wait = code == 429 and not paused
         journal.update(
             campaign,
-            status="waiting",
+            status="paused" if paused else "waiting",
             error=message[:500],
-            next_check_at=(now() + timedelta(seconds=30)).isoformat(),
+            recovery_attempts=attempts,
+            requires_owner=paused,
+            next_check_at=None
+            if paused
+            else (
+                now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+                if budget_wait
+                else now() + timedelta(seconds=30 * attempts)
+            ).isoformat(),
         )
         db.commit()
         return False
@@ -891,6 +915,7 @@ def control(db, owner, identity_value, action):
         status={"pause": "paused", "resume": "queued", "cancel": "cancelled"}[action],
         error=None,
         next_check_at=None,
+        requires_owner=False,
     )
     journal.append(
         db,

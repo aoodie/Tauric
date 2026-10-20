@@ -1363,6 +1363,18 @@ export function StrategyDiscovery() {
                     {r.payload.error != null && (
                       <p>{String(r.payload.error)}</p>
                     )}
+                    {object(r.payload.input).deadline_at != null && (
+                      <p>
+                        Cycle deadline{" "}
+                        {date(object(r.payload.input).deadline_at)}.
+                      </p>
+                    )}
+                    {r.payload.requires_owner === true && (
+                      <p>
+                        Research paused for review. Saved results and original
+                        request identities are retained.
+                      </p>
+                    )}
                     {r.kind === "history_sync" && (
                       <p>
                         {String(object(r.payload.request).instrument_id)} ·{" "}

@@ -634,3 +634,60 @@ def test_partial_exits_close_with_float_serialization_dust_only():
         )
         == 1
     )
+
+
+def test_cycle_recovery_is_bounded_and_resume_preserves_attempts(signed_in, database, monkeypatch):
+    from fastapi import HTTPException
+
+    settings(signed_in)
+    started = signed_in.post(
+        "/api/v1/research/discovery/cycles", json={"request_id": str(uuid4())}
+    ).json()
+    calls = []
+
+    def unavailable(*args, **kwargs):
+        calls.append(1)
+        raise HTTPException(503, "Temporary research fixture failure")
+
+    monkeypatch.setattr(discovery, "materialize", unavailable)
+    for attempt in range(3):
+        with Session(database[0]) as db:
+            row = db.get(DiscoveryRecord, started["id"])
+            if attempt:
+                from tauric import discovery_journal
+
+                discovery_journal.update(row, next_check_at=None)
+                db.commit()
+            discovery.process_one(db)
+    assert len(calls) == 3
+    row = signed_in.get("/api/v1/research/discovery/records/" + started["id"]).json()
+    assert row["payload"]["status"] == "paused" and row["payload"]["requires_owner"]
+    assert row["payload"]["recovery_attempts"] == 3
+    assert (
+        signed_in.post(
+            "/api/v1/research/discovery/records/" + started["id"] + "/resume"
+        ).status_code
+        == 200
+    )
+    with Session(database[0]) as db:
+        assert db.get(DiscoveryRecord, started["id"]).payload["recovery_attempts"] == 3
+        discovery.process_one(db)
+        assert db.get(DiscoveryRecord, started["id"]).payload["status"] == "paused"
+
+
+def test_expired_cycle_cannot_admit_more_research(signed_in, database, monkeypatch):
+    settings(signed_in)
+    started = signed_in.post(
+        "/api/v1/research/discovery/cycles", json={"request_id": str(uuid4())}
+    ).json()
+    monkeypatch.setattr(discovery, "now", lambda: now() + timedelta(days=15))
+    monkeypatch.setattr(
+        discovery,
+        "materialize",
+        lambda *a, **k: pytest.fail("Expired work cannot admit another job"),
+    )
+    with Session(database[0]) as db:
+        discovery.process_one(db)
+        row = db.get(DiscoveryRecord, started["id"])
+        assert row.payload["status"] == "paused" and "deadline" in row.payload["error"]
+        assert db.scalar(select(QuantRecord.id).where(QuantRecord.kind == "quant_job")) is None
