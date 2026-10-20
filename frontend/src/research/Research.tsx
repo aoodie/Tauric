@@ -15,6 +15,7 @@ import "./research.css";
 import { Qualification } from "./Qualification";
 import { SavedReports } from "./Reports";
 import { ResearchLab } from "./Lab";
+import { StrategyDiscovery } from "./Discovery";
 
 const initial: Parameters = {
   engine: "sma_cross_spot_v1",
@@ -546,6 +547,17 @@ export function ResearchPage({ open }: { open: Open }) {
       >
         <button
           role="tab"
+          aria-selected={tab === "discovery"}
+          onClick={() => {
+            setTab("discovery");
+            setError("");
+            setNotice("");
+          }}
+        >
+          Strategy discovery
+        </button>
+        <button
+          role="tab"
           aria-selected={tab === "lab"}
           onClick={() => {
             setTab("lab");
@@ -621,6 +633,7 @@ export function ResearchPage({ open }: { open: Open }) {
       )}
       {tab === "qualification" && <Qualification open={open} />}
       {tab === "lab" && <ResearchLab />}
+      {tab === "discovery" && <StrategyDiscovery />}
       {tab === "reports" && (
         <SavedReports open={open} refresh={reportRefresh} />
       )}

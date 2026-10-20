@@ -81,6 +81,8 @@ class TauricResearch(QCAlgorithm):  # noqa: F405
         self.fills, self.curve, self.financing = [], [], 0.0
         self.previous = None
         self.previous_notional = 0.0
+        self.last_research_exposure = 0.0
+        self.signal_explanation = None
         self.last_tick = datetime.fromisoformat(self.job["last_tick"]).astimezone(UTC)
 
     def on_data(self, data):
@@ -94,6 +96,24 @@ class TauricResearch(QCAlgorithm):  # noqa: F405
         if instant >= self.last_tick:
             if holdings > 0:
                 self.market_order(self.symbol, -holdings, tag="test end")
+        elif isinstance(target, dict):
+            exposure = float(target["exposure"])
+            self.signal_explanation = target
+            if abs(exposure - self.last_research_exposure) > 0.000001:
+                price = float(
+                    self.securities[self.symbol].ask_price or self.securities[self.symbol].price
+                )
+                desired = int(
+                    float(self.portfolio.total_portfolio_value)
+                    * float(self.request["allocation_percent"])
+                    / 100
+                    * exposure
+                    / price
+                )
+                delta = desired - int(holdings)
+                if delta:
+                    self.market_order(self.symbol, delta, tag="frozen research strategy")
+                self.last_research_exposure = exposure
         elif target is True and holdings == 0:
             security = self.securities[self.symbol]
             price = float(security.ask_price or security.price)
@@ -143,6 +163,7 @@ class TauricResearch(QCAlgorithm):  # noqa: F405
                     "quantity": float(event.fill_quantity),
                     "price": float(event.fill_price),
                     "fee": float(event.order_fee.value.amount),
+                    **({"signal": self.signal_explanation} if self.signal_explanation else {}),
                 }
             )
 

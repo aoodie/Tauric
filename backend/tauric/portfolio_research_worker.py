@@ -5,7 +5,7 @@ import time
 
 from sqlalchemy.orm import Session
 
-from . import portfolio_research
+from . import discovery, history_store, portfolio_research
 from .database import engine
 
 STOP = False
@@ -27,8 +27,15 @@ def main():
         try:
             with Session(engine()) as db:
                 portfolio_research.heartbeat(db)
-            with Session(engine()) as db:
-                worked = portfolio_research.process_one(db)
+            worked = False
+            for lane in (history_store, discovery, portfolio_research):
+                try:
+                    with Session(engine()) as db:
+                        worked = lane.process_one(db) or worked
+                        if lane is discovery:
+                            discovery.heartbeat(db)
+                except Exception:
+                    print("Research lane unavailable: " + lane.__name__.split(".")[-1], flush=True)
             if not worked:
                 time.sleep(2)
         except Exception:

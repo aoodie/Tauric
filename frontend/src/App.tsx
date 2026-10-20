@@ -32,6 +32,7 @@ import {
 import { ChatConnections, OpenClawChat } from "./chat/Chat";
 import { PortfolioSettings } from "./chat/PortfolioSettings";
 import { ResearchPage } from "./research/Research";
+import { ResearchSettings } from "./research/Discovery";
 import { KnowledgePage } from "./knowledge/Knowledge";
 import { MarketIntelligence } from "./intelligence/MarketIntelligence";
 import { NativeReportReader } from "./research/NativeReport";
@@ -704,6 +705,7 @@ function SettingsPage({
           ["preferences", "Preferences"],
           ["models", "AI connections"],
           ["market", "Market data"],
+          ["research", "Research"],
           ["trading", "Trading"],
           ["scanners", "Scanners"],
           ["chat", "Chat connections"],
@@ -722,6 +724,7 @@ function SettingsPage({
                 "preferences",
                 "models",
                 "market",
+                "research",
                 "trading",
                 "scanners",
                 "chat",
@@ -778,6 +781,8 @@ function SettingsPage({
           </>
         ) : section === "market" ? (
           <MarketConnections />
+        ) : section === "research" ? (
+          <ResearchSettings />
         ) : section === "trading" ? (
           <>
             <PortfolioSettings open={open} />

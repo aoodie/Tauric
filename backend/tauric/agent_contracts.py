@@ -44,7 +44,16 @@ class TaskControl(Contract):
 
 
 class JobReference(Contract):
-    kind: Literal["analysis", "quant", "open_research", "engineering", "assistant_receipt", "task", "release"]
+    kind: Literal[
+        "analysis",
+        "quant",
+        "discovery",
+        "open_research",
+        "engineering",
+        "assistant_receipt",
+        "task",
+        "release",
+    ]
     id: UUID
 
 

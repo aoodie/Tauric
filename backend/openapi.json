@@ -3452,6 +3452,439 @@
         }
       }
     },
+    "/api/v1/research/discovery": {
+      "get": {
+        "tags": [
+          "strategy discovery"
+        ],
+        "summary": "State",
+        "operationId": "state_api_v1_research_discovery_get",
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100000,
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response State Api V1 Research Discovery Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/research/discovery/settings": {
+      "put": {
+        "tags": [
+          "strategy discovery"
+        ],
+        "summary": "Settings",
+        "operationId": "settings_api_v1_research_discovery_settings_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiscoverySettingsSave"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Settings Api V1 Research Discovery Settings Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/research/discovery/cycles": {
+      "post": {
+        "tags": [
+          "strategy discovery"
+        ],
+        "summary": "Start",
+        "operationId": "start_api_v1_research_discovery_cycles_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiscoveryStart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Start Api V1 Research Discovery Cycles Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/research/discovery/history": {
+      "post": {
+        "tags": [
+          "strategy discovery"
+        ],
+        "summary": "History",
+        "operationId": "history_api_v1_research_discovery_history_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HistoryLoad"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response History Api V1 Research Discovery History Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "strategy discovery"
+        ],
+        "summary": "Saved",
+        "operationId": "saved_api_v1_research_discovery_history_get",
+        "parameters": [
+          {
+            "name": "instrument_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Instrument Id"
+            }
+          },
+          {
+            "name": "interval",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "enum": [
+                "1m",
+                "5m",
+                "15m",
+                "1h",
+                "4h",
+                "1d"
+              ],
+              "type": "string",
+              "title": "Interval"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "title": "Start"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "title": "End"
+            }
+          },
+          {
+            "name": "maximum",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1500,
+              "minimum": 10,
+              "default": 750,
+              "title": "Maximum"
+            }
+          },
+          {
+            "name": "source_key",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Saved Api V1 Research Discovery History Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/research/discovery/records/{record_id}": {
+      "get": {
+        "tags": [
+          "strategy discovery"
+        ],
+        "summary": "Record",
+        "operationId": "record_api_v1_research_discovery_records__record_id__get",
+        "parameters": [
+          {
+            "name": "record_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Record Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Record Api V1 Research Discovery Records  Record Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/research/discovery/records/{record_id}/{action}": {
+      "post": {
+        "tags": [
+          "strategy discovery"
+        ],
+        "summary": "Control",
+        "operationId": "control_api_v1_research_discovery_records__record_id___action__post",
+        "parameters": [
+          {
+            "name": "record_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Record Id"
+            }
+          },
+          {
+            "name": "action",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "pause",
+                "resume",
+                "cancel"
+              ],
+              "type": "string",
+              "title": "Action"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Control Api V1 Research Discovery Records  Record Id   Action  Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/research/discovery/records/{record_id}/prices": {
+      "get": {
+        "tags": [
+          "strategy discovery"
+        ],
+        "summary": "Prices",
+        "operationId": "prices_api_v1_research_discovery_records__record_id__prices_get",
+        "parameters": [
+          {
+            "name": "record_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Record Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Prices Api V1 Research Discovery Records  Record Id  Prices Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/market-connections/{provider}/test": {
       "post": {
         "summary": "Check Connection",
@@ -7744,6 +8177,8 @@
               "retrieve_history",
               "session_research",
               "quant_experiment",
+              "start_strategy_discovery",
+              "load_saved_history",
               "save_research_note",
               "prepare_upgrade",
               "stage_upgrade",
@@ -12412,6 +12847,235 @@
         ],
         "title": "DiscoveredInstrument"
       },
+      "DiscoveryParameters": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": false
+          },
+          "instrument_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 5,
+            "minItems": 1,
+            "title": "Instrument Ids"
+          },
+          "intervals": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "1m",
+                "5m",
+                "15m",
+                "1h",
+                "4h",
+                "1d"
+              ]
+            },
+            "type": "array",
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Intervals"
+          },
+          "families": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "trend",
+                "breakout",
+                "mean_reversion"
+              ]
+            },
+            "type": "array",
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Families"
+          },
+          "multi_timeframe": {
+            "type": "boolean",
+            "title": "Multi Timeframe",
+            "default": true
+          },
+          "mixtures": {
+            "type": "boolean",
+            "title": "Mixtures",
+            "default": true
+          },
+          "qlib": {
+            "type": "boolean",
+            "title": "Qlib",
+            "default": true
+          },
+          "walk_forward": {
+            "type": "boolean",
+            "title": "Walk Forward",
+            "default": true
+          },
+          "cadence_hours": {
+            "type": "integer",
+            "maximum": 168.0,
+            "minimum": 1.0,
+            "title": "Cadence Hours",
+            "default": 24
+          },
+          "daily_hypothesis_limit": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Daily Hypothesis Limit",
+            "default": 2
+          },
+          "daily_experiment_limit": {
+            "type": "integer",
+            "maximum": 40.0,
+            "minimum": 1.0,
+            "title": "Daily Experiment Limit",
+            "default": 6
+          },
+          "lookback_days": {
+            "type": "integer",
+            "maximum": 1500.0,
+            "minimum": 30.0,
+            "title": "Lookback Days",
+            "default": 180
+          },
+          "slippage_bps": {
+            "type": "string",
+            "title": "Slippage Bps",
+            "default": "1"
+          },
+          "stressed_slippage_bps": {
+            "type": "string",
+            "title": "Stressed Slippage Bps",
+            "default": "3"
+          },
+          "financing_daily_bps": {
+            "type": "string",
+            "pattern": "^-?\\d+(?:\\.\\d+)?$",
+            "title": "Financing Daily Bps",
+            "default": "1"
+          },
+          "fee_bps": {
+            "type": "string",
+            "title": "Fee Bps",
+            "default": "0"
+          },
+          "minimum_closed_trades": {
+            "type": "integer",
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Minimum Closed Trades",
+            "default": 20
+          },
+          "maximum_drawdown_percent": {
+            "type": "string",
+            "title": "Maximum Drawdown Percent",
+            "default": "10"
+          },
+          "minimum_return_percent": {
+            "type": "string",
+            "pattern": "^-?\\d+(?:\\.\\d+)?$",
+            "title": "Minimum Return Percent",
+            "default": "0"
+          },
+          "ai_enabled": {
+            "type": "boolean",
+            "title": "Ai Enabled",
+            "default": false
+          },
+          "daily_ai_budget_usd": {
+            "type": "string",
+            "title": "Daily Ai Budget Usd",
+            "default": "0"
+          },
+          "ai_profile": {
+            "type": "string",
+            "enum": [
+              "cloud",
+              "local"
+            ],
+            "title": "Ai Profile",
+            "default": "cloud"
+          },
+          "ai_input_usd_per_million": {
+            "type": "string",
+            "title": "Ai Input Usd Per Million",
+            "default": "0"
+          },
+          "ai_output_usd_per_million": {
+            "type": "string",
+            "title": "Ai Output Usd Per Million",
+            "default": "0"
+          },
+          "ai_max_output_tokens": {
+            "type": "integer",
+            "maximum": 4000.0,
+            "minimum": 500.0,
+            "title": "Ai Max Output Tokens",
+            "default": 1500
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "DiscoveryParameters"
+      },
+      "DiscoverySettingsSave": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/DiscoveryParameters"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason",
+            "default": "Update strategy research settings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "expected_revision",
+          "parameters"
+        ],
+        "title": "DiscoverySettingsSave"
+      },
+      "DiscoveryStart": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason",
+            "default": "Explore strategies using saved data"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id"
+        ],
+        "title": "DiscoveryStart"
+      },
       "DiscoveryView": {
         "properties": {
           "provider": {
@@ -12755,6 +13419,40 @@
               }
             ],
             "title": "Model Run Id"
+          },
+          "research_strategy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResearchStrategy"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "context_dataset_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Dataset Id"
+          },
+          "evaluation_start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evaluation Start"
           }
         },
         "additionalProperties": false,
@@ -13479,6 +14177,60 @@
           "reason"
         ],
         "title": "HistoricalDatasetCreate"
+      },
+      "HistoryLoad": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "instrument_id": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Instrument Id"
+          },
+          "interval": {
+            "type": "string",
+            "enum": [
+              "1m",
+              "5m",
+              "15m",
+              "1h",
+              "4h",
+              "1d"
+            ],
+            "title": "Interval"
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "End"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason",
+            "default": "Save reusable research history"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "instrument_id",
+          "interval",
+          "start",
+          "end"
+        ],
+        "title": "HistoryLoad"
       },
       "InstrumentAdd": {
         "properties": {
@@ -18509,6 +19261,56 @@
         ],
         "title": "ResearchBar"
       },
+      "ResearchComponent": {
+        "properties": {
+          "family": {
+            "type": "string",
+            "enum": [
+              "trend",
+              "breakout",
+              "mean_reversion"
+            ],
+            "title": "Family"
+          },
+          "fast_window": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 2.0,
+            "title": "Fast Window",
+            "default": 5
+          },
+          "slow_window": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 5.0,
+            "title": "Slow Window",
+            "default": 20
+          },
+          "entry_z": {
+            "type": "number",
+            "maximum": 4.0,
+            "minimum": 0.5,
+            "title": "Entry Z",
+            "default": 2
+          },
+          "activity_ratio": {
+            "type": "string",
+            "title": "Activity Ratio",
+            "default": "1"
+          },
+          "weight": {
+            "type": "string",
+            "title": "Weight",
+            "default": "1"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "family"
+        ],
+        "title": "ResearchComponent"
+      },
       "ResearchState": {
         "properties": {
           "datasets": {
@@ -18533,6 +19335,61 @@
           "runs"
         ],
         "title": "ResearchState"
+      },
+      "ResearchStrategy": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "single",
+              "blend",
+              "regime_switch"
+            ],
+            "title": "Mode",
+            "default": "single"
+          },
+          "components": {
+            "items": {
+              "$ref": "#/components/schemas/ResearchComponent"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Components"
+          },
+          "context_interval": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "1m",
+                  "5m",
+                  "15m",
+                  "1h",
+                  "4h",
+                  "1d"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Interval"
+          },
+          "context_window": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 5.0,
+            "title": "Context Window",
+            "default": 20
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "components"
+        ],
+        "title": "ResearchStrategy"
       },
       "ResourceRef": {
         "properties": {

@@ -37,7 +37,20 @@ def prepare_lean(folder, job):
     }
     plan, files, selected = {}, {}, []
     cutoff = quant_features.stamp(request["validation_end"])
+    if request.get("evaluation_start"):
+        cutoff = max(cutoff, quant_features.stamp(request["evaluation_start"]))
+        indices = {i for i in indices if quant_features.stamp(bars[i]["close_time"]) > cutoff}
     end = quant_features.stamp(request["test_end"])
+    research_plan = None
+    if request.get("research_strategy"):
+        from .discovery_signals import plan as strategy_plan
+
+        research_plan = strategy_plan(
+            bars,
+            request["research_strategy"],
+            job.get("context_candles"),
+            start_index=min(indices) if indices else len(bars),
+        )
     for i, bar in enumerate(bars):
         opening, closing = (
             quant_features.stamp(bar["open_time"]),
@@ -49,7 +62,9 @@ def prepare_lean(folder, job):
         previous = i - 1
         target = None
         if previous in indices:
-            if job.get("model_predictions") is not None:
+            if research_plan is not None:
+                target = research_plan[previous]
+            elif job.get("model_predictions") is not None:
                 # Trading is a separate test, with costs; Qlib's fit never sees these labels.
                 threshold = (float(request["fee_bps"]) + float(request["slippage_bps"])) * 2 / 10000
                 target = scores.get(previous, -1) > threshold
@@ -71,7 +86,7 @@ def prepare_lean(folder, job):
                 line = f"{ms},{price},1,X,N,0"
             files.setdefault(day, []).append(line)
             if field == "open" and target is not None:
-                plan[instant.isoformat()] = bool(target)
+                plan[instant.isoformat()] = target if isinstance(target, dict) else bool(target)
     if len(selected) < 3:
         raise ValueError("The test interval needs whole historical bars")
     market = "oanda" if fx else "usa"

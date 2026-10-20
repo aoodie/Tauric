@@ -103,6 +103,11 @@ def historical_dataset(db, owner, body):
     existing = research.repeated(db, owner, "dataset", body)
     if existing:
         return research.dataset_view(existing)
+    from .history_store import cached_dataset
+
+    cached = cached_dataset(db, owner, body)
+    if cached:
+        return cached
     if body.end > now():
         raise HTTPException(422, "Historical data cannot end in the future")
     spec = market.instrument(db, body.instrument_id)
@@ -118,6 +123,10 @@ def historical_dataset(db, owner, body):
         raise HTTPException(
             422, "Choose a range of at most 5,000 calendar bars for OANDA retrieval"
         )
+    if spec.provider == "oanda_v20" and spec.asset_type == "fx":
+        from .history_store import historical_dataset as saved_history
+
+        return saved_history(db, owner, body)
     candles, provider_at, received, context = market.PROVIDERS[spec.provider].collect(
         spec, body.interval, config=connections(db), start=body.start, end=body.end
     )
@@ -332,6 +341,21 @@ def enqueue(db, owner, body):
     if existing:
         return view(existing)
     source = dataset(db, owner, body)
+    context = None
+    if body.context_dataset_id:
+        context = research.owned(db, owner, body.context_dataset_id, "dataset")
+        if (
+            context.payload["instrument_id"] != source.payload["instrument_id"]
+            or context.payload["interval"] != body.research_strategy.context_interval
+            or market.INTERVAL_SECONDS[context.payload["interval"]]
+            <= market.INTERVAL_SECONDS[source.payload["interval"]]
+        ):
+            raise HTTPException(422, "Context must be the same instrument on a higher timeframe")
+        research.validate_bars(
+            context.payload["candles"],
+            context.payload["interval"],
+            context.payload.get("data_context"),
+        )
     spec = market.instrument(db, source.payload["instrument_id"])
     if (
         spec.asset_type not in ("fx", "equity", "etf")
@@ -416,6 +440,9 @@ def enqueue(db, owner, body):
         "authority": "research_only",
         "point_in_time_verified": False,
     }
+    if context:
+        payload["context_candles"] = context.payload["candles"]
+        payload["context_checksum"] = context.checksum
     return view(save(db, owner, "quant_job", body, payload, source.id))
 
 
