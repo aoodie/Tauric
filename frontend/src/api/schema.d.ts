@@ -1271,6 +1271,126 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/research/discovery": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** State */
+    get: operations["state_api_v1_research_discovery_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/research/discovery/settings": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Settings */
+    put: operations["settings_api_v1_research_discovery_settings_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/research/discovery/cycles": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Start */
+    post: operations["start_api_v1_research_discovery_cycles_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/research/discovery/history": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Saved */
+    get: operations["saved_api_v1_research_discovery_history_get"];
+    put?: never;
+    /** History */
+    post: operations["history_api_v1_research_discovery_history_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/research/discovery/records/{record_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Record */
+    get: operations["record_api_v1_research_discovery_records__record_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/research/discovery/records/{record_id}/{action}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Control */
+    post: operations["control_api_v1_research_discovery_records__record_id___action__post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/research/discovery/records/{record_id}/prices": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Prices */
+    get: operations["prices_api_v1_research_discovery_records__record_id__prices_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/market-connections/{provider}/test": {
     parameters: {
       query?: never;
@@ -2902,6 +3022,8 @@ export interface components {
         | "retrieve_history"
         | "session_research"
         | "quant_experiment"
+        | "start_strategy_discovery"
+        | "load_saved_history"
         | "save_research_note"
         | "prepare_upgrade"
         | "stage_upgrade"
@@ -4757,6 +4879,155 @@ export interface components {
       registered_asset_type?:
         ("fx" | "equity" | "etf" | "commodity" | "cfd") | null;
     };
+    /** DiscoveryParameters */
+    DiscoveryParameters: {
+      /**
+       * Enabled
+       * @default false
+       */
+      enabled: boolean;
+      /** Instrument Ids */
+      instrument_ids?: string[];
+      /** Intervals */
+      intervals?: ("1m" | "5m" | "15m" | "1h" | "4h" | "1d")[];
+      /** Families */
+      families?: ("trend" | "breakout" | "mean_reversion")[];
+      /**
+       * Multi Timeframe
+       * @default true
+       */
+      multi_timeframe: boolean;
+      /**
+       * Mixtures
+       * @default true
+       */
+      mixtures: boolean;
+      /**
+       * Qlib
+       * @default true
+       */
+      qlib: boolean;
+      /**
+       * Walk Forward
+       * @default true
+       */
+      walk_forward: boolean;
+      /**
+       * Cadence Hours
+       * @default 24
+       */
+      cadence_hours: number;
+      /**
+       * Daily Hypothesis Limit
+       * @default 2
+       */
+      daily_hypothesis_limit: number;
+      /**
+       * Daily Experiment Limit
+       * @default 6
+       */
+      daily_experiment_limit: number;
+      /**
+       * Lookback Days
+       * @default 180
+       */
+      lookback_days: number;
+      /**
+       * Slippage Bps
+       * @default 1
+       */
+      slippage_bps: string;
+      /**
+       * Stressed Slippage Bps
+       * @default 3
+       */
+      stressed_slippage_bps: string;
+      /**
+       * Financing Daily Bps
+       * @default 1
+       */
+      financing_daily_bps: string;
+      /**
+       * Fee Bps
+       * @default 0
+       */
+      fee_bps: string;
+      /**
+       * Minimum Closed Trades
+       * @default 20
+       */
+      minimum_closed_trades: number;
+      /**
+       * Maximum Drawdown Percent
+       * @default 10
+       */
+      maximum_drawdown_percent: string;
+      /**
+       * Minimum Return Percent
+       * @default 0
+       */
+      minimum_return_percent: string;
+      /**
+       * Ai Enabled
+       * @default false
+       */
+      ai_enabled: boolean;
+      /**
+       * Daily Ai Budget Usd
+       * @default 0
+       */
+      daily_ai_budget_usd: string;
+      /**
+       * Ai Profile
+       * @default cloud
+       * @enum {string}
+       */
+      ai_profile: "cloud" | "local";
+      /**
+       * Ai Input Usd Per Million
+       * @default 0
+       */
+      ai_input_usd_per_million: string;
+      /**
+       * Ai Output Usd Per Million
+       * @default 0
+       */
+      ai_output_usd_per_million: string;
+      /**
+       * Ai Max Output Tokens
+       * @default 1500
+       */
+      ai_max_output_tokens: number;
+    };
+    /** DiscoverySettingsSave */
+    DiscoverySettingsSave: {
+      /**
+       * Request Id
+       * Format: uuid
+       */
+      request_id: string;
+      /** Expected Revision */
+      expected_revision: number;
+      parameters: components["schemas"]["DiscoveryParameters"];
+      /**
+       * Reason
+       * @default Update strategy research settings
+       */
+      reason: string;
+    };
+    /** DiscoveryStart */
+    DiscoveryStart: {
+      /**
+       * Request Id
+       * Format: uuid
+       */
+      request_id: string;
+      /**
+       * Reason
+       * @default Explore strategies using saved data
+       */
+      reason: string;
+    };
     /** DiscoveryView */
     DiscoveryView: {
       /**
@@ -4943,6 +5214,11 @@ export interface components {
       asset_costs: components["schemas"]["AssetCosts"];
       /** Model Run Id */
       model_run_id?: string | null;
+      research_strategy?: components["schemas"]["ResearchStrategy"] | null;
+      /** Context Dataset Id */
+      context_dataset_id?: string | null;
+      /** Evaluation Start */
+      evaluation_start?: string | null;
     };
     /** ExperimentPlan */
     ExperimentPlan: {
@@ -5236,6 +5512,36 @@ export interface components {
        */
       end: string;
       /** Reason */
+      reason: string;
+    };
+    /** HistoryLoad */
+    HistoryLoad: {
+      /**
+       * Request Id
+       * Format: uuid
+       */
+      request_id: string;
+      /** Instrument Id */
+      instrument_id: string;
+      /**
+       * Interval
+       * @enum {string}
+       */
+      interval: "1m" | "5m" | "15m" | "1h" | "4h" | "1d";
+      /**
+       * Start
+       * Format: date-time
+       */
+      start: string;
+      /**
+       * End
+       * Format: date-time
+       */
+      end: string;
+      /**
+       * Reason
+       * @default Save reusable research history
+       */
       reason: string;
     };
     /** InstrumentAdd */
@@ -7378,12 +7684,63 @@ export interface components {
       bid?: components["schemas"]["PriceOHLC"] | null;
       ask?: components["schemas"]["PriceOHLC"] | null;
     };
+    /** ResearchComponent */
+    ResearchComponent: {
+      /**
+       * Family
+       * @enum {string}
+       */
+      family: "trend" | "breakout" | "mean_reversion";
+      /**
+       * Fast Window
+       * @default 5
+       */
+      fast_window: number;
+      /**
+       * Slow Window
+       * @default 20
+       */
+      slow_window: number;
+      /**
+       * Entry Z
+       * @default 2
+       */
+      entry_z: number;
+      /**
+       * Activity Ratio
+       * @default 1
+       */
+      activity_ratio: string;
+      /**
+       * Weight
+       * @default 1
+       */
+      weight: string;
+    };
     /** ResearchState */
     ResearchState: {
       /** Datasets */
       datasets: components["schemas"]["DatasetView"][];
       /** Runs */
       runs: components["schemas"]["ReplayView"][];
+    };
+    /** ResearchStrategy */
+    ResearchStrategy: {
+      /**
+       * Mode
+       * @default single
+       * @enum {string}
+       */
+      mode: "single" | "blend" | "regime_switch";
+      /** Components */
+      components: components["schemas"]["ResearchComponent"][];
+      /** Context Interval */
+      context_interval?: ("1m" | "5m" | "15m" | "1h" | "4h" | "1d") | null;
+      /**
+       * Context Window
+       * @default 20
+       */
+      context_window: number;
     };
     /** ResourceRef */
     ResourceRef: {
@@ -10916,6 +11273,282 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["LabRecordView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  state_api_v1_research_discovery_get: {
+    parameters: {
+      query?: {
+        offset?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  settings_api_v1_research_discovery_settings_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["DiscoverySettingsSave"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  start_api_v1_research_discovery_cycles_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["DiscoveryStart"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  saved_api_v1_research_discovery_history_get: {
+    parameters: {
+      query: {
+        instrument_id: string;
+        interval: "1m" | "5m" | "15m" | "1h" | "4h" | "1d";
+        start: string;
+        end: string;
+        maximum?: number;
+        source_key?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  history_api_v1_research_discovery_history_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["HistoryLoad"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  record_api_v1_research_discovery_records__record_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        record_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  control_api_v1_research_discovery_records__record_id___action__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        record_id: string;
+        action: "pause" | "resume" | "cancel";
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  prices_api_v1_research_discovery_records__record_id__prices_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        record_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
         };
       };
       /** @description Validation Error */

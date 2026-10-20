@@ -47,7 +47,7 @@ class RuntimeConfig(BaseSettings):
         return self
 
 
-SCHEMA_REVISION = "0036_agent_tasks"
+SCHEMA_REVISION = "0037_research_discovery"
 
 
 @lru_cache

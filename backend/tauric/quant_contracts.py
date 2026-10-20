@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import AwareDatetime, Field, field_validator, model_validator
 
+from .discovery_contracts import ResearchStrategy
 from .financial_contracts import Cost, Money
 from .market_contracts import Interval
 from .research_contracts import AssetCosts
@@ -117,6 +118,9 @@ class ExperimentCreate(LabRequest):
     slippage_bps: Cost = "5"
     asset_costs: AssetCosts
     model_run_id: UUID | None = None
+    research_strategy: ResearchStrategy | None = None
+    context_dataset_id: UUID | None = None
+    evaluation_start: AwareDatetime | None = None
 
     @model_validator(mode="after")
     def bounds(self):
@@ -124,6 +128,11 @@ class ExperimentCreate(LabRequest):
 
         if not self.train_end < self.validation_end < self.test_end:
             raise ValueError("Training, validation and unseen test cutoffs must be chronological")
+        if (
+            self.evaluation_start is not None
+            and not self.validation_end <= self.evaluation_start < self.test_end
+        ):
+            raise ValueError("Evaluation start must lie between validation and test end")
         if self.fast_window >= self.slow_window:
             raise ValueError("The fast average must be shorter than the slow average")
         if Decimal(self.allocation_percent) > 100:
@@ -132,6 +141,14 @@ class ExperimentCreate(LabRequest):
             raise ValueError("Execution costs must be below 10,000 basis points")
         if self.engine == "qlib" and self.model_run_id:
             raise ValueError("A training request cannot reference another model")
+        if self.research_strategy and (self.engine != "lean" or self.model_run_id):
+            raise ValueError("Fixed research strategies require LEAN without a separate model")
+        if bool(self.context_dataset_id) != bool(
+            self.research_strategy and self.research_strategy.context_interval
+        ):
+            raise ValueError(
+                "Supply a saved higher-timeframe dataset exactly when context rules require it"
+            )
         return self
 
 

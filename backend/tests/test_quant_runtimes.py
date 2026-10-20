@@ -128,3 +128,63 @@ def test_real_yen_account_and_overnight_financing(signed_in, database, tmp_path)
         entry["quantity"] * (exit["price"] - entry["price"]) - result["fees"] - result["financing"]
     )
     assert result["net_pnl"] == pytest.approx(expected, abs=0.01)
+
+
+def test_real_multi_timeframe_mixture(signed_in, database, tmp_path):
+    from test_discovery import candles
+
+    instrument = "oanda:fx:EUR_USD"
+    with Session(database[0]) as db:
+        spec = market.instrument(db, instrument)
+    start, end = datetime(2025, 1, 6, tzinfo=UTC), datetime(2025, 3, 1, tzinfo=UTC)
+    sources = {}
+    for interval in ("1h", "4h"):
+        bars = candles(spec, interval, start, end)
+        response = signed_in.post(
+            "/api/v1/research/datasets/import",
+            json={
+                "request_id": str(uuid4()),
+                "name": "Synthetic mixture " + interval,
+                "instrument_id": instrument,
+                "interval": interval,
+                "source": "Synthetic causal mixture verification",
+                "candles": bars,
+                "data_context": default_context(spec).model_dump(mode="json"),
+                "reason": "Verify actual LEAN mixture execution",
+            },
+        )
+        assert response.status_code == 201, response.text
+        sources[interval] = (response.json()["id"], bars)
+    bars = sources["1h"][1]
+    request = ExperimentCreate(
+        request_id=uuid4(),
+        dataset_id=sources["1h"][0],
+        engine="lean",
+        name="Native LEAN multi-timeframe mixture",
+        hypothesis="Two causal components share a bounded long/flat allocation",
+        reason="Verify fixed rules in the actual pinned engine",
+        train_end=bars[int(len(bars) * 0.6)]["close_time"],
+        validation_end=bars[int(len(bars) * 0.8)]["close_time"],
+        test_end=bars[-1]["close_time"],
+        context_dataset_id=sources["4h"][0],
+        research_strategy={
+            "mode": "blend",
+            "context_interval": "4h",
+            "components": [
+                {"family": "trend", "weight": "0.5"},
+                {"family": "mean_reversion", "weight": "0.5", "entry_z": 1.0},
+            ],
+        },
+        asset_costs={"asset_type": "fx", "spread_bps": "0", "financing_daily_bps": "1"},
+    )
+    response = signed_in.post(
+        "/api/v1/research/lab/experiments", json=request.model_dump(mode="json")
+    )
+    assert response.status_code == 201, response.text
+    result = run(database, response.json()["id"], "lean", tmp_path)
+    assert result["fills"] and result["equity_curve"]
+    assert any(fill.get("signal", {}).get("components") for fill in result["fills"])
+    assert all(
+        0 <= fill["signal"]["exposure"] <= 1 for fill in result["fills"] if fill.get("signal")
+    )
+    assert result["authority"] == "research_only"

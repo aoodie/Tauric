@@ -28,6 +28,8 @@ PROJECT_OPERATIONS = {
     "retrieve_history",
     "session_research",
     "quant_experiment",
+    "start_strategy_discovery",
+    "load_saved_history",
     "save_research_note",
     "prepare_upgrade",
     "stage_upgrade",
@@ -299,16 +301,43 @@ def control(db, owner, task_id, body):
 def reference(db, owner, ref):
     """Observe actual service state; a request receipt never means completion."""
     key = str(ref.id)
+    if ref.kind == "discovery":
+        from . import discovery_journal
+
+        row = discovery_journal.owned(db, owner, key)
+        status = row.payload.get("status")
+        complete = status in {"completed", "rejected", "screen_passed"}
+        proofs = ["job_success"] if complete else []
+        if complete and row.kind == "history_sync" and row.payload.get("saved_bars", 0) > 0:
+            proofs.append("source_evidence")
+        if complete and (
+            row.payload.get("analysis")
+            or row.payload.get("summary", {}).get("rejected", 0)
+            or row.payload.get("summary", {}).get("screen_passed", 0)
+        ):
+            proofs.append("research_report")
+        return {
+            "kind": ref.kind,
+            "id": key,
+            "status": "succeeded" if complete else status,
+            "proofs": proofs,
+            "checksum": row.checksum,
+            "error": row.payload.get("error"),
+        }
     if ref.kind == "release":
         from . import release_jobs
 
         job = release_jobs.observe(db, owner, key)
         result = job["result"]
         return {
-            "kind": ref.kind, "id": key, "status": job["status"],
+            "kind": ref.kind,
+            "id": key,
+            "status": job["status"],
             "proofs": ["deployment_verified"]
-            if job["status"] == "succeeded" and result.get("receipt_verified") else [],
-            "checksum": paper.checksum(result), "error": result.get("error"),
+            if job["status"] == "succeeded" and result.get("receipt_verified")
+            else [],
+            "checksum": paper.checksum(result),
+            "error": result.get("error"),
         }
     if ref.kind == "open_research":
         row = db.get(AuditEvent, key)

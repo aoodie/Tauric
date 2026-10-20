@@ -6,6 +6,7 @@ from uuid import UUID
 
 from pydantic import Field, model_validator
 
+from .discovery_contracts import DiscoveryStart, HistoryLoad
 from .governance_contracts import GovernanceEnqueue
 from .portfolio_contracts import ChatIdentity
 from .quant_contracts import ExperimentCreate, HistoricalDatasetCreate, SessionReportCreate
@@ -28,6 +29,8 @@ Operation = Literal[
     "retrieve_history",
     "session_research",
     "quant_experiment",
+    "start_strategy_discovery",
+    "load_saved_history",
     "save_research_note",
     "prepare_upgrade",
     "stage_upgrade",
@@ -168,6 +171,8 @@ class AssistantRead(ChatIdentity):
         "paper_record",
         "paper_review",
         "research_lab",
+        "strategy_discovery",
+        "discovery_record",
         "lab_record",
         "broker_readiness",
         "broker_state",
@@ -274,4 +279,6 @@ RESEARCH_CONTRACTS = {
     "retrieve_history": HistoricalDatasetCreate,
     "session_research": SessionReportCreate,
     "quant_experiment": ExperimentCreate,
+    "start_strategy_discovery": DiscoveryStart,
+    "load_saved_history": HistoryLoad,
 }

@@ -12,6 +12,7 @@ from .broker_api import router as broker_router
 from .chat_api import router as chat_router
 from .config import SCHEMA_REVISION, runtime_config
 from .defaults import default_layout
+from .discovery_api import router as discovery_router
 from .forex_connection import router as forex_connection_router
 from .governance_api import resource as governance_resource
 from .governance_api import router as governance_router
@@ -69,6 +70,7 @@ app.include_router(portfolio_router)
 app.include_router(portfolio_research_router)
 app.include_router(qualification_router)
 app.include_router(quant_router)
+app.include_router(discovery_router)
 app.include_router(market_connections_router)
 
 app.include_router(forex_connection_router)

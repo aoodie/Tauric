@@ -11,6 +11,7 @@ TESTS = (
     "tests/test_broker_routes_browser.py",
     "tests/test_project_tasks_browser.py",
     "tests/test_quant_browser.py",
+    "tests/test_discovery_browser.py",
     "tests/test_protected_replay_browser.py",
 )
 

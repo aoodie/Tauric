@@ -33,7 +33,7 @@ def main():
                     diagnostic = source.read(12000).decode("utf-8", errors="replace")
                 print(f"\nSynthetic engine diagnostic ({log.relative_to(jobs)}):\n{diagnostic}", file=sys.stderr)
             return result.returncode
-        verify_report(report, expected_count=2)
+        verify_report(report, expected_count=3)
     return 0
 
 

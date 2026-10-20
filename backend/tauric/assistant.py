@@ -95,6 +95,8 @@ TITLES = {
     "retrieve_history": "Historical dataset saved",
     "session_research": "Session research saved",
     "quant_experiment": "Research experiment queued",
+    "start_strategy_discovery": "Strategy discovery queued",
+    "load_saved_history": "Reusable history load queued",
     "save_research_note": "Research note saved",
     "prepare_upgrade": "Upgrade ready for review",
     "stage_upgrade": "Code changes staged and source-checked",
@@ -383,6 +385,21 @@ def read(db, owner, body):
             }
             for r in value["records"]
         ]
+        return value
+    if body.resource in {"strategy_discovery", "discovery_record"}:
+        from . import discovery, discovery_journal
+
+        if body.resource == "discovery_record":
+            return discovery_journal.view(
+                discovery_journal.owned(db, owner, body.resource_id)
+            ).model_dump(mode="json")
+        value = discovery.state(db, owner)
+        for record in value["records"]:
+            analysis = record["payload"].get("analysis")
+            if analysis:
+                analysis = dict(analysis)
+                analysis.pop("daily_returns", None)
+                record["payload"] = {**record["payload"], "analysis": analysis}
         return value
     if body.resource == "lab_record":
         from .quant_models import QuantRecord
@@ -732,6 +749,21 @@ def execute(db, owner, body):
             "status": "queued",
             "checksum": record.checksum,
             "authority": "research_only",
+        }
+    elif operation in {"start_strategy_discovery", "load_saved_history"}:
+        from . import discovery, history_store
+
+        record = (
+            discovery.start(db, owner, params)
+            if operation == "start_strategy_discovery"
+            else history_store.request_load(db, owner, params)
+        )
+        result = {
+            "id": record.id,
+            "status": record.payload["status"],
+            "checksum": record.checksum,
+            "authority": "research_only",
+            "follow_up": {"kind": "discovery", "id": record.id},
         }
     elif operation == "evaluate_paper_strategy":
         from . import strategy_execution
