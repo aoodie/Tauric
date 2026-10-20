@@ -340,6 +340,9 @@ def cached_dataset(db, owner, body):
     spec = market.instrument(db, body.instrument_id)
     if spec.provider != "oanda_v20" or spec.asset_type != "fx":
         return None
+    if (body.end - body.start).total_seconds() / market.INTERVAL_SECONDS[body.interval] > 100000:
+        # Let the existing study admission reject this before constructing a large calendar grid.
+        return None
     start, end = bounds(spec, body.interval, body.start, body.end)
     if not chunks(db, owner, body.instrument_id, body.interval, start, end):
         return None

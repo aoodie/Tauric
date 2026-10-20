@@ -144,6 +144,20 @@ def test_persistent_history_reuse_incremental_and_offline_reads(
         **query,
         "reason": "Research from saved prices",
     }
+    with monkeypatch.context() as guard:
+        guard.setattr(
+            history_store,
+            "bounds",
+            lambda *a, **k: pytest.fail(
+                "An oversized study must be rejected before expanding its calendar"
+            ),
+        )
+        assert (
+            signed_in.post(
+                "/api/v1/research/lab/datasets/history", json={**body, "interval": "1m"}
+            ).status_code
+            == 422
+        )
     first = signed_in.post("/api/v1/research/lab/datasets/history", json=body)
     assert first.status_code == 201, first.text
     with Session(database[0]) as db:
