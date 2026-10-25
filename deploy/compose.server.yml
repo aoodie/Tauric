@@ -42,7 +42,8 @@
         "TAURIC_DB_PASSWORD_FILE": "/run/secrets/database-app",
         "TAURIC_DB_USER": "tauric_app",
         "TAURIC_ALLOWED_ORIGINS": "${TAURIC_ALLOWED_ORIGINS:?Set the exact browser origin}",
-        "TAURIC_SECURE_COOKIES": "${TAURIC_SECURE_COOKIES:-false}"
+        "TAURIC_SECURE_COOKIES": "${TAURIC_SECURE_COOKIES:-false}",
+        "TAURIC_TRUSTED_PROXY_HOSTS": "[\"web\"]"
       },
       "secrets": [
         "database-app",

@@ -5,7 +5,7 @@ from decimal import Decimal, localcontext
 from hashlib import blake2b
 
 from fastapi import HTTPException
-from sqlalchemy import select, text
+from sqlalchemy import Numeric, and_, exists, or_, select, text
 
 from . import broker_execution as execution
 from . import broker_lifecycle_adapters as facts
@@ -93,7 +93,10 @@ def ensure_cursor(db, entry):
 
 def register_entry(db, entry, order):
     if entry.payload["order"]["position_effect"] == "open" and D(order.filled_quantity) > 0:
-        ensure_cursor(db, entry)
+        cursor = ensure_cursor(db, entry)
+        if cursor.status == "unfilled":
+            cursor.status = "unknown"
+            cursor.updated_at = now() - timedelta(seconds=30)
 
 
 def close_rows(db, entry):
@@ -147,7 +150,7 @@ def collect(db, entry, broker):
         return _collect(db, entry, broker)
 
 
-def _collect(db, entry, broker):
+def _collect(db, entry, broker, *, check_netting=True):
     account = broker.account()
     if account.account_fingerprint != entry.account_fingerprint:
         raise BrokerError("The broker position account differs from its recorded entry.")
@@ -206,6 +209,60 @@ def _collect(db, entry, broker):
         raise BrokerError(
             "Broker exits exceed the attributed entry; inspect protective fill races and external orders."
         )
+    attributed = remaining
+    if entry.provider == "alpaca" and remaining and check_netting:
+        peers = list(
+            db.scalars(
+                select(BrokerOrderIntent)
+                .outerjoin(
+                    BrokerPositionCursor,
+                    BrokerPositionCursor.entry_intent_id == BrokerOrderIntent.id,
+                )
+                .where(
+                    BrokerOrderIntent.id != entry.id,
+                    BrokerOrderIntent.owner_id == entry.owner_id,
+                    BrokerOrderIntent.provider == entry.provider,
+                    BrokerOrderIntent.account_fingerprint == entry.account_fingerprint,
+                    BrokerOrderIntent.payload["order"]["position_effect"].as_string() == "open",
+                    BrokerOrderIntent.payload["order"]["symbol"].as_string() == order.symbol,
+                    BrokerOrderIntent.payload["order"]["side"].as_string() == order.side,
+                    or_(
+                        BrokerPositionCursor.status.not_in(["closed", "unfilled"]),
+                        and_(
+                            or_(
+                                BrokerPositionCursor.status == "unfilled",
+                                BrokerPositionCursor.entry_intent_id.is_(None),
+                            ),
+                            or_(
+                                BrokerOrderIntent.status == "filled",
+                                exists(
+                                    select(BrokerOrderEvent.id).where(
+                                        BrokerOrderEvent.intent_id == BrokerOrderIntent.id,
+                                        BrokerOrderEvent.kind == "observed",
+                                        BrokerOrderEvent.payload["order"]["filled_quantity"]
+                                        .as_string()
+                                        .cast(Numeric)
+                                        > 0,
+                                    )
+                                ),
+                            ),
+                        ),
+                        BrokerOrderIntent.status.in_(
+                            ["submitting", "pending", "partially_filled", "unknown", "cancelling"]
+                        ),
+                    ),
+                )
+                .limit(201)
+            )
+        )
+        if len(peers) > 200:
+            raise BrokerError("Symbol attribution exceeds the reconciliation bound.")
+        for peer in peers:
+            if peer.checksum != execution.checksum(peer.payload):
+                raise BrokerError("A shared-symbol broker intent failed its integrity check.")
+            # Reconstruct actual peer fills, rather than trusting a stale journal
+            # quantity or assigning an external sale to an arbitrary entry.
+            attributed += D(_collect(db, peer, broker, check_netting=False).remaining_quantity)
     holdings = [
         item
         for item in broker.positions()
@@ -253,10 +310,11 @@ def _collect(db, entry, broker):
         closed_quantity=format(closed, "f"),
         remaining_quantity=format(remaining, "f"),
         broker_holding_quantity=format(holding, "f"),
+        attributed_symbol_quantity=format(attributed, "f") if entry.provider == "alpaca" else None,
         holding_check="closed"
         if remaining == 0
         else "covered"
-        if holding >= remaining
+        if holding >= attributed
         else "shortfall",
         entry_notional=format(entry_notional, "f"),
         closing_notional=format(closing_notional, "f"),
@@ -742,6 +800,85 @@ def _process_close(db, owner, close_id):
     except BrokerError as error:
         db.rollback()
         return note_close(db, owner, row, "unknown", str(error))
+
+
+def repair_entry_protection(db, owner, entry_id, body):
+    """Restore original reviewed levels without manufacturing a close request."""
+    entry = execution.owned(db, owner, entry_id)
+    key = int.from_bytes(
+        blake2b(("broker-position:" + entry.id).encode(), digest_size=8).digest(),
+        "big",
+        signed=True,
+    )
+    with db.get_bind().connect() as guard:
+        if not guard.scalar(text("SELECT pg_try_advisory_xact_lock(:key)"), {"key": key}):
+            raise HTTPException(409, "This position is being reconciled. Try again shortly.")
+        db.scalar(select(Owner).where(Owner.id == owner.id).with_for_update())
+        entry = execution.owned(db, owner, entry_id, lock=True)
+        if entry.provider != "alpaca" or not entry.payload["order"].get("stop_loss"):
+            raise HTTPException(409, "Repair requires an Alpaca entry with an original stop.")
+        request = body.model_dump(mode="json")
+        previous = db.scalar(
+            select(BrokerOrderEvent).where(
+                BrokerOrderEvent.owner_id == owner.id,
+                BrokerOrderEvent.kind == "protection_submission_started",
+                BrokerOrderEvent.payload["entry_repair_request_id"].as_string()
+                == str(body.request_id),
+            )
+        )
+        if previous and previous.checksum != execution.checksum(previous.payload):
+            raise HTTPException(409, "Protection repair evidence failed its integrity check.")
+        if previous and (
+            previous.intent_id != entry.id or previous.payload.get("repair_request") != request
+        ):
+            raise HTTPException(409, "This protection request ID has different inputs.")
+        if db.scalar(
+            select(BrokerCloseRequest.id).where(
+                BrokerCloseRequest.entry_intent_id == entry.id,
+                BrokerCloseRequest.status.not_in(["filled", "rejected"]),
+            )
+        ):
+            raise HTTPException(409, "Reconcile the unresolved close and its protection first.")
+        try:
+            with execution.matching_broker(db, entry) as broker:
+                if previous:
+                    # A committed request may already have reached the broker.
+                    # Reconcile its stable identity; never repeat the POST.
+                    facts.alpaca_replacement(broker, previous.payload)
+                else:
+                    position = collect(db, entry, broker)
+                    children = alpaca_children(
+                        db, entry, broker, broker.order(entry.client_order_id)
+                    )
+                    if (
+                        not D(position.remaining_quantity)
+                        or position.holding_check != "covered"
+                        or any(order.status not in execution.TERMINAL for order, _ in children)
+                    ):
+                        raise HTTPException(
+                            409, "Repair requires covered holdings and terminal prior protection."
+                        )
+                    submission = {
+                        "entry_repair_request_id": str(body.request_id),
+                        "repair_request": request,
+                        "client_order_id": "tauric_fix_" + body.request_id.hex,
+                        "symbol": position.symbol,
+                        "side": "sell" if position.side == "long" else "buy",
+                        "quantity": position.remaining_quantity,
+                        **{
+                            kind: entry.payload["order"].get(kind)
+                            for kind in ("stop_loss", "take_profit")
+                        },
+                    }
+                    append(db, entry, "protection_submission_started", submission)
+                    db.commit()
+                    facts.alpaca_protect(broker, submission)
+            return refresh(db, owner, entry.id)
+        except BrokerError as error:
+            db.rollback()
+            raise HTTPException(
+                409, "Protection repair requires reconciliation: " + str(error)
+            ) from None
 
 
 def repair_protection(db, owner, close_id, body):

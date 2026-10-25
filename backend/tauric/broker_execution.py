@@ -265,6 +265,10 @@ def create_order(db, owner, provider, body):
         )
     if not policy or not policy.payload["enabled"]:
         raise HTTPException(409, "Enable demo broker execution before submitting an order.")
+    if body.position_effect == "open":
+        from .live_trading import operating_guard
+
+        operating_guard(db, owner, policy)
     if (
         revision != body.expected_connection_revision
         or revision != policy.payload["connection_revision"]
@@ -407,6 +411,10 @@ def submit(db, owner, intent_id):
         return view(db, row)
     try:
         guard = None
+        if row.payload["order"]["position_effect"] == "open":
+            from .live_trading import operating_guard
+
+            operating_guard(db, owner, current, row.id)
         if row.review_decision_id:
             from . import broker_review
 

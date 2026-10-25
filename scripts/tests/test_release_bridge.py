@@ -100,6 +100,7 @@ class Bridge(unittest.TestCase):
                 release_bridge.process(request, client)
                 self.assertEqual(client.ref_creates, 1)
                 self.assertEqual(client.pull_creates, 1)
+                self.assertEqual(client.pulls[0]["base"]["ref"], "main")
                 self.assertEqual(client.dispatches, 1)
                 count = len(client.mutations)
                 clock[0] += 31

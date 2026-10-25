@@ -179,6 +179,12 @@ class OandaPractice(DemoBroker):
     def path(self, suffix):
         return "/v3/accounts/" + self.config.account_id + suffix
 
+    def session_open(self, name):
+        from .market_calendars import oanda_session_open
+
+        instrument = self.instrument(name)
+        return oanda_session_open(name, instrument.product_type, now())
+
     def account(self):
         try:
             data = self.request("GET", self.path("/summary"))["account"]
@@ -581,6 +587,19 @@ class AlpacaPaper(DemoBroker):
         except (KeyError, ValueError, TypeError, AttributeError, ArithmeticError):
             raise BrokerError("The Alpaca position response could not be verified.") from None
 
+    def session_open(self, name):
+        symbol(name, self.provider)
+        try:
+            clock = self.request("GET", "/v2/clock")
+            if (
+                type(clock["is_open"]) is not bool
+                or not 0 <= (now() - timestamp(clock["timestamp"])).total_seconds() <= 60
+            ):
+                raise ValueError("Invalid broker clock")
+            return clock["is_open"]
+        except (KeyError, ValueError, TypeError, ArithmeticError):
+            raise BrokerError("The Alpaca session clock could not be verified.") from None
+
     def quote(self, name):
         name = symbol(name, self.provider)
         self.guard()
@@ -600,19 +619,13 @@ class AlpacaPaper(DemoBroker):
             sizes = [Decimal(str(row[key])) for key in ("bs", "as")]
             if any(not size.is_finite() or size < 0 for size in sizes):
                 raise ValueError("Invalid quote sizes")
-            clock = self.request("GET", "/v2/clock")
-            clock_time = timestamp(clock["timestamp"])
-            if (
-                type(clock["is_open"]) is not bool
-                or not 0 <= (now() - clock_time).total_seconds() <= 60
-            ):
-                raise ValueError("Invalid broker clock")
+            is_open = self.session_open(name)
             return BrokerQuote(
                 symbol=name,
                 bid=amount(row["bp"]),
                 ask=amount(row["ap"]),
                 observed_at=timestamp(row["t"]),
-                tradable=clock["is_open"] and all(size > 0 for size in sizes),
+                tradable=is_open and all(size > 0 for size in sizes),
                 feed=self.config.feed,
             )
         except httpx.HTTPError:

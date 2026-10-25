@@ -49,7 +49,7 @@ for service in ("api", "chat_worker"):
 gateway_code = """
 const fs=require('node:fs'),crypto=require('node:crypto');
 const digest=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
-const tokens=JSON.parse(fs.readFileSync('/state/service-tokens.json','utf8'));
+const tokens=JSON.parse(fs.readFileSync('/tmp/tauric-openclaw/service-tokens.json','utf8'));
 fetch('http://api:8000/internal/openclaw/chat-context',{headers:{Authorization:'Bearer '+tokens.platform_token}})
 .then(async response=>{
  if(!response.ok)throw Error('Context unavailable');

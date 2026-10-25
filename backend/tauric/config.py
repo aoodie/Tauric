@@ -17,6 +17,7 @@ class RuntimeConfig(BaseSettings):
     session_hours: int = Field(default=12, ge=1, le=168)
     login_attempt_limit: int = Field(default=5, ge=1, le=50)
     login_window_seconds: int = Field(default=300, ge=30, le=3600)
+    trusted_proxy_hosts: list[str] = Field(default_factory=list, max_length=8)
     market_url: str = "https://data-api.binance.vision"
     market_timeout_seconds: int = Field(default=10, ge=1, le=30)
     market_refresh_seconds: int = Field(default=30, ge=10, le=3600)

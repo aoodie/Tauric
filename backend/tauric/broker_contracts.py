@@ -303,6 +303,7 @@ class BrokerLifecycleView(Contract):
     closed_quantity: str
     remaining_quantity: str
     broker_holding_quantity: str
+    attributed_symbol_quantity: str | None = None
     holding_check: Literal["covered", "shortfall", "closed"]
     notional_currency: str
     entry_notional: str
@@ -341,8 +342,15 @@ class BrokerLifecycleView(Contract):
             raise ValueError("Attributed broker exits do not reconcile to the closed quantity.")
         if self.status == "closed" and (remaining or not entered):
             raise ValueError("A closed position must have an entry and zero remaining quantity.")
+        attributed = (
+            Decimal(self.attributed_symbol_quantity)
+            if self.attributed_symbol_quantity is not None
+            else remaining
+        )
+        if not attributed.is_finite() or attributed < remaining:
+            raise ValueError("Aggregate attribution cannot be smaller than the entry remainder.")
         if self.holding_check != (
-            "closed" if remaining == 0 else "covered" if holding >= remaining else "shortfall"
+            "closed" if remaining == 0 else "covered" if holding >= attributed else "shortfall"
         ):
             raise ValueError("Broker holding coverage is inconsistent.")
         return self

@@ -467,7 +467,7 @@ def process(request_path, client):
                 revision=active_manifest["revision"],
                 journal_directory=OPERATIONS / "publications",
                 authorize=authorize,
-                pr_base="codex/openclaw-owner-capabilities",
+                pr_base="main",
             )
             journal["phase"] = "source_published"
             journal["public_result"] = {

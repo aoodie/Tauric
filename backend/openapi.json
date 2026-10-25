@@ -498,6 +498,59 @@
         }
       }
     },
+    "/api/v1/brokers/orders/{intent_id}/repair-protection": {
+      "post": {
+        "tags": [
+          "demo-brokers"
+        ],
+        "summary": "Repair Entry Protection",
+        "operationId": "repair_entry_protection_api_v1_brokers_orders__intent_id__repair_protection_post",
+        "parameters": [
+          {
+            "name": "intent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Intent Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrokerReviewedEntrySubmit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrokerLifecycleView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/brokers/orders/{intent_id}/close": {
       "post": {
         "tags": [
@@ -9346,6 +9399,17 @@
             "type": "string",
             "title": "Broker Holding Quantity"
           },
+          "attributed_symbol_quantity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attributed Symbol Quantity"
+          },
           "holding_check": {
             "type": "string",
             "enum": [
@@ -12063,6 +12127,7 @@
             "enum": [
               "crypto_24x7",
               "oanda_fx",
+              "oanda_product",
               "us_equity",
               "provider_observed"
             ],
@@ -12114,6 +12179,12 @@
             "type": "string",
             "maxLength": 500,
             "title": "Calendar Source",
+            "default": ""
+          },
+          "provider_symbol": {
+            "type": "string",
+            "maxLength": 32,
+            "title": "Provider Symbol",
             "default": ""
           },
           "coverage_start": {

@@ -142,6 +142,19 @@ export const api = {
         body,
       }),
     ),
+  repairBrokerEntryProtection: async (
+    intent_id: string,
+    body: components["schemas"]["BrokerReviewedEntrySubmit"],
+  ) =>
+    unwrap(
+      await client.POST(
+        "/api/v1/brokers/orders/{intent_id}/repair-protection",
+        {
+          params: { path: { intent_id } },
+          body,
+        },
+      ),
+    ),
   knowledgeSettings: async () =>
     unwrap(await client.GET("/api/v1/knowledge/settings")),
   saveKnowledgeSettings: async (

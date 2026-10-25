@@ -138,7 +138,7 @@ def capture(db, owner, body, *, route_context=None, risk_percent=None, intent_id
                             side="buy",
                             quantity=body.quantity,
                             order_type="market",
-                            time_in_force="fok" if body.provider == "oanda" else "day",
+                            time_in_force="fok" if body.provider == "oanda" else "gtc",
                             position_effect="open",
                             stop_loss=format(stop, "f"),
                             take_profit=format(target, "f"),

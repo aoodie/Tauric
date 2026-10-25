@@ -93,13 +93,16 @@ class MarketSession(Contract):
 
 
 class DataContext(Contract):
-    calendar_id: Literal["crypto_24x7", "oanda_fx", "us_equity", "provider_observed"]
+    calendar_id: Literal[
+        "crypto_24x7", "oanda_fx", "oanda_product", "us_equity", "provider_observed"
+    ]
     timezone: Literal["UTC", "America/New_York"]
     price_side: Literal["trades", "midpoint", "bid_ask"]
     volume_type: Literal["exchange_base", "provider_ticks", "feed_shares"]
     adjustment: Literal["none", "raw", "split"] = "none"
     feed: str = Field(default="", max_length=80)
     calendar_source: str = Field(default="", max_length=500)
+    provider_symbol: str = Field(default="", max_length=32)
     coverage_start: AwareDatetime | None = None
     coverage_end: AwareDatetime | None = None
     sessions: list[MarketSession] = Field(default_factory=list, max_length=2000)

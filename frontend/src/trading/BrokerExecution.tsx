@@ -99,20 +99,27 @@ export function BrokerExecution() {
   async function saveLimits(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
+    const brokerLimitsOnly = form.has("broker_limits_only");
     await act(async () => {
       await api.saveBrokerPolicy(provider, {
         request_id: crypto.randomUUID(),
         expected_revision: policy?.revision ?? 0,
         enabled: policy?.settings.enabled === true,
-        no_owner_limits: false,
-        maximum_risk_percent: String(form.get("maximum_risk")),
-        maximum_drawdown_percent: String(form.get("maximum_drawdown")),
+        no_owner_limits: brokerLimitsOnly,
+        ...(brokerLimitsOnly
+          ? {}
+          : {
+              maximum_risk_percent: String(form.get("maximum_risk")),
+              maximum_drawdown_percent: String(form.get("maximum_drawdown")),
+            }),
         live_acknowledged: live && policy?.settings.enabled === true,
         forward_report_id:
           typeof policy?.settings.forward_report_id === "string"
             ? policy.settings.forward_report_id
             : undefined,
-        reason: "Owner updated account risk and drawdown limits",
+        reason: brokerLimitsOnly
+          ? "Owner explicitly selected broker limits without additional account caps"
+          : "Owner updated account risk and drawdown limits",
       });
       setNotice(
         "Account limits saved. Refresh assessments and affected route bindings before new entries.",
@@ -215,6 +222,7 @@ export function BrokerExecution() {
           className="secondary"
           disabled={
             pending ||
+            !policy ||
             (live && !policy?.settings.enabled) ||
             (!policy?.settings.enabled && !connection?.account?.trading_enabled)
           }
@@ -237,6 +245,14 @@ export function BrokerExecution() {
       {error && <p role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
       <form onSubmit={saveLimits} key={`${provider}:${policy?.revision ?? 0}`}>
+        <label>
+          <input
+            type="checkbox"
+            name="broker_limits_only"
+            defaultChecked={policy?.settings.no_owner_limits === true}
+          />
+          Use broker limits only, without additional account caps
+        </label>
         <label>
           Maximum risk per trade (%)
           <input
@@ -512,6 +528,8 @@ export function BrokerExecution() {
             </p>
             <p>
               Broker holding {position.broker_holding_quantity} · coverage{" "}
+              {position.attributed_symbol_quantity &&
+                `total attributed ${position.attributed_symbol_quantity} · `}
               {position.holding_check} · checked{" "}
               {new Date(position.observed_at).toLocaleString()}
             </p>
@@ -552,6 +570,51 @@ export function BrokerExecution() {
             >
               Refresh position
             </button>
+            {position.provider === "alpaca" &&
+              position.protection_status === "unprotected" &&
+              state?.orders.some(
+                (order) =>
+                  order.id === position.entry_intent_id &&
+                  !!order.request.stop_loss,
+              ) && (
+                <button
+                  disabled={
+                    pending ||
+                    position.holding_check !== "covered" ||
+                    (position.protections ?? []).some(
+                      (protection) =>
+                        ![
+                          "filled",
+                          "cancelled",
+                          "expired",
+                          "rejected",
+                        ].includes(protection.status),
+                    ) ||
+                    journal.close_requests.some(
+                      (request) =>
+                        request.entry_intent_id === position.entry_intent_id &&
+                        !["filled", "rejected"].includes(request.status),
+                    )
+                  }
+                  onClick={() =>
+                    void act(async () => {
+                      await api.repairBrokerEntryProtection(
+                        position.entry_intent_id,
+                        {
+                          request_id: crypto.randomUUID(),
+                          reason:
+                            "Owner restores the original protective levels on this position",
+                        },
+                      );
+                      setNotice(
+                        "Protection checked against the original broker entry.",
+                      );
+                    })
+                  }
+                >
+                  Restore original protection
+                </button>
+              )}
             <button
               disabled={
                 pending ||

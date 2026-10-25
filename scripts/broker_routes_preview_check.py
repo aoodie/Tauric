@@ -195,7 +195,7 @@ assert result["setup_routes_present"]
 )
 gateway_code = """
 import fs from 'node:fs';
-const c=JSON.parse(fs.readFileSync('/state/openclaw.json','utf8'));
+const c=JSON.parse(fs.readFileSync('/tmp/tauric-openclaw/openclaw.json','utf8'));
 const m=JSON.parse(fs.readFileSync('/app/plugin/openclaw.plugin.json','utf8'));
 if(!m.contracts.tools.includes('tauric_broker_review_context')) throw Error('Missing broker tool');
 const agents=Object.entries(c.agents.entries).filter(([name])=>name.startsWith('broker-governor-')).map(([name,a])=>{

@@ -208,7 +208,7 @@ def verify(
         ), f"Served asset differs: {asset}"
         assets.append(asset)
     assert assets
-    gateway_code = "import fs from 'node:fs';const c=JSON.parse(fs.readFileSync('/state/openclaw.json','utf8'));const p=JSON.parse(fs.readFileSync('/app/plugin/openclaw.plugin.json','utf8'));console.log(JSON.stringify({agents:Object.entries(c.agents.entries??{}).map(([id,a])=>({id,tools:a.tools.allow})),codeMode:c.tools.codeMode,commands:Object.fromEntries(Object.entries(c.commands).filter(([k,v])=>typeof v==='boolean')),tools:p.contracts.tools,instructions:fs.readFileSync('/app/chat_instructions.txt','utf8')}));"
+    gateway_code = "import fs from 'node:fs';const c=JSON.parse(fs.readFileSync('/tmp/tauric-openclaw/openclaw.json','utf8'));const p=JSON.parse(fs.readFileSync('/app/plugin/openclaw.plugin.json','utf8'));console.log(JSON.stringify({agents:Object.entries(c.agents.entries??{}).map(([id,a])=>({id,tools:a.tools.allow})),codeMode:c.tools.codeMode,commands:Object.fromEntries(Object.entries(c.commands).filter(([k,v])=>typeof v==='boolean')),tools:p.contracts.tools,instructions:fs.readFileSync('/app/chat_instructions.txt','utf8')}));"
     gateway = json.loads(
         subprocess.check_output(
             COMPOSE

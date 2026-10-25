@@ -27,7 +27,7 @@ from tauric import (
 )
 from tauric.broker_adapters import DemoBroker
 from tauric.broker_contracts import BrokerInstrumentView, BrokerQuote
-from tauric.models import AnalysisJob, MarketSnapshot
+from tauric.models import AnalysisJob, MarketSnapshot, now
 from tauric.native_runner import artifact
 
 lifecycle = lifecycle_fixture
@@ -126,6 +126,7 @@ def test_capture_real_rule_signal_exact_sizing_and_no_order(signed_in, setup, da
     preview = response.json()
     assert preview["entry_evidence_ready"] and preview["signal_action"] == "enter"
     planned = preview["planned_order"]
+    assert planned["time_in_force"] == "gtc"
     assert (planned["quantity"], planned["stop_loss"], planned["take_profit"]) == (
         "200",
         "9",
@@ -342,7 +343,7 @@ def test_wrong_result_binding_is_rejected(signed_in, setup, database, changes):
     assert broker.submissions == []
 
 
-def test_raw_setup_quantity_cannot_bypass_account_risk_cap(signed_in, setup):
+def test_raw_setup_quantity_cannot_bypass_account_risk_cap(signed_in, setup, monkeypatch):
     body, broker, _, _ = setup
     old = next(
         p for p in signed_in.get("/api/v1/brokers").json()["policies"] if p["provider"] == "alpaca"
@@ -360,6 +361,18 @@ def test_raw_setup_quantity_cannot_bypass_account_risk_cap(signed_in, setup):
         },
     )
     assert saved.status_code == 200, saved.text
+    original_quote = broker.quote
+    with monkeypatch.context() as marks:
+        marks.setattr(
+            broker,
+            "quote",
+            lambda name: original_quote(name).model_copy(update={"observed_at": now()}),
+        )
+        observation = signed_in.post(
+            "/api/v1/trading-readiness/valuation",
+            json={"request_id": str(uuid4()), "reason": "Observe capped demo account drawdown"},
+        )
+    assert observation.status_code == 200, observation.text
     rejected = signed_in.post("/api/v1/brokers/setup-preview", json=body)
     assert rejected.status_code == 200, rejected.text
     assert not rejected.json()["entry_evidence_ready"]

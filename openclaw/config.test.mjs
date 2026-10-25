@@ -4,7 +4,20 @@ import os from 'node:os';
 import path from 'node:path';
 import {spawn, spawnSync} from 'node:child_process';
 import {once} from 'node:events';
-import {buildConfig, gatewayRunning} from './config.mjs';
+import {buildConfig, gatewayRunning, writePrivateConfig} from './config.mjs';
+{
+ const folder=fs.mkdtempSync(path.join(os.tmpdir(),'tauric-private-config-'));
+ try {
+  const directory=path.join(folder,'runtime');
+  const target=writePrivateConfig(directory,{key:'first-private-value'});
+  fs.writeFileSync(path.join(directory,'openclaw.json.next'),'stale',{mode:0o644});
+  assert.equal(writePrivateConfig(directory,{key:'replacement-private-value'}),target);
+  assert.deepEqual(JSON.parse(fs.readFileSync(target,'utf8')),{key:'replacement-private-value'});
+  assert.equal(fs.statSync(directory).mode & 0o777,0o700);
+  assert.equal(fs.statSync(target).mode & 0o777,0o600);
+  assert.equal(fs.existsSync(path.join(directory,'openclaw.json.next')),false);
+ } finally {fs.rmSync(folder,{recursive:true,force:true});}
+}
 const killedGateway = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)']);
 await once(killedGateway, 'spawn');
 assert.equal(gatewayRunning(killedGateway), true);

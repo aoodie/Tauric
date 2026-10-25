@@ -12,10 +12,14 @@
         request_body {
             max_size 128KB
         }
-        reverse_proxy api:8000
+        reverse_proxy api:8000 {
+            header_up X-Tauric-Client-IP {remote_host}
+        }
     }
     handle /health/* {
-        reverse_proxy api:8000
+        reverse_proxy api:8000 {
+            header_up X-Tauric-Client-IP {remote_host}
+        }
     }
     handle {
         root * /srv
