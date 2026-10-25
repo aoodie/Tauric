@@ -22,12 +22,19 @@ The private [aoodie/Tauric repository](https://github.com/aoodie/Tauric) is the 
 | [#13](https://github.com/aoodie/Tauric/pull/13) | Protected candle replay and mandatory browser workflows |
 | [#14](https://github.com/aoodie/Tauric/pull/14) | Executed Qlib/LEAN CI and restricted LEAN job permissions |
 | [#15](https://github.com/aoodie/Tauric/pull/15) | Oracle service-scope preservation, Python 3.10 host controls and continuation feedback |
+| [#16](https://github.com/aoodie/Tauric/pull/16) | Oracle-only operation and retained legacy recovery history |
+| [#17](https://github.com/aoodie/Tauric/pull/17) | Source-bound Oracle quant workers and operating limits |
+| [#18](https://github.com/aoodie/Tauric/pull/18) | Bounded strategy discovery and reusable OANDA history |
+| [#19](https://github.com/aoodie/Tauric/pull/19) | OANDA readiness and exact-container recovery after backups |
+| [#20](https://github.com/aoodie/Tauric/pull/20) | Audited broker protection, valuation, account-risk continuity and operational corrections |
 
 Some pull requests are stacked on other branches. Being in this repository does not mean a change is merged into `main`, included in another workstream, deployed, or accepted. Review the individual pull request's base and checks. The [complete pull-request history](https://github.com/aoodie/Tauric/pulls) retains completed and superseded work.
 
 ## Verified deployment and remaining acceptance
 
 Oracle is the sole active workstation at [tauric.aoodie.xyz](https://tauric.aoodie.xyz). The owner selected Oracle-only operation on 19 October; IONOS is retired after its final backup passed isolated restoration on Oracle. Current source, exact service scope and recovery evidence are recorded in the [Oracle-only deployment record](ORACLE_ONLY_2026-10-19.md). The legacy 16-service profile is not authority to enable Oracle's financial workers.
+
+The [25 October corrected audit](AUDIT_REVIEW_2026-10-25.md) contains the newer direct inspection: Oracle still runs `1b45227`, has approximately 16 GB of RAM and twelve healthy intended services, and has locally modified shared ingress. PR #20 being merged does not mean its corrections are deployed.
 
 ## Historical legacy rollout
 

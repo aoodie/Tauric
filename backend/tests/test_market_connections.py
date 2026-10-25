@@ -2,6 +2,7 @@
 
 import json
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -12,6 +13,7 @@ from sqlalchemy.orm import Session
 from tauric import data_providers, market
 from tauric.app import app
 from tauric.config import runtime_config
+from tauric.credential_keys import stage_rotation
 from tauric.models import MarketConnectionVersion
 
 TOKEN = "fixture-oanda-token"
@@ -50,6 +52,25 @@ def test_authentication_and_csrf(client):
     )
     assert client.put(url, json=change()).status_code == 403
     assert client.post(url + "/test", json={"expected_revision": 0}).status_code == 403
+
+
+def test_key_rotation_preserves_saved_broker_credentials_and_immutable_revisions(signed_in, database):
+    url = "/api/v1/market-connections/oanda"
+    assert signed_in.put(url, json=change()).status_code == 200
+    with Session(database[0]) as db:
+        old = db.scalar(select(MarketConnectionVersion))
+        historical_id, historical_ciphertext = old.id, old.encrypted_config
+    key_file = Path(runtime_config().model_key_file)
+    staged = key_file.with_suffix(".next")
+    stage_rotation(key_file, staged)
+    staged.replace(key_file)
+    with Session(database[0]) as db:
+        assert data_providers.connections(db).oanda.token.get_secret_value() == TOKEN
+    response = signed_in.put(url, json=change(expected_revision=1, credential_action="keep", token=""))
+    assert response.status_code == 200 and response.json()["revision"] == 2
+    with Session(database[0]) as db:
+        assert db.get(MarketConnectionVersion, historical_id).encrypted_config == historical_ciphertext
+        assert data_providers.connections(db).oanda.token.get_secret_value() == TOKEN
 
 
 def test_encryption_redaction_immutable_history_and_worker_access(signed_in, database):

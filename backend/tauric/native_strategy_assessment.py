@@ -10,6 +10,19 @@ from .qualification_contracts import NativeStrategyVerdict
 
 ADAPTER_VERSION = "tauric_exact_strategy_assessment_v1"
 SOURCE = "native_tauric_strategy_review"
+FAILURE_MESSAGES = {
+    "strategy_assessment_input": "Strategy assessment input was invalid or exceeded its size limit. No verdict was recorded; no retry was made.",
+    "strategy_assessment_provider": "Strategy assessment provider failed. No verdict was recorded; no retry was made.",
+    "strategy_assessment_response": "Strategy assessment returned an invalid or mismatched response. No verdict was recorded; no retry was made.",
+}
+
+
+class StrategyAssessmentError(RuntimeError):
+    """A failed assessment invocation, distinct from a model's incomplete verdict."""
+
+    def __init__(self, category):
+        self.category = category
+        super().__init__(FAILURE_MESSAGES[category])
 
 
 def assess(graph, context, reports):
@@ -18,12 +31,6 @@ def assess(graph, context, reports):
         "strategy_version_id": evidence["strategy"]["id"],
         "evidence_checksum": context["evidence_checksum"],
         "intended_mode": evidence["intended_mode"],
-    }
-    fallback = {
-        **expected,
-        "decision": "incomplete",
-        "rationale": "The native model did not return a valid exact-evidence strategy verdict. No additional strategy-review invocation was made.",
-        "limitations": ["A valid structured strategy assessment is required."],
     }
     try:
         content = json.dumps(
@@ -36,6 +43,9 @@ def assess(graph, context, reports):
         )
         if len(content) > 200_000:
             raise ValueError("Assessment input exceeds the bounded review size")
+    except (TypeError, ValueError):
+        raise StrategyAssessmentError("strategy_assessment_input") from None
+    try:
         result = graph.deep_thinking_llm.with_structured_output(NativeStrategyVerdict).invoke(
             [
                 (
@@ -45,12 +55,15 @@ def assess(graph, context, reports):
                 ("human", content),
             ]
         )
+    except Exception:
+        # SDK exceptions may contain credentials. Only fixed public categories escape.
+        raise StrategyAssessmentError("strategy_assessment_provider") from None
+    try:
         verdict = NativeStrategyVerdict.model_validate(result).model_dump(mode="json")
         if any(verdict[key] != value for key, value in expected.items()):
             raise ValueError("Native verdict does not echo exact evidence")
-    except Exception:
-        # Provider exceptions may contain secrets. Preserve a bounded public explanation.
-        verdict = fallback
+    except (TypeError, ValueError):
+        raise StrategyAssessmentError("strategy_assessment_response") from None
     return {
         **verdict,
         "adapter_version": ADAPTER_VERSION,

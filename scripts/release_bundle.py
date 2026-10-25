@@ -15,6 +15,8 @@ FILES = (
     "backend/tauric/chat_instructions.txt",
     "docs/OPENCLAW_PROJECT_OWNERSHIP.md",
     "docs/OPENCLAW_OWNERSHIP_IMPLEMENTATION.md",
+    "docs/AUDIT_REVIEW_2026-10-25.md",
+    "docs/CREDENTIAL_KEY_ROTATION.md",
     "docs/OPEN_COMMODITY_RESEARCH.md",
     "docs/TRADER_DASHBOARD_IMPLEMENTATION.md",
     "docs/AUDIT_TRADER_DASHBOARD_2026-10-09.md",

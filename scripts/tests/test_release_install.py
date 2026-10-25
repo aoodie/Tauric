@@ -1,18 +1,52 @@
 """Migration ambiguity and authority changes cannot become startup permission."""
 
+import hashlib
 import json
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import release_install
 
 
 class Installation(unittest.TestCase):
+    def test_shared_ingress_drift_stops_installation_before_any_effect(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            active, candidate = root / "active", root / "candidate"
+            (active / "deploy").mkdir(parents=True)
+            candidate.mkdir()
+            files = {}
+            for name in ("Caddyfile.https", "Caddyfile.public-ip", "compose.https.yml", "compose.public-ip.yml"):
+                path = active / "deploy" / name
+                path.write_text("original ingress")
+                files["deploy/" + name] = hashlib.sha256(path.read_bytes()).hexdigest()
+            manifest = {"images": {"IMAGE": "digest"}, "files": files}
+            release_install.verify_active_ingress(active, manifest)
+            (active / "deploy/Caddyfile.https").write_text("original ingress\nquantdinger route")
+            (active / "release-manifest.json").write_text(json.dumps(manifest))
+            (candidate / "release-manifest.json").write_text(json.dumps({"revision": "a" * 40}))
+            authorize, effects = Mock(), Mock()
+            server = SimpleNamespace(
+                command=lambda *_: ["compose"], read_env=lambda *_: {"IMAGE": "digest"},
+                validate_images=lambda *_: None, run=effects,
+            )
+            with (
+                patch.object(release_install, "module", return_value=server),
+                self.assertRaisesRegex(ValueError, "preserve shared routes"),
+            ):
+                release_install.install(
+                    active_release=active, candidate=candidate, state=root,
+                    project="fixture", revision="a" * 40, journal={},
+                    journal_path=root / "journal.json", authorize=authorize, tree=[],
+                )
+            authorize.assert_not_called()
+            effects.assert_not_called()
+
     def test_startup_and_busy_recovery_preserve_disabled_service_profiles(self):
         services = ["db", "api", "web", "worker", "openclaw", "chat_worker"]
 

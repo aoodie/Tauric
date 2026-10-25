@@ -350,13 +350,16 @@ def test_native_extension_receives_frozen_evidence_and_never_retries(malformed):
         },
         "evidence_checksum": "evidence-hash",
     }
-    result = native_strategy_assessment.assess(
-        SimpleNamespace(deep_thinking_llm=LLM()),
-        context,
-        {"final_trade_decision": "Original background report"},
-    )
-    assert result["decision"] == ("incomplete" if malformed else "suitable")
-    assert len(calls) == 1 and result["execution_authority"] is False
+    graph = SimpleNamespace(deep_thinking_llm=LLM())
+    reports = {"final_trade_decision": "Original background report"}
+    if malformed:
+        with pytest.raises(native_strategy_assessment.StrategyAssessmentError) as error:
+            native_strategy_assessment.assess(graph, context, reports)
+        assert error.value.category == "strategy_assessment_response"
+    else:
+        result = native_strategy_assessment.assess(graph, context, reports)
+        assert result["decision"] == "suitable" and result["execution_authority"] is False
+    assert len(calls) == 1
     supplied = json.loads(calls[0][1][1])
     assert supplied["frozen_evidence"] == context["assessment_input"]
     assert (

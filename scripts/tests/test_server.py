@@ -137,6 +137,12 @@ class ServerControls(unittest.TestCase):
         )
         self.assertEqual(set(before), set(server.PRIVATE_FILES))
 
+    def test_source_export_scans_each_retained_encryption_key(self):
+        keys = ("a" * 44, "b" * 44)
+        (self.root / ".env.model-key").write_text("\n".join(keys) + "\n")
+        with patch.object(github_source, "ROOT", self.root):
+            self.assertEqual(github_source.known_secrets(), {key.encode() for key in keys})
+
     def test_engineering_restore_requires_root_before_creating_target_state(self):
         def extracted(_archive, staging):
             (staging / "secrets" / "engineering").mkdir(parents=True)

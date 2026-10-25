@@ -80,6 +80,27 @@ def engineering_idle(state):
     )
 
 
+def verify_active_ingress(active_release, manifest):
+    """Local ingress edits may carry another project's routes; never overwrite them."""
+    files = manifest.get("files", {})
+    for name in (
+        "deploy/Caddyfile.https", "deploy/Caddyfile.public-ip",
+        "deploy/compose.https.yml", "deploy/compose.public-ip.yml",
+    ):
+        path = active_release / name
+        expected = files.get(name)
+        if (
+            not isinstance(expected, str)
+            or not re.fullmatch(r"[a-f0-9]{64}", expected)
+            or path.is_symlink()
+            or not path.is_file()
+            or hashlib.sha256(path.read_bytes()).hexdigest() != expected
+        ):
+            raise ValueError(
+                "Active ingress differs from its release manifest. Reconcile and preserve shared routes before installation."
+            )
+
+
 def resume_services(server, compose, services):
     """Restore the recorded service set without activating optional profiles."""
     if not isinstance(services, list) or not services or "db" not in services or any(
@@ -254,6 +275,7 @@ def install(
     if candidate_manifest["revision"] != revision:
         raise ValueError("Candidate installation revision mismatch.")
     if not progress:
+        verify_active_ingress(active_release, previous_manifest)
         authorize()
         if not engineering_idle(state):
             raise EngineeringBusy()
