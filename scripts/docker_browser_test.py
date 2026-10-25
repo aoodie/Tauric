@@ -111,8 +111,8 @@ try:
             "-e",
             """
     const fs=require('node:fs');
-    const config=JSON.parse(fs.readFileSync('/state/service-tokens.json','utf8'));
-    const configured=Object.keys(JSON.parse(fs.readFileSync('/state/openclaw.json','utf8')).models?.providers??{}).length>0;
+    const config=JSON.parse(fs.readFileSync('/tmp/tauric-openclaw/service-tokens.json','utf8'));
+    const configured=Object.keys(JSON.parse(fs.readFileSync('/tmp/tauric-openclaw/openclaw.json','utf8')).models?.providers??{}).length>0;
     (async()=>{
      const context=await fetch('http://api:8000/api/v1/paper'); if(context.status!==401)throw Error('Owner boundary failed');
      const response=await fetch('http://127.0.0.1:18789/healthz'); if(!response.ok)throw Error('Gateway unhealthy');

@@ -450,7 +450,12 @@ def _evaluate(db, owner, protocol_id, body):
                 "Dedicated-account NAV change includes broker costs; cash flows must reconcile.",
             )
             observations = valuation.history(
-                db, owner, protocol.payload["account_key"], protocol.created_at, now()
+                db,
+                owner,
+                protocol.payload["account_key"],
+                protocol.created_at,
+                now(),
+                include_closed=True,
             )
             observations.insert(0, (protocol.created_at, D(protocol.payload["starting_equity"])))
             observations.append((now(), D(account.equity)))
@@ -460,14 +465,10 @@ def _evaluate(db, owner, protocol_id, body):
                 D(dd) <= D(frozen["maximum_drawdown_percent"]),
                 "Observed marked drawdown stays within the frozen threshold.",
             )
-            gaps = [
-                (right[0] - left[0]).total_seconds()
-                for left, right in zip(observations, observations[1:], strict=False)
-            ]
             check(
                 "valuation_coverage",
-                len(observations) > 2 and max(gaps, default=0) <= 300,
-                "Complete account valuations must be observed at least every five minutes throughout the run.",
+                valuation.coverage_complete(observations),
+                "Fresh broker NAV must be observed every five minutes, including verified market closures; unexpected mark failures remain gaps.",
             )
             check(
                 "latency",

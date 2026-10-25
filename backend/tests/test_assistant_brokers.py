@@ -4,10 +4,12 @@ from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
+from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from test_assistant_management import HEADERS, READ, action
 from test_assistant_management import invocation as invocation
+from test_broker_reprotection import protected as protected
 from test_chat import ready as ready
 
 from tauric import assistant_brokers
@@ -66,6 +68,46 @@ def test_broker_rejection_is_not_a_success_receipt(ready, invocation, monkeypatc
     assert response.status_code == 409
     assert "qualification" in response.json()["detail"]
     assert ready.get("/api/v1/assistant").json()["receipts"] == []
+
+
+def test_entry_protection_tool_retries_once_and_reports_actual_coverage(
+    ready, invocation, protected
+):
+    broker, entry_id = protected
+    for child in broker.children:
+        child["status"] = "expired"
+    response = action(ready, invocation, "repair_broker_protection", {"intent_id": entry_id})
+    assert response.status_code == 200, response.text
+    assert response.json()["result"]["protection_status"] == "covered"
+    assert (
+        action(ready, invocation, "repair_broker_protection", {"intent_id": entry_id}).json()
+        == response.json()
+    )
+    assert len(broker.protect_calls) == 1
+
+    def activity():
+        feed = ready.get("/api/v1/assistant/activities")
+        assert feed.status_code == 200, feed.text
+        return next(
+            item for item in feed.json()["items"] if item["resource_id"] == response.json()["id"]
+        )
+
+    assert activity()["status"] == "completed"
+    replacement = next(iter(broker.replacements.values()))
+    replacement["status"] = "expired"
+    for leg in replacement["legs"]:
+        leg["status"] = "expired"
+    assert ready.post(f"/api/v1/brokers/orders/{entry_id}/position").status_code == 200
+    assert activity()["status"] == "waiting"
+
+
+@pytest.mark.parametrize("both", [False, True])
+def test_protection_tool_requires_exactly_one_position_identity(both):
+    identities = {"intent_id": uuid4(), "close_id": uuid4()} if both else {}
+    with pytest.raises(ValidationError, match="Select either"):
+        assistant_brokers.ProtectionRepair(
+            request_id=uuid4(), reason="Restore original reviewed protection", **identities
+        )
 
 
 @pytest.mark.parametrize("provider", ["oanda", "alpaca"])

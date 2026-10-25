@@ -654,10 +654,11 @@ def tick(db):
         wake.processed = True
         if task.status == "running":
             root = db.get(AgentTask, task.root_id)
-            if turn.status != "succeeded":
-                root.attempts += 1
-                if root.id != task.id:
-                    task.attempts += 1
+            # A finished turn that leaves its task running made no durable
+            # transition, even when the chat transport reports success.
+            root.attempts += 1
+            if root.id != task.id:
+                task.attempts += 1
             if root.attempts >= root.max_attempts:
                 task.status, task.error, task.next_check_at = (
                     "requires_owner",
@@ -665,6 +666,7 @@ def tick(db):
                     None,
                 )
             else:
+                task.error = "The wake ended without a task transition; bounded recovery scheduled."
                 task.status, task.next_check_at = (
                     "retry_scheduled",
                     now() + timedelta(seconds=min(300, 10 * 2**root.attempts)),

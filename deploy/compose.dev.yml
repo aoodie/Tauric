@@ -38,6 +38,7 @@ services:
       TAURIC_DATABASE_URL: postgresql+psycopg://tauric_app:${TAURIC_DB_PASSWORD}@db:5432/tauric
       TAURIC_ALLOWED_ORIGINS: ${TAURIC_ALLOWED_ORIGINS:-["http://127.0.0.1:8080","http://localhost:8080"]}
       TAURIC_SECURE_COOKIES: "false"
+      TAURIC_TRUSTED_PROXY_HOSTS: '["web"]'
     volumes:
       - ../.env.models.json:/run/setup-model-profiles.json:ro
       - ../.env.market-data.json:/run/setup-market-data.json:ro
@@ -90,6 +91,8 @@ services:
     volumes:
       - ../.env.openclaw-private.json:/run/setup-openclaw-private.json:ro
       - openclaw_state:/state
+    tmpfs:
+      - /tmp:mode=1777,size=128m
     depends_on:
       api:
         condition: service_healthy

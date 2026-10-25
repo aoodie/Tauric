@@ -1,22 +1,26 @@
 // Independently pinned private Gateway. Settings arrive over a private boundary.
 import fs from "node:fs";
 import { spawn } from "node:child_process";
-import { buildConfig, gatewayRunning } from "./config.mjs";
+import { buildConfig, gatewayRunning, writePrivateConfig } from "./config.mjs";
 import { createHeartbeatStatusServer } from "./heartbeat-status.mjs";
 const root = process.env.OPENCLAW_STATE_DIR ?? "/state";
+const privateRoot = process.env.OPENCLAW_CONFIG_DIR ?? "/tmp/tauric-openclaw";
 fs.mkdirSync(root, {recursive:true,mode:0o700});
+fs.mkdirSync(privateRoot, {recursive:true,mode:0o700});
+fs.copyFileSync("/run/setup-openclaw-private.json",`${privateRoot}/service-tokens.json`);
+fs.chmodSync(`${privateRoot}/service-tokens.json`,0o600);
 if(process.getuid?.() === 0) {
   fs.chownSync(root,1000,1000);
-  fs.copyFileSync("/run/setup-openclaw-private.json",`${root}/service-tokens.json`);
-  fs.chmodSync(`${root}/service-tokens.json`,0o600);
-  fs.chownSync(`${root}/service-tokens.json`,1000,1000);
+  fs.chownSync(privateRoot,1000,1000);
+  fs.chownSync(`${privateRoot}/service-tokens.json`,1000,1000);
   process.setgroups([]); process.setgid(1000); process.setuid(1000);
-} else {
-  fs.copyFileSync("/run/setup-openclaw-private.json",`${root}/service-tokens.json`);
-  fs.chmodSync(`${root}/service-tokens.json`,0o600);
 }
 process.umask(0o077);
-const tokens=JSON.parse(fs.readFileSync(`${root}/service-tokens.json`,"utf8"));
+const tokens=JSON.parse(fs.readFileSync(`${privateRoot}/service-tokens.json`,"utf8"));
+// These generated files are rebuilt on startup; remove legacy persistent copies.
+for (const name of ['openclaw.json','openclaw.json.next','service-tokens.json']) {
+  fs.rmSync(`${root}/${name}`, {force:true});
+}
 for (const key of ["gateway_token","platform_token"]) if(typeof tokens[key] !== "string" || tokens[key].length < 40) throw new Error("Invalid private service configuration");
 fs.mkdirSync(`${root}/workspace/skills`,{recursive:true,mode:0o700});
 fs.cpSync("/app/skills/tauric-governance",`${root}/workspace/skills/tauric-governance`,{recursive:true});
@@ -40,12 +44,11 @@ const statusServer = createHeartbeatStatusServer({root, enabled:localHeartbeat,
   token:tokens.platform_token, runtimeAvailable:()=>gatewayRunning(child)});
 statusServer.listen(18790, '0.0.0.0');
 function launch(runtime) {
-  fs.writeFileSync(`${root}/openclaw.json.next`,JSON.stringify(buildConfig(root,tokens,runtime,{localHeartbeat})),{mode:0o600});
-  fs.renameSync(`${root}/openclaw.json.next`,`${root}/openclaw.json`);
+  const configPath = writePrivateConfig(privateRoot, buildConfig(root,tokens,runtime,{localHeartbeat}));
   // Provider exceptions and agent text may contain private inputs. Don't forward logs.
   child=spawn(process.execPath,["/app/node_modules/openclaw/openclaw.mjs","gateway","run"],{
     stdio:"ignore",env:{...process.env,HOME:root,OPENCLAW_STATE_DIR:root,
-      OPENCLAW_CONFIG_PATH:`${root}/openclaw.json`,OPENCLAW_GATEWAY_TOKEN:tokens.gateway_token}});
+      OPENCLAW_CONFIG_PATH:configPath,OPENCLAW_GATEWAY_TOKEN:tokens.gateway_token}});
 }
 async function retire() {
   const previous=child;

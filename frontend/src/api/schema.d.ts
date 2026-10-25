@@ -208,6 +208,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/brokers/orders/{intent_id}/repair-protection": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Repair Entry Protection */
+    post: operations["repair_entry_protection_api_v1_brokers_orders__intent_id__repair_protection_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/brokers/orders/{intent_id}/close": {
     parameters: {
       query?: never;
@@ -3490,6 +3507,8 @@ export interface components {
       remaining_quantity: string;
       /** Broker Holding Quantity */
       broker_holding_quantity: string;
+      /** Attributed Symbol Quantity */
+      attributed_symbol_quantity?: string | null;
       /**
        * Holding Check
        * @enum {string}
@@ -4572,7 +4591,11 @@ export interface components {
        * @enum {string}
        */
       calendar_id:
-        "crypto_24x7" | "oanda_fx" | "us_equity" | "provider_observed";
+        | "crypto_24x7"
+        | "oanda_fx"
+        | "oanda_product"
+        | "us_equity"
+        | "provider_observed";
       /**
        * Timezone
        * @enum {string}
@@ -4604,6 +4627,11 @@ export interface components {
        * @default
        */
       calendar_source: string;
+      /**
+       * Provider Symbol
+       * @default
+       */
+      provider_symbol: string;
       /** Coverage Start */
       coverage_start?: string | null;
       /** Coverage End */
@@ -9106,6 +9134,41 @@ export interface operations {
       cookie?: never;
     };
     requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BrokerLifecycleView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  repair_entry_protection_api_v1_brokers_orders__intent_id__repair_protection_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        intent_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["BrokerReviewedEntrySubmit"];
+      };
+    };
     responses: {
       /** @description Successful Response */
       200: {

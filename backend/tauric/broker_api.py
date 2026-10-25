@@ -95,6 +95,13 @@ def position(intent_id: str, db: Db, owner: CurrentOwner):
     return broker_positions.refresh(db, owner, intent_id)
 
 
+@router.post("/orders/{intent_id}/repair-protection", response_model=BrokerLifecycleView)
+def repair_entry_protection(
+    intent_id: UUID, body: BrokerReviewedEntrySubmit, db: Db, owner: CurrentOwner
+):
+    return broker_positions.repair_entry_protection(db, owner, str(intent_id), body)
+
+
 @router.post("/orders/{intent_id}/close", response_model=BrokerCloseView)
 def close(intent_id: str, body: BrokerCloseAction, db: Db, owner: CurrentOwner):
     return broker_positions.request_close(db, owner, intent_id, body)

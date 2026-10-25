@@ -11,7 +11,7 @@ import pytest
 import uvicorn
 from fastapi import HTTPException
 from fastapi.staticfiles import StaticFiles
-from test_broker_positions import LifecycleBroker
+from test_broker_reprotection import ProtectedBroker
 
 from tauric import broker_execution, market
 from tauric.app import app
@@ -20,7 +20,7 @@ from tauric.config import runtime_config
 from tauric.models import now
 
 
-class BrowserBroker(LifecycleBroker):
+class BrowserBroker(ProtectedBroker):
     def quote(self, symbol):
         return BrokerQuote(
             symbol=symbol, bid="150", ask="150.01", observed_at=now(), tradable=True, feed="iex"
@@ -112,7 +112,8 @@ def test_broker_execution_browser(database, signed_in, monkeypatch, tmp_path):
             timeout=90,
         )
         assert result.returncode == 0, result.stdout + result.stderr
-        assert len(broker.submissions) == 2 and len(broker.cancellations) == 1
+        assert len(broker.submissions) == 2 and len(broker.cancellations) == 3
+        assert len(broker.protect_calls) == 1
         assert broker.positions()[0].quantity == "7"
     finally:
         server.should_exit = True

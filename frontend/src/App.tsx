@@ -1657,8 +1657,7 @@ function Workstation({
         <div className="sidebar-context">
           <span className="eyebrow">REAL-MONEY TRADING</span>
           <div>
-            <span className="status-dot idle" />
-            Off
+            <BrokerModeBadge />
           </div>
           <p>
             Paper simulation, broker validation and governed live execution are
@@ -1740,7 +1739,9 @@ function Workstation({
               : "Tauric worker offline"}
           </span>
           <span>
-            <span className="status-dot idle" />
+            <span
+              className={`status-dot ${heartbeat?.status === "healthy" ? "good" : "idle"}`}
+            />
             OpenClaw · assistant &amp; approvals
           </span>
           <button

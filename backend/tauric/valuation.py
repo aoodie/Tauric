@@ -206,6 +206,7 @@ def broker_account(db, owner, provider):
         "currency_legs": {},
         "errors": [],
         "complete": False,
+        "observation_complete": False,
         "equity": None,
         "cash": None,
         "gross_exposure": None,
@@ -273,12 +274,22 @@ def broker_account(db, owner, provider):
                     attributed_quantity=txt(own),
                     external_quantity=txt(max(ZERO, D(holding.quantity) - own)),
                 )
+                if own > D(holding.quantity):
+                    base["errors"].append(
+                        {
+                            "instrument_id": holding.symbol,
+                            "detail": "Attributed quantities exceed observed broker holdings.",
+                        }
+                    )
                 try:
                     quote = broker.quote(holding.symbol)
                     if (
                         not quote.tradable
                         or not 0 <= (now() - quote.observed_at).total_seconds() <= 60
                     ):
+                        session = getattr(broker, "session_open", None)
+                        if session and session(holding.symbol) is False:
+                            item["expected_market_closure"] = True
                         raise BrokerError(
                             "Position mark is stale; refresh during the broker's trading session."
                         )
@@ -304,11 +315,16 @@ def broker_account(db, owner, provider):
                         base_ccy, quote_ccy = holding.symbol.split("_")
                         legs[base_ccy] = legs.get(base_ccy, ZERO) + sign * q
                         legs[quote_ccy] = legs.get(quote_ccy, ZERO) - sign * value
-                    if own > q:
-                        raise BrokerError("Attributed quantities exceed observed broker holdings.")
                 except BrokerError as error:
-                    item.update(mark_status="unavailable")
-                    base["errors"].append({"instrument_id": holding.symbol, "detail": str(error)})
+                    expected = item.pop("expected_market_closure", False)
+                    item.update(mark_status="market_closed" if expected else "unavailable")
+                    base["errors"].append(
+                        {
+                            "instrument_id": holding.symbol,
+                            "detail": str(error),
+                            "expected_market_closure": expected,
+                        }
+                    )
                 base["positions"].append(item)
                 for allocation in allocations:
                     if allocation["instrument"] == holding.symbol:
@@ -343,6 +359,8 @@ def broker_account(db, owner, provider):
                 gross_exposure=txt(total) if not base["errors"] else None,
                 currency_legs={key: txt(value) for key, value in legs.items()},
                 complete=not base["errors"],
+                observation_complete=0 <= (now() - account.observed_at).total_seconds() <= 60
+                and all(error.get("expected_market_closure") for error in base["errors"]),
                 instrument_exposure=exposure_groups(
                     [{**a, "group": a["instrument"]} for a in allocation_values], account.currency
                 ),
@@ -353,7 +371,7 @@ def broker_account(db, owner, provider):
     return base
 
 
-def history(db, owner, account_key, starting=None, ending=None):
+def history(db, owner, account_key, starting=None, ending=None, *, include_closed=False):
     # A prospective year at one observation/minute fits this explicit bound.
     # Query the registered window, never the first N observations of account life.
     query = select(TradingReadinessRecord).where(
@@ -374,9 +392,20 @@ def history(db, owner, account_key, starting=None, ending=None):
             raise BrokerError("Valuation evidence exceeds the supported observation window.")
         checked(row)
         account = next((a for a in row.payload["accounts"] if a["key"] == account_key), None)
-        if account and account["complete"] and account.get("equity") is not None:
+        if (
+            account
+            and (account["complete"] or (include_closed and account.get("observation_complete")))
+            and account.get("equity") is not None
+        ):
             result.append((row.created_at, D(account["equity"])))
     return result
+
+
+def coverage_complete(observations):
+    return len(observations) > 2 and all(
+        0 <= (right[0] - left[0]).total_seconds() <= 300
+        for left, right in zip(observations, observations[1:], strict=False)
+    )
 
 
 def capture(db, owner, request):
@@ -439,6 +468,18 @@ def capture(db, owner, request):
                 group["equity"] += D(account.get("equity") or "0")
                 group["gross_exposure"] += D(account.get("gross_exposure") or "0")
             prior = previous_accounts.get(account["key"], {})
+            if account.get("provider") and account.get("account_fingerprint"):
+                # Credentials can rotate without changing the broker account.
+                # Protocol keys still bind their original connection revision.
+                identity = ("provider", "mode", "account_fingerprint", "currency")
+                prior = next(
+                    (
+                        item
+                        for item in previous_accounts.values()
+                        if all(item.get(key) == account.get(key) for key in identity)
+                    ),
+                    {},
+                )
             # Keep the running peak through missing marks without inventing an observation.
             for field in (
                 "marked_peak_equity",
@@ -448,7 +489,9 @@ def capture(db, owner, request):
             ):
                 if field in prior:
                     account[field] = prior[field]
-            if account["complete"] and account.get("equity") is not None:
+            if (account["complete"] or account.get("observation_complete")) and account.get(
+                "equity"
+            ) is not None:
                 equity = D(account["equity"])
                 peak = max(
                     equity,

@@ -334,7 +334,7 @@ def test_exact_provider_products_are_not_reclassified_as_fx(signed_in, discovery
         )
         assert spec.provider_product_type == product and not spec.native_research_ready
         assert provider(spec) == "oanda"
-        assert default_context(spec).calendar_id == "provider_observed"
+        assert default_context(spec).calendar_id == "oanda_product"
         assert "1d" not in spec.supported_intervals
         assert add(signed_in, "oanda", symbol, "fx").status_code == 422
     assert add(signed_in, "oanda", "LONGBASE_USD", "fx").status_code == 422

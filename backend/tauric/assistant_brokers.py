@@ -3,6 +3,7 @@
 from uuid import UUID
 
 from fastapi import HTTPException
+from pydantic import model_validator
 
 from . import broker_execution, broker_positions, broker_review, broker_routes, broker_setup
 from .broker_contracts import (
@@ -41,6 +42,17 @@ class CloseAction(BrokerReviewedEntrySubmit):
     close_id: UUID
 
 
+class ProtectionRepair(BrokerReviewedEntrySubmit):
+    close_id: UUID | None = None
+    intent_id: UUID | None = None
+
+    @model_validator(mode="after")
+    def one_position(self):
+        if (self.close_id is None) == (self.intent_id is None):
+            raise ValueError("Select either an unresolved close or an entry intent.")
+        return self
+
+
 class ForwardEvaluation(ReadinessAction):
     protocol_id: UUID
 
@@ -64,7 +76,7 @@ CONTRACTS = {
     "cancel_broker_order": OrderAction,
     "refresh_broker_position": OrderAction,
     "reconcile_broker_close": CloseAction,
-    "repair_broker_protection": CloseAction,
+    "repair_broker_protection": ProtectionRepair,
 }
 TITLES = {name: name.replace("_", " ").capitalize() for name in CONTRACTS}
 # Calls that can reach broker writes. Preparation/policy/route operations have
@@ -165,7 +177,17 @@ def execute(db, owner, operation, params):
     if operation == "reconcile_broker_close":
         return broker_positions.process_close(db, owner, str(params.close_id))
     if operation == "repair_broker_protection":
+        if params.intent_id:
+            return broker_positions.repair_entry_protection(
+                db,
+                owner,
+                str(params.intent_id),
+                body(BrokerReviewedEntrySubmit, "close_id", "intent_id"),
+            )
         return broker_positions.repair_protection(
-            db, owner, str(params.close_id), body(BrokerReviewedEntrySubmit, "close_id")
+            db,
+            owner,
+            str(params.close_id),
+            body(BrokerReviewedEntrySubmit, "close_id", "intent_id"),
         )
     raise ValueError("Unknown broker management operation")

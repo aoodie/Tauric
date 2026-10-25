@@ -309,7 +309,7 @@ def receipt_item(db, owner, row):
     if row.stage == "requested":
         state = "waiting" if now() - row.created_at < timedelta(seconds=120) else "reconciling"
     else:
-        identity = result.get("id")
+        identity = result.get("id") or result.get("entry_intent_id")
         model = {
             "research_candidate": AnalysisJob,
             "request_paper_review": GovernanceJob,
@@ -340,28 +340,43 @@ def receipt_item(db, owner, row):
         }:
             from . import broker_execution, broker_positions
 
-            close_operation = operation in {
-                "close_broker_position",
-                "reconcile_broker_close",
-                "repair_broker_protection",
-            }
+            entry_repair = operation == "repair_broker_protection" and not result.get("id")
+            close_operation = (
+                operation
+                in {
+                    "close_broker_position",
+                    "reconcile_broker_close",
+                    "repair_broker_protection",
+                }
+                and not entry_repair
+            )
             model = BrokerCloseRequest if close_operation else BrokerOrderIntent
             broker_row = db.get(model, identity) if isinstance(identity, str) else None
             state = "blocked"
             if broker_row and broker_row.owner_id == owner.id:
-                verified(broker_row)
+                if broker_row.checksum != broker_execution.checksum(broker_row.payload):
+                    raise HTTPException(409, "Broker activity source integrity failed.")
                 observed = (
                     broker_positions.close_view(db, broker_row)
                     if close_operation
+                    else broker_positions.latest(db, broker_row)
+                    if entry_repair
                     else broker_execution.view(db, broker_row)
                 )
-                terminal = observed.status in {
-                    "filled",
-                    "closed",
-                    "cancelled",
-                    "rejected",
-                    "expired",
-                }
+                if observed is None:
+                    observed = broker_execution.view(db, broker_row)
+                terminal = (
+                    getattr(observed, "protection_status", None) in {"covered", "not_required"}
+                    if entry_repair
+                    else observed.status
+                    in {
+                        "filled",
+                        "closed",
+                        "cancelled",
+                        "rejected",
+                        "expired",
+                    }
+                )
                 state = (
                     "completed"
                     if terminal

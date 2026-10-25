@@ -47,6 +47,11 @@ with sync_playwright() as p:
     expect(section.get_by_role("row", name="AAPL long 7 10", exact=True)).to_be_visible()
     expect(
         section.get_by_role("button", name="Enable demo orders", exact=True)
+    ).to_be_disabled()
+    section.get_by_label("Use broker limits only, without additional account caps").check()
+    section.get_by_role("button", name="Save account limits", exact=True).click()
+    expect(
+        section.get_by_role("button", name="Enable demo orders", exact=True)
     ).to_be_enabled()
     checks.append("Demo account verification precedes enablement")
     section.get_by_role("button", name="Enable demo orders", exact=True).click()
@@ -79,6 +84,12 @@ with sync_playwright() as p:
     expect(
         section.get_by_text("open · entered 1 · closed 0 · remaining 1", exact=True)
     ).to_be_visible()
+    section.get_by_role("button", name="Restore original protection", exact=True).click()
+    expect(section.get_by_text("Protective stop: covered", exact=True)).to_be_visible()
+    expect(
+        section.get_by_role("button", name="Restore original protection", exact=True)
+    ).to_have_count(0)
+    checks.append("Original stop and target restored without a fabricated close request")
     section.get_by_role("button", name="Close quantity", exact=True).click()
     section.get_by_label("Close quantity", exact=True).fill("1")
     section.get_by_label("Close reason", exact=True).fill(

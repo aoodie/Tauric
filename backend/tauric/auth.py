@@ -1,6 +1,8 @@
 import hashlib
 import secrets
+import socket
 from datetime import timedelta
+from ipaddress import ip_address
 from typing import Annotated
 
 from argon2 import PasswordHasher
@@ -56,11 +58,32 @@ def authenticate(request: Request, db: Db) -> Owner:
 CurrentOwner = Annotated[Owner, Depends(authenticate)]
 
 
+def client_ip(request: Request):
+    """Accept the ingress-overwritten address only from the configured proxy."""
+    peer = request.client.host if request.client else "unknown"
+    forwarded = request.headers.get("x-tauric-client-ip")
+    if not forwarded:
+        return peer
+    try:
+        address = str(ip_address(forwarded))
+        peer_address = ip_address(peer)
+    except ValueError:
+        return peer
+    for host in runtime_config().trusted_proxy_hosts:
+        try:
+            addresses = socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)
+        except OSError:
+            continue
+        if any(peer_address == ip_address(item[4][0]) for item in addresses):
+            return address
+    return peer
+
+
 def login(request: Request, db: Session, username: str, password: str):
     check_origin(request)
     config = runtime_config()
     # Database row lock makes throttling persist across API instances and restarts.
-    peer = request.client.host if request.client else "unknown"
+    peer = client_ip(request)
     key = digest("login:" + peer)
     from sqlalchemy.dialects.postgresql import insert
 

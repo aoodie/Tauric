@@ -126,6 +126,7 @@ def test_capture_real_rule_signal_exact_sizing_and_no_order(signed_in, setup, da
     preview = response.json()
     assert preview["entry_evidence_ready"] and preview["signal_action"] == "enter"
     planned = preview["planned_order"]
+    assert planned["time_in_force"] == "gtc"
     assert (planned["quantity"], planned["stop_loss"], planned["take_profit"]) == (
         "200",
         "9",

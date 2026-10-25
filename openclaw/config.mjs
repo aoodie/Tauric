@@ -1,4 +1,16 @@
 // Build only project-owned configuration; the pinned OpenClaw runtime is untouched.
+import fs from 'node:fs';
+
+export function writePrivateConfig(directory, value) {
+  fs.mkdirSync(directory, {recursive:true,mode:0o700});
+  fs.chmodSync(directory, 0o700);
+  const next = `${directory}/openclaw.json.next`;
+  fs.writeFileSync(next, JSON.stringify(value), {mode:0o600});
+  fs.chmodSync(next, 0o600);
+  fs.renameSync(next, `${directory}/openclaw.json`);
+  return `${directory}/openclaw.json`;
+}
+
 export function gatewayRunning(child) {
   return !!child && child.exitCode === null && child.signalCode === null;
 }
