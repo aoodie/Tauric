@@ -39,6 +39,8 @@ def signature():
         "broker_risk.py",
         "strategy_rules.py",
         "data_quality.py",
+        "market_calendars.py",
+        "oanda_sessions.py",
         "native_broker_setup.py",
         "native_runner.py",
         "native_fx.py",
@@ -595,7 +597,10 @@ def require_live_strategy(db, owner, policy, strategy_version_id, instrument_id,
 
 
 def operating_guard(db, owner, policy, intent_id=None):
-    if not policy or policy.payload.get("environment") != "live":
+    if not policy:
+        return
+    live = policy.payload.get("environment") == "live"
+    if not live and policy.payload.get("maximum_drawdown_percent") is None:
         return
     snapshot = db.scalar(
         select(TradingReadinessRecord)
@@ -606,25 +611,27 @@ def operating_guard(db, owner, policy, intent_id=None):
         .limit(1)
     )
     if not snapshot or not timedelta(0) <= now() - snapshot.created_at <= timedelta(seconds=120):
-        raise HTTPException(409, "Live entries wait for a recent marked portfolio observation.")
+        raise HTTPException(409, "Broker entries wait for a recent marked portfolio observation.")
     account = next(
         (
             a
             for a in valuation.checked(snapshot).payload["accounts"]
             if a.get("provider") == policy.provider
             and a.get("account_fingerprint") == policy.payload["account_fingerprint"]
-            and a.get("mode") == "live"
+            and a.get("mode") == policy.payload.get("environment")
             and a.get("connection_revision") == policy.payload["connection_revision"]
         ),
         None,
     )
     if not account or not account["complete"]:
         raise HTTPException(
-            409, "Live entries wait for complete current account valuation and currency exposure."
+            409, "Broker entries wait for complete current account valuation and currency exposure."
         )
     from .broker_risk import policy_drawdown
 
     policy_drawdown(policy, account)
+    if not live:
+        return
     query = select(BrokerOrderIntent.id).where(
         BrokerOrderIntent.owner_id == owner.id,
         BrokerOrderIntent.provider == policy.provider,

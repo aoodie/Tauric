@@ -13,7 +13,9 @@ These source changes address the reproducible findings in the repeated audit. Th
 
 Fresh account NAV observed during a verified market closure can maintain prospective coverage, while unavailable position marks and exposure values remain visibly incomplete. This does not make those marks eligible for a new live entry. Alpaca closures require its fresh clock; OANDA closures use the instrument's verified product type and known regular session rules. Unexpected quote failures, unknown sessions, stale NAV, attribution errors and worker outages still fail coverage. The five-minute coverage requirement is unchanged.
 
-Known OANDA USD metals, energy products and US-session index/bond products use their published regular weekly and maintenance sessions, including New York DST. Other product schedules and holiday exceptions remain conservative rather than being inferred from Forex hours. The exact supported symbol sets and source are in `backend/tauric/market_calendars.py`. See [OANDA trading hours](https://www.oanda.com/uk-en/trading/hours-of-operation/).
+OANDA product sessions cover 54 account-listed metals, energy, agriculture, Asian/European/US index and bond products. Session generation preserves exchange timezones, split sessions, documented DST adjustments, New York candle alignment and NZD maintenance. Published 2026 holiday closures and shortened sessions are dated exceptions rather than recurring inferred holidays. See `backend/tauric/oanda_sessions.py`, [OANDA regular hours](https://www.oanda.com/uk-en/trading/hours-of-operation/) and [holiday hours](https://www.oanda.com/uk-en/trading/holiday-trading-hours/).
+
+Brent remains unknown because the regular table and its footnote give conflicting timezone/hour rules. Connected TRY candle observations also extend beyond the published schedule, so TRY keeps conservative gap checking and cannot establish a verified closed session. Unpublished future holidays are not invented. The AU200 published DST closing rule differs from the observed candle series; those absences remain gaps.
 
 ## Autonomy, access and presentation
 
@@ -48,3 +50,15 @@ These checks use synthetic broker fixtures and do not place orders at a connecte
 Oracle was independently inspected before implementation: the active release and running API image report `1b4522732ec3a1bed7a28d6f851191e73554c455`, whose Git tree matches main `6a3d815c0269e596d8e08d00e79574b52d89a088`. All 12 intended services were healthy, the financial execution services were stopped, and the production broker policy, route and intent tables were empty.
 
 These changes alter the execution source fingerprint. The existing installer in `scripts/release_install.py` rejects that change without separate trusted qualification. That guard remains intact. Passing development tests is not deployment or strategy qualification, and this document does not claim that the corrections are installed on Oracle.
+
+## Review follow-ups and connected checks
+
+The two automated P1 review findings are corrected. Recovery looks through failed observations to the last integrity-checked snapshot for the same provider, environment, fingerprint and currency. Failed observations remain incomplete and do not acquire invented current identity or marks. Filled and partially filled/cancelled peers cannot disappear from aggregate attribution because of an old unfilled cursor; a new fill also makes that cursor eligible for worker reconciliation.
+
+Explicitly saved paper/practice drawdown caps now apply to setup assessment, review and direct demo entry preparation/submission. Missing, stale, mismatched or incomplete observations block capped entries. Reducing exits and protection recovery retain their existing authority. No policy values or service pauses were changed.
+
+Connected read-only checks on 25 October found both demo accounts reachable: OANDA practice had zero holdings; Alpaca paper had ten existing holdings. Tauric's active order, policy, route and qualification-report tables were empty. The twelve intended production services were healthy and the four execution services remained stopped.
+
+Read-only OANDA candle requests returned 3,200 complete hourly bars across sixteen representative instruments. Twelve series exactly matched expected sessions, including the Hong Kong holiday closure. AU200, SG30, corn and TRY retained nine, one, two and 240 unexplained/conservative expected-bar gaps respectively; no missing candle was fabricated or waived. No orders or model calls were made by these checks. Sanitized local evidence is saved under `artifacts/audit-followups/`.
+
+A prospective broker protocol cannot be registered yet: the platform requires passing current strategy research, and the active ledger has no qualification report. Existing failed research must remain failed. The Alpaca account is also not empty/dedicated. A genuine prospective run must elapse under the new frozen execution identity; retrospective bars and test fixtures cannot replace that evidence.

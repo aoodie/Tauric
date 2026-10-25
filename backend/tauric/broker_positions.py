@@ -5,7 +5,7 @@ from decimal import Decimal, localcontext
 from hashlib import blake2b
 
 from fastapi import HTTPException
-from sqlalchemy import or_, select, text
+from sqlalchemy import Numeric, and_, exists, or_, select, text
 
 from . import broker_execution as execution
 from . import broker_lifecycle_adapters as facts
@@ -93,7 +93,10 @@ def ensure_cursor(db, entry):
 
 def register_entry(db, entry, order):
     if entry.payload["order"]["position_effect"] == "open" and D(order.filled_quantity) > 0:
-        ensure_cursor(db, entry)
+        cursor = ensure_cursor(db, entry)
+        if cursor.status == "unfilled":
+            cursor.status = "unknown"
+            cursor.updated_at = now() - timedelta(seconds=30)
 
 
 def close_rows(db, entry):
@@ -225,6 +228,25 @@ def _collect(db, entry, broker, *, check_netting=True):
                     BrokerOrderIntent.payload["order"]["side"].as_string() == order.side,
                     or_(
                         BrokerPositionCursor.status.not_in(["closed", "unfilled"]),
+                        and_(
+                            or_(
+                                BrokerPositionCursor.status == "unfilled",
+                                BrokerPositionCursor.entry_intent_id.is_(None),
+                            ),
+                            or_(
+                                BrokerOrderIntent.status == "filled",
+                                exists(
+                                    select(BrokerOrderEvent.id).where(
+                                        BrokerOrderEvent.intent_id == BrokerOrderIntent.id,
+                                        BrokerOrderEvent.kind == "observed",
+                                        BrokerOrderEvent.payload["order"]["filled_quantity"]
+                                        .as_string()
+                                        .cast(Numeric)
+                                        > 0,
+                                    )
+                                ),
+                            ),
+                        ),
                         BrokerOrderIntent.status.in_(
                             ["submitting", "pending", "partially_filled", "unknown", "cancelling"]
                         ),

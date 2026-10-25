@@ -282,7 +282,7 @@ def test_drawdown_continues_across_credentials_but_never_across_accounts(
         valuation, "append", lambda db, owner, kind, request, payload: Object(payload=payload)
     )
     db = Object(
-        scalar=Mock(side_effect=[None, previous]), scalars=lambda *a: [], commit=lambda: None
+        scalar=Mock(side_effect=[None, previous, None]), scalars=lambda *a: [], commit=lambda: None
     )
     result = valuation.capture(db, Object(id="owner"), Object(request_id=uuid4()))
     assert result.payload["accounts"][0]["marked_max_drawdown_percent"] == expected

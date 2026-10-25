@@ -6,6 +6,7 @@ from uuid import NAMESPACE_URL, uuid5
 
 from fastapi import HTTPException
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import JSONB
 
 from . import broker_execution, broker_positions, forex_paper, market, paper
 from .broker_adapters import BrokerError
@@ -408,6 +409,42 @@ def coverage_complete(observations):
     )
 
 
+def prior_broker_account(db, owner, account, previous_accounts):
+    identity = ("provider", "mode", "account_fingerprint", "currency")
+    if not all(account.get(key) for key in identity):
+        return previous_accounts.get(account["key"], {})
+    matching = {key: account[key] for key in identity}
+    prior = next(
+        (
+            item
+            for item in previous_accounts.values()
+            if all(item.get(key) == value for key, value in matching.items())
+        ),
+        None,
+    )
+    if prior is not None:
+        return prior
+    # Failed observations deliberately have no verified account identity. Look
+    # through them (and credential revisions), without inventing fresh facts.
+    row = db.scalar(
+        select(TradingReadinessRecord)
+        .where(
+            TradingReadinessRecord.owner_id == owner.id,
+            TradingReadinessRecord.kind == "valuation",
+            TradingReadinessRecord.payload.cast(JSONB).contains({"accounts": [matching]}),
+        )
+        .order_by(TradingReadinessRecord.created_at.desc())
+        .limit(1)
+    )
+    if row is None:
+        return {}
+    return next(
+        item
+        for item in checked(row).payload["accounts"]
+        if all(item.get(key) == value for key, value in matching.items())
+    )
+
+
 def capture(db, owner, request):
     previous = db.scalar(
         select(TradingReadinessRecord).where(
@@ -468,18 +505,8 @@ def capture(db, owner, request):
                 group["equity"] += D(account.get("equity") or "0")
                 group["gross_exposure"] += D(account.get("gross_exposure") or "0")
             prior = previous_accounts.get(account["key"], {})
-            if account.get("provider") and account.get("account_fingerprint"):
-                # Credentials can rotate without changing the broker account.
-                # Protocol keys still bind their original connection revision.
-                identity = ("provider", "mode", "account_fingerprint", "currency")
-                prior = next(
-                    (
-                        item
-                        for item in previous_accounts.values()
-                        if all(item.get(key) == account.get(key) for key in identity)
-                    ),
-                    {},
-                )
+            if account.get("provider"):
+                prior = prior_broker_account(db, owner, account, previous_accounts)
             # Keep the running peak through missing marks without inventing an observation.
             for field in (
                 "marked_peak_equity",

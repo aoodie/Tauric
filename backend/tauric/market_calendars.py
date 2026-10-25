@@ -4,46 +4,28 @@ from datetime import UTC, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from .market_contracts import DataContext
+from .oanda_sessions import HOLIDAY_COVERAGE, RULES
+from .oanda_sessions import sessions as oanda_sessions
 
 SECONDS = {"1m": 60, "5m": 300, "15m": 900, "1h": 3600, "4h": 14400, "1d": 86400}
 NY = ZoneInfo("America/New_York")
-# Published OANDA UK regular sessions, checked 25 October 2026:
-# https://www.oanda.com/uk-en/trading/hours-of-operation/
-# Unknown products and holiday exceptions retain conservative gap checking.
-METALS = {"XAU_USD", "XAG_USD"}
-US_PRODUCTS = {
-    "XPT_USD",
-    "XPD_USD",
-    "WTICO_USD",
-    "NATGAS_USD",
-    "XCU_USD",
-    "SPX500_USD",
-    "NAS100_USD",
-    "US30_USD",
-    "US2000_USD",
-    "JP225_USD",
-    "USB02Y_USD",
-    "USB05Y_USD",
-    "USB10Y_USD",
-    "USB30Y_USD",
-}
 
 
 def default_context(spec):
     if spec.asset_type in {"commodity", "cfd"}:
         symbol = getattr(spec, "provider_symbol", "")
-        known = symbol in METALS | US_PRODUCTS
+        known = symbol in RULES
         return DataContext(
             calendar_id="oanda_product" if known else "provider_observed",
             timezone="UTC",
             price_side="bid_ask",
             volume_type="provider_ticks",
             provider_symbol=symbol,
-            calendar_source="OANDA published regular product sessions; holiday exceptions unverified"
+            calendar_source=f"OANDA UK regular sessions and published exceptions {HOLIDAY_COVERAGE[0]} through {HOLIDAY_COVERAGE[1]} (checked 2026-10-25)"
             if known
             else "Observed OANDA closed intraday bars; no inferred product holiday calendar",
             warnings=[
-                "Product holiday exceptions are unverified; unexpected absences remain data gaps."
+                "Unpublished or ambiguous holiday exceptions remain data gaps; calendars are not extrapolated."
                 if known
                 else "Product trading hours and holiday exceptions are not inferred from Forex sessions.",
                 "Missing expected intraday bars remain gaps and block contiguous-signal evaluation.",
@@ -55,6 +37,7 @@ def default_context(spec):
         timezone="UTC" if spec.asset_type == "crypto_spot" else "America/New_York",
         price_side=spec.price_side,
         volume_type=spec.volume_type,
+        provider_symbol=getattr(spec, "provider_symbol", ""),
         calendar_source="UTC continuous"
         if spec.asset_type == "crypto_spot"
         else "OANDA New York weekly/maintenance rules",
@@ -69,34 +52,25 @@ def default_context(spec):
 
 
 def product_sessions(symbol, start, end):
-    if symbol not in METALS | US_PRODUCTS:
-        return
-    day = start.astimezone(NY).date() - timedelta(days=1)
-    last = end.astimezone(NY).date() + timedelta(days=1)
-    while day <= last:
-        if day.weekday() in (6, 0, 1, 2, 3):
-            yield (
-                datetime.combine(day, time(18, 5 if symbol in METALS else 1), NY).astimezone(UTC),
-                datetime.combine(day + timedelta(days=1), time(16, 59), NY).astimezone(UTC),
-            )
-        day += timedelta(days=1)
+    yield from oanda_sessions(symbol, start, end)
 
 
 def oanda_session_open(symbol, product_type, stamp):
     if product_type == "CURRENCY":
         if "TRY" in symbol.split("_"):
             return None
-        if "NZD" in symbol.split("_"):
-            local = stamp.astimezone(ZoneInfo("Pacific/Auckland")).time().replace(tzinfo=None)
-            if time(6, 59) <= local < time(7, 5):
-                return False
-        return any(op <= stamp < close for op, close in fx_sessions(stamp, stamp))
-    if symbol in METALS | US_PRODUCTS:
+        return any(
+            op <= stamp < close for op, close in oanda_sessions(symbol, stamp, stamp, currency=True)
+        )
+    if symbol in RULES:
         return any(op <= stamp < close for op, close in product_sessions(symbol, stamp, stamp))
     return None
 
 
-def fx_sessions(start, end):
+def fx_sessions(start, end, symbol=""):
+    if symbol:
+        yield from oanda_sessions(symbol, start, end, currency=True)
+        return
     day = start.astimezone(NY).date() - timedelta(days=1)
     last = end.astimezone(NY).date() + timedelta(days=1)
     while day <= last:
@@ -128,25 +102,38 @@ def periods(context, interval, start, end):
             raise ValueError("Calendar does not cover this data range")
         sessions = [(s.open.astimezone(UTC), s.close.astimezone(UTC)) for s in context.sessions]
     elif context.calendar_id == "oanda_product":
-        if context.provider_symbol not in METALS | US_PRODUCTS:
+        if context.provider_symbol not in RULES:
             raise ValueError("The product has no verified regular session calendar")
         sessions = product_sessions(context.provider_symbol, start, end)
     else:
-        sessions = fx_sessions(start, end)
+        sessions = fx_sessions(start, end, context.provider_symbol)
+    emitted = None
     for opening, closing in sessions:
         if context.calendar_id in {"oanda_fx", "oanda_product"}:
             day = opening.astimezone(NY).date()
             anchor = datetime.combine(day, time(17), NY).astimezone(UTC)
+            if anchor > opening:
+                day -= timedelta(days=1)
+                anchor = datetime.combine(day, time(17), NY).astimezone(UTC)
             # Daily bars end at the following NY alignment, not a fixed UTC duration.
             if interval == "1d":
-                finish = datetime.combine(day + timedelta(days=1), time(17), NY).astimezone(UTC)
-                if start <= anchor <= end:
-                    yield anchor, finish
+                while anchor < closing:
+                    day += timedelta(days=1)
+                    finish = datetime.combine(day, time(17), NY).astimezone(UTC)
+                    if start <= anchor <= end and (emitted is None or anchor > emitted):
+                        yield anchor, finish
+                        emitted = anchor
+                    anchor = finish
                 continue
             stamp = anchor
             while stamp < closing:
-                if stamp + step > opening and start <= stamp <= end:
+                if (
+                    stamp + step > opening
+                    and start <= stamp <= end
+                    and (emitted is None or stamp > emitted)
+                ):
                     yield stamp, stamp + step
+                    emitted = stamp
                 stamp += step
         elif interval == "1d":
             if start <= opening <= end:
@@ -164,14 +151,20 @@ def session_open(context, stamp):
     if context.calendar_id == "crypto_24x7":
         return True
     if context.calendar_id == "oanda_fx":
-        return any(op <= stamp < close for op, close in fx_sessions(stamp, stamp))
+        return any(
+            op <= stamp < close for op, close in fx_sessions(stamp, stamp, context.provider_symbol)
+        )
     if context.calendar_id == "oanda_product":
-        if context.provider_symbol not in METALS | US_PRODUCTS:
+        if context.provider_symbol not in RULES:
             return None
         return any(
             op <= stamp < close
             for op, close in product_sessions(context.provider_symbol, stamp, stamp)
         )
-    if not context.coverage_start <= stamp <= context.coverage_end:
+    if (
+        context.coverage_start is None
+        or context.coverage_end is None
+        or not context.coverage_start <= stamp <= context.coverage_end
+    ):
         return None
     return any(s.open <= stamp < s.close for s in context.sessions)
