@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import backup_vault
+import quant_release
 import server
 from release_publish import save
 
@@ -117,6 +118,7 @@ def backup(state, output, day):
         report.update(phase="backup_requested", quant_units=units)
         save(path, report)
         try:
+            quant_release.detach_automatic_start()
             def frozen():
                 # Application writers are stopped now. Research may have queued
                 # a job after the early probe; never terminate that original job.
@@ -132,8 +134,7 @@ def backup(state, output, day):
             report["phase"] = "backed_up"
             save(path, report)
         finally:
-            for unit in units:
-                subprocess.run(["systemctl", "start", unit], check=True, capture_output=True)
+            quant_release.resume_units(units)
     if report["phase"] == "backup_requested":
         raise ValueError("Original backup outcome requires reconciliation; it was not repeated.")
     restore_state = state.parent / ("tauric-scheduled-recovery-" + day)

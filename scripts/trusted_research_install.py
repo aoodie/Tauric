@@ -72,8 +72,9 @@ def install(intent_path):
             raise release_install.EngineeringBusy()
         journal["quant_units"] = [name for name in QUANT_UNITS if active(name)]
         save(journal_path, journal)
-    for unit in journal["quant_units"]:
-        subprocess.run(["systemctl", "stop", unit], check=True, capture_output=True)
+    if journal.get('installation', {}).get('phase') != 'verified':
+        for unit in journal["quant_units"]:
+            subprocess.run(["systemctl", "stop", unit], check=True, capture_output=True)
     subprocess.run(["systemctl", "stop", "tauric-release-bridge.service"], check=True, capture_output=True)
     proof = {"kind": "trusted_research_only", "revision": intent["revision"], "before_signature": intent["before_signature"], "after_signature": intent["after_signature"], "release_run_id": intent["release_run_id"], "checked_release_verified": True}
     try:

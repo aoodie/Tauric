@@ -41,6 +41,8 @@ FILES = (
     "scripts/server.py",
     "scripts/shared_ingress.py",
     "scripts/research_release.py",
+    "scripts/quant_release.py",
+    "scripts/quant_host.py",
     "scripts/trusted_research_install.py",
     "scripts/backup_vault.py",
     "scripts/operations_watch.py",
