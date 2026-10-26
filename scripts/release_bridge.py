@@ -402,6 +402,17 @@ def io_sink():
 
 
 def process(request_path, client):
+    # Backups, key maintenance and both release paths share this host lock.
+    # A busy checkpoint leaves the original request pending for the next tick.
+    with (STATE / "maintenance.lock").open("a") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return
+        return process_locked(request_path, client)
+
+
+def process_locked(request_path, client):
     request = read(request_path, 1000)
     job_id = str(UUID(request["id"]))
     checksum = request["checksum"]

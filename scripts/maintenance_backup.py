@@ -116,10 +116,15 @@ def backup(state, output, day):
         units = [name for name in QUANT_UNITS if subprocess.run(["systemctl", "is-active", "--quiet", name], capture_output=True, check=False).returncode == 0]
         report.update(phase="backup_requested", quant_units=units)
         save(path, report)
-        for unit in units:
-            subprocess.run(["systemctl", "stop", unit], check=True, capture_output=True)
         try:
             def frozen():
+                # Application writers are stopped now. Research may have queued
+                # a job after the early probe; never terminate that original job.
+                observed = server.run(compose + ["run", "--rm", "--no-deps", "-T", "api", "python", "-c", code], stdout=subprocess.PIPE)
+                if observed.stdout.strip() != b"0":
+                    raise ValueError("Research became active before the frozen backup; original jobs were preserved.")
+                for unit in units:
+                    subprocess.run(["systemctl", "stop", unit], check=True, capture_output=True)
                 report["research_backup"] = research_archive(research)
                 save(path, report)
 

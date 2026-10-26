@@ -1,6 +1,7 @@
 """The host follows one durable publication while owner controls remain current."""
 
 import base64
+import fcntl
 import json
 import os
 import sys
@@ -80,6 +81,7 @@ class Bridge(unittest.TestCase):
             client = FollowingRepository()
             with (
                 patch.object(release_bridge, "OPERATIONS", operations),
+                patch.object(release_bridge, "STATE", operations),
                 patch.object(
                     release_bridge,
                     "active_release",
@@ -164,7 +166,7 @@ class Bridge(unittest.TestCase):
             request = operations / (job_id + ".json")
             request.write_text(json.dumps({"id": job_id, "checksum": "c" * 64}))
             journal = {"id": job_id, "checksum": "c" * 64, "task_id": str(uuid4())}
-            with patch.object(release_bridge, "OPERATIONS", operations):
+            with patch.object(release_bridge, "OPERATIONS", operations), patch.object(release_bridge, "STATE", operations):
                 release_bridge.receipt(journal)
                 with (
                     patch.object(
@@ -197,6 +199,17 @@ class Bridge(unittest.TestCase):
                 base64.b64decode(envelope["signature"]),
                 json.dumps(envelope["result"], sort_keys=True).encode(),
             )
+
+    def test_busy_maintenance_never_starts_a_repository_or_installation_effect(self):
+        with tempfile.TemporaryDirectory() as folder, patch.object(release_bridge, "STATE", Path(folder)):
+            with (Path(folder) / "maintenance.lock").open("a") as lock:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                with patch.object(release_bridge, "process_locked") as effects:
+                    release_bridge.process(Path(folder) / "original.json", None)
+                    effects.assert_not_called()
+            with patch.object(release_bridge, "process_locked") as effects:
+                release_bridge.process(Path(folder) / "original.json", None)
+                effects.assert_called_once()
 
 
 if __name__ == "__main__":

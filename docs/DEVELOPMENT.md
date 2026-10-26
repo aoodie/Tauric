@@ -53,6 +53,8 @@ Backend tests create and remove disposable PostgreSQL databases; they do not era
 
 Before either database creation or removal, the fixture requires a generated `tauric_test_` identity and verifies PostgreSQL's cluster system identifier against this checkout's running `tauric_foundation` database through a local Unix-socket Docker endpoint. The exact Compose source and loopback port must match. An SSH tunnel to another cluster, remote Docker endpoint or unrelated checkout is refused before DDL. Fixture cleanup also runs after setup/migration failures. Use the documented local development database rather than repointing tests at an operational server.
 
+The fixed engineering executor has a separate verified path because Docker and production credentials are absent there. At `/workspace`, UID 10001 must have a read-only root filesystem, no effective/permitted/bounding/ambient capabilities, `NoNewPrivs`, no active external network interface, and the fixed private ephemeral PostgreSQL directory. Dormant kernel tunnel devices are permitted only while down; the child has no capability to activate them. The fixture obtains that local cluster's system identifier from its read-only PostgreSQL control binary and still compares the connected server identity before any DDL. An environment variable cannot enable this path. The complete hosted release exercises an actual backend/API test inside that executor.
+
 When API contracts change:
 
 ```sh

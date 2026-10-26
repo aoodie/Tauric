@@ -439,6 +439,9 @@ def backup(directory, project, output, local=False, frozen_hook=None):
         try:
             if stopped:
                 run(compose + ["stop", *stopped], stdout=subprocess.PIPE)
+            spool = private / "engineering/spool"
+            if any(not (spool / "receipts" / p.name).is_file() for p in (spool / "requests").glob("*.json")):
+                raise ValueError("Finish or reconcile the original engineering jobs before backup.")
             engineering_active = freeze_engineering(directory)
             if frozen_hook is not None:
                 frozen_hook()
