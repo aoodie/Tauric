@@ -19,6 +19,8 @@ FILES = (
     "release_publish.py",
     "release_workflow.py",
     "release_install.py",
+    "shared_ingress.py",
+    "research_release.py",
 )
 SERVICE = "tauric-release-bridge.service"
 

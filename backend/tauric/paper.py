@@ -359,7 +359,7 @@ def state(db, owner):
                 .limit(200)
             )
         ],
-        detail="Owner or validated OpenClaw review, unlevered long spot simulation. Stop prices size risk; they are not monitored stop orders.",
+        detail="Owner or validated OpenClaw review, unlevered long spot simulation. Stop references size risk; opt-in executable rules may monitor closed-candle exits. Stop-price fills are not guaranteed.",
     )
 
 

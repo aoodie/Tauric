@@ -14,6 +14,27 @@ import server
 UTC = timezone.utc  # Native host tools support Python 3.10.
 
 
+def host_memory(path=Path("/proc/meminfo")):
+    names = {
+        "MemTotal": "physical_total_bytes", "MemAvailable": "physical_available_bytes",
+        "SwapTotal": "swap_total_bytes", "SwapFree": "swap_free_bytes",
+    }
+    try:
+        result = {}
+        for line in path.read_text().splitlines():
+            key, _, value = line.partition(":")
+            if key in names:
+                amount, unit = value.split()
+                if unit != "kB" or int(amount) < 0:
+                    return None
+                result[names[key]] = int(amount) * 1024
+        if len(result) != len(names):
+            return None
+        return result
+    except (OSError, ValueError):
+        return None
+
+
 def observe(directory, project):
     compose = server.command(directory, project) + ["--profile", "*"]
     ids = (
@@ -39,6 +60,7 @@ def observe(directory, project):
             "health": state.get("Health", {}).get("Status", "unavailable"),
             "oom_killed": state["OOMKilled"],
             "restart_count": container["RestartCount"],
+            "memory_limit_bytes": container["HostConfig"]["Memory"],
         }
         if state["Running"]:
             active.append(container["Id"])
@@ -69,6 +91,13 @@ def observe(directory, project):
         "services": states,
         "metrics": metrics,
         "available_disk_bytes": shutil.disk_usage(directory).free,
+        "host_memory": host_memory(),
+        "active_memory_limit_bytes": sum(
+            row["memory_limit_bytes"] for row in states.values() if row["running"]
+        ),
+        "unbounded_memory_services": [
+            name for name, row in states.items() if row["running"] and not row["memory_limit_bytes"]
+        ],
         "healthy": all(
             row["running"] and row["health"] == "healthy" and not row["oom_killed"]
             for row in states.values()

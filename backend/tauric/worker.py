@@ -22,6 +22,7 @@ from . import (
 from .config import runtime_config
 from .database import engine
 from .models import AnalysisJob
+from .native_strategy_assessment import FAILURE_MESSAGES
 
 STOP = False
 
@@ -29,6 +30,26 @@ STOP = False
 def stop(*_):
     global STOP
     STOP = True
+
+
+def decode_output(raw, returncode):
+    if len(raw) > 2_000_000:
+        return None, None
+    try:
+        result = json.loads(raw)
+    except (TypeError, ValueError):
+        return None, None
+    if not isinstance(result, dict):
+        return None, None
+    reports = result.get("reports")
+    if returncode == 0 and isinstance(reports, dict):
+        decision = reports.get("final_trade_decision")
+        if isinstance(decision, str) and decision.strip():
+            return result, None
+    category = result.get("error_category")
+    if returncode != 0 and isinstance(category, str):
+        return None, FAILURE_MESSAGES.get(category)
+    return None, None
 
 
 def process(job_id, version):
@@ -90,13 +111,8 @@ def process(job_id, version):
         output.seek(0)
         raw = output.read(2_000_001)
         payload = None
-        if not failure and child.returncode == 0 and len(raw) <= 2_000_000:
-            try:
-                payload = json.loads(raw)
-                if not payload.get("reports", {}).get("final_trade_decision"):
-                    payload = None
-            except ValueError:
-                pass
+        if not failure:
+            payload, failure = decode_output(raw, child.returncode)
         error = (
             failure
             or "Native analysis failed. Verify model access and configuration; no retry was made."
@@ -112,7 +128,7 @@ def main():
         raise SystemExit("Pinned Tauric runtime is required.")
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
-    print("Native analysis worker started; one run at a time. No automatic execution.", flush=True)
+    print(json.dumps({"event": "native_worker_started", "version": tradingagents.__version__}), flush=True)
     while not STOP:
         try:
             with Session(engine()) as db:
@@ -124,7 +140,7 @@ def main():
                 time.sleep(2)
         except Exception:
             # Reconnect after storage outages. Details stay out of logs to protect secrets.
-            print("Analysis storage unavailable; waiting to reconnect.", flush=True)
+            print(json.dumps({"event": "native_storage_unavailable", "retry_seconds": 3}), flush=True)
             time.sleep(3)
 
 

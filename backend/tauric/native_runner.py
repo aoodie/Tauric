@@ -11,6 +11,7 @@ from pathlib import Path
 from .analysis import UPSTREAM_REVISION
 from .model_profiles import KEY_ENV, load_profiles
 from .native_scope import NATIVE_ASSET_TYPES, daily_scope
+from .native_strategy_assessment import StrategyAssessmentError
 
 REPORT_FIELDS = (
     "market_report",
@@ -303,6 +304,9 @@ def main():
         with contextlib.redirect_stdout(sys.stderr):
             result = run(request, request_path.parent)
         print(json.dumps(result, allow_nan=False))
+    except StrategyAssessmentError as error:
+        print(json.dumps({"error": str(error), "error_category": error.category}))
+        raise SystemExit(1) from None
     except Exception:
         # SDK exceptions can include endpoint credentials or request data. Do not emit them.
         print(

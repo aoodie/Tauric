@@ -50,7 +50,7 @@ def known_secrets():
         )
     key = ROOT / ".env.model-key"
     if key.exists():
-        values.append(key.read_text().strip())
+        values.extend(line.strip() for line in key.read_text().splitlines() if line.strip())
 
     def collect(value):
         if isinstance(value, dict):

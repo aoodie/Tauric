@@ -60,6 +60,8 @@ Choose a paper portfolio under **Conversation context** for its separate saved c
 
 ## Project documents
 
+- [Corrected audit and remediation](docs/AUDIT_REVIEW_2026-10-25.md): verified source findings, fresh Oracle observations, corrected historical claims and remaining release gates.
+- [Credential-key rotation](docs/CREDENTIAL_KEY_ROTATION.md): retained-key staging, immutable-history compatibility and controlled activation.
 - [Stock workflow verification](docs/STOCK_WORKFLOW_VERIFICATION.md): connected AAPL/SPY research and feed checks, stock/ETF screening, bound reviewed whole-share paper entries, costs and attributed exits.
 - [Daily portfolio research verification](docs/PORTFOLIO_DAILY_RESEARCH_VERIFICATION.md): durable schedules, both research tracks, shared admission limits, scoped chat controls and asset readiness.
 - [Portfolio workspace and chat verification](docs/PORTFOLIO_CHAT_VERIFICATION.md): permanent portfolio conversations, versioned mandates/account links, permitted chat actions and their limits.

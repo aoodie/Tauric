@@ -5,11 +5,12 @@ import json
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from cryptography.fernet import Fernet, InvalidToken
+from cryptography.fernet import InvalidToken
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
 from sqlalchemy import select
 
 from .config import runtime_config
+from .credential_keys import encryption as keyring_encryption
 from .market_contracts import ProfileView
 from .models import ModelConnectionVersion
 
@@ -76,7 +77,7 @@ class ModelProfile(BaseModel):
 
 
 def encryption():
-    return Fernet(Path(runtime_config().model_key_file).read_bytes().strip())
+    return keyring_encryption(Path(runtime_config().model_key_file).read_bytes())
 
 
 def connection_head(db, profile):

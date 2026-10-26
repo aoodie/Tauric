@@ -2,6 +2,22 @@
 
 The supplied brief and owner decisions define the full target. This table distinguishes working foundation behavior from unimplemented trading features. Section numbers refer to the master brief.
 
+## Current review — 25 October 2026
+
+Source baseline `4e0e956` includes the merged PR #20 corrections. Direct inspection at 20:28–20:33 UTC found Oracle still running `1b45227`, with twelve healthy intended services and no running financial execution workers. Broker policy, route, order-intent, qualification-report and readiness-record tables were empty. The historical source-export manifest is intentionally not current release identity. See the [corrected audit and remediation](AUDIT_REVIEW_2026-10-25.md) for evidence and the scope of subsequent local fixes.
+
+| Area | Current coverage and remaining gate |
+| --- | --- |
+| Market intelligence and knowledge | Foundations and bounded research controls are implemented; full point-in-time intelligence remains open. |
+| Broker execution | OANDA and Alpaca adapters, reconciliation, protection and live gates are implemented; current strategy qualification and connected prospective acceptance remain unmet. IBKR and Binance execution remain outstanding scope. |
+| Operations | Worker counters, durations, sanitized JSON failure events and owned-queue status exist; consistent export, actionable alerts and representative workload acceptance remain open. |
+| OpenClaw ownership | Durable tasks, isolated engineering and the governed release bridge exist; full independently verified ownership acceptance remains open and the legacy goal remains paused. |
+| Deployment | Oracle is the sole active workstation. Shared ingress reconciliation and changed execution identity require controlled release work before the source corrections can be installed. |
+
+## Historical foundation coverage — 8 October 2026
+
+The table below is retained history. Its pending entries do not override the current coverage above or the linked implementation records.
+
 **8 October status:** the table below retains early foundation coverage. Current implementation also includes local Knowledge/Honcho, automatic OANDA/Alpaca routes, separate governed live adapters, marked valuations, replacement protection, prospective promotion gates, market-intelligence foundations and bounded conversational research controls. Hosted images and IONOS deployment are verified. These updates supersede corresponding "pending" descriptions below; deeper platform scope and actual strategy/connected/operational acceptance remain open. See [current acceptance plan](ACCEPTANCE_PLAN.md), [live trading](LIVE_AUTOTRADING.md), [market intelligence](MARKET_INTELLIGENCE.md) and [Knowledge](KNOWLEDGE_AND_MEMORY.md). Post-launch status applies only to the specifically agreed interface list.
 
 | Capability | Brief sections | Current coverage | Next milestone |
