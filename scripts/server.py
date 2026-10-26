@@ -17,6 +17,8 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+import shared_ingress
+
 UTC = timezone.utc  # Native host tools support Python 3.10.
 ROOT = Path(__file__).resolve().parents[1]
 IMAGE_KEYS = (
@@ -159,7 +161,7 @@ def command(directory, project):
     recovery = ROOT / "deploy/compose.gateway-recovery.yml"
     if recovery.is_file():
         result += ["-f", str(recovery)]
-    return result
+    return shared_ingress.command(result, directory, values)
 
 
 class ServerOperationError(RuntimeError):
@@ -387,7 +389,7 @@ def freeze_engineering(directory):
     return active
 
 
-def backup(directory, project, output, local=False):
+def backup(directory, project, output, local=False, frozen_hook=None):
     validate(directory, project, local)
     if output.exists():
         raise ValueError("Backup output exists; it will not be overwritten.")
@@ -438,6 +440,8 @@ def backup(directory, project, output, local=False):
             if stopped:
                 run(compose + ["stop", *stopped], stdout=subprocess.PIPE)
             engineering_active = freeze_engineering(directory)
+            if frozen_hook is not None:
+                frozen_hook()
             before = snapshot(compose)
             dump = staging / "database.dump"
             with dump.open("wb") as target:

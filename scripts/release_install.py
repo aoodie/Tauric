@@ -8,6 +8,7 @@ import re
 import subprocess
 from pathlib import Path
 
+import shared_ingress
 from release_publish import save
 
 PROTECTED_TABLES = {
@@ -36,6 +37,8 @@ PROTECTED_TABLES = {
     "portfolio_research_schedules",
     "chat_portfolio_bindings",
     "intelligence_watchlists",
+    "research_discovery_records",
+    "research_history_chunks",
 }
 HISTORY = """import hashlib,json
 from sqlalchemy import text
@@ -136,7 +139,7 @@ def recover_before_migration(active_release, state, project, progress):
         active_release / "scripts/engineering_install.py",
     )
     installer.install(active_release, state)
-    compose = server.command(state, project) + ["--profile", "*"]
+    compose = compose_command(server, state, project) + ["--profile", "*"]
     resume_services(server, compose, progress["previous_services"])
     return True
 
@@ -146,6 +149,11 @@ def module(name, path):
     result = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(result)
     return result
+
+
+def compose_command(server, state, project):
+    # Old installed versions do not know about the independently owned overlay.
+    return shared_ingress.command(server.command(state, project), state, server.read_env(state / "server.env"))
 
 
 def protected_tables(snapshot):
@@ -258,12 +266,13 @@ def install(
     journal_path,
     authorize,
     tree,
+    trusted_research_transition=None,
 ):
     """Reentry observes the original installation; migrations are not blindly replayed."""
     old = module("release_previous_server", active_release / "scripts/server.py")
     new = module("release_candidate_server", candidate / "scripts/server.py")
-    old_compose = old.command(state, project) + ["--profile", "*"]
-    compose = new.command(state, project) + ["--profile", "*"]
+    old_compose = compose_command(old, state, project) + ["--profile", "*"]
+    compose = compose_command(new, state, project) + ["--profile", "*"]
     values = old.read_env(state / "server.env")
     images = new.read_env(candidate / "images.env")
     new.validate_images(images)
@@ -434,8 +443,16 @@ def install(
                 ).stdout
             )
             if candidate_signature != progress["execution_signature"]:
-                raise ValueError(
-                    "The candidate changes qualified execution identity; separate trusted qualification is required."
+                if trusted_research_transition is None:
+                    raise ValueError(
+                        "The candidate changes qualified execution identity; separate trusted qualification is required."
+                    )
+                from research_release import verify
+
+                progress["research_only_transition"] = verify(
+                    trusted_research_transition, revision=revision,
+                    before_signature=progress["execution_signature"], after_signature=candidate_signature,
+                    snapshot=progress["before"], services=progress["previous_services"],
                 )
             if migrated["schema"] != migrated["expected_schema"]:
                 raise ValueError(
@@ -536,7 +553,16 @@ def install(
                 stdout=subprocess.PIPE,
             ).stdout
         )
-        if signature != progress["execution_signature"]:
+        expected_signature = progress.get("research_only_transition", progress["execution_signature"])
+        if "research_only_transition" in progress:
+            from research_release import verify
+
+            verify(
+                trusted_research_transition, revision=revision,
+                before_signature=progress["execution_signature"], after_signature=signature,
+                snapshot=after, services=progress["previous_services"],
+            )
+        if signature != expected_signature:
             raise ValueError(
                 "The qualified execution identity changed; separate trusted recovery is required."
             )
