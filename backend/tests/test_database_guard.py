@@ -1,4 +1,6 @@
 import json
+import os
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -53,6 +55,7 @@ def test_cluster_identity_is_bound_to_checkout_container_and_port(tmp_path, monk
     import database_guard
 
     local_cluster.cache_clear()
+
     monkeypatch.delenv("DOCKER_CONTEXT", raising=False)
     monkeypatch.setenv("DOCKER_HOST", "unix:///var/run/docker.sock")
     responses = iter([
@@ -74,3 +77,51 @@ def test_cluster_identity_is_bound_to_checkout_container_and_port(tmp_path, monk
     else:
         assert local_cluster(tmp_path, 54330) == "1234567890"
     local_cluster.cache_clear()
+
+
+def test_isolated_executor_identity_never_uses_an_environment_bypass(tmp_path, monkeypatch):
+    import database_guard
+
+    monkeypatch.setenv("TAURIC_ISOLATED_TESTS", "true")
+    monkeypatch.setattr(database_guard.os, "geteuid", lambda: 501)
+    assert database_guard.isolated_cluster(Path("/workspace"), 54330) is None
+    monkeypatch.setattr(database_guard.os, "geteuid", lambda: 10001)
+    assert database_guard.isolated_cluster(tmp_path, 54330) is None
+    assert database_guard.isolated_cluster(Path("/workspace"), 54331) is None
+
+
+@pytest.mark.parametrize("unsafe", [None, "writable_root", "network", "privileges", "capabilities", "owner", "permissions", "symlink", "control_identity"])
+def test_isolated_database_requires_all_sandbox_and_cluster_evidence(monkeypatch, unsafe):
+    import database_guard
+
+    original_read, original_stat = Path.read_text, Path.stat
+
+    def read(path, *args, **kwargs):
+        if str(path) == "/proc/self/status":
+            return "NoNewPrivs:\t" + ("0" if unsafe == "privileges" else "1") + "\nCapEff:\t" + ("01" if unsafe == "capabilities" else "00") + "\nCapPrm: 0\nCapBnd: 0\nCapAmb: 0\n"
+        if path.name == "flags":
+            return "0x1" if unsafe == "network" else "0x0"
+        return original_read(path, *args, **kwargs)
+
+    def stat(path, *args, **kwargs):
+        if str(path) == "/tmp/tauric-test-postgres":
+            return SimpleNamespace(st_uid=0 if unsafe == "owner" else 10001, st_mode=0o40755 if unsafe == "permissions" else 0o40700)
+        return original_stat(path, *args, **kwargs)
+
+    monkeypatch.setattr(database_guard.os, "geteuid", lambda: 10001)
+    monkeypatch.setattr(database_guard.os, "statvfs", lambda _: SimpleNamespace(f_flag=0 if unsafe == "writable_root" else os.ST_RDONLY))
+    monkeypatch.setattr(Path, "read_text", read)
+    monkeypatch.setattr(Path, "stat", stat)
+    monkeypatch.setattr(Path, "is_dir", lambda _: True)
+    monkeypatch.setattr(Path, "is_symlink", lambda _: unsafe == "symlink")
+    monkeypatch.setattr(database_guard.socket, "if_nameindex", lambda: [(1, "lo"), (2, "tunnel0")])
+    commands = []
+    monkeypatch.setattr(database_guard, "command", lambda *args: commands.append(args) or ("invalid control data" if unsafe == "control_identity" else "Database system identifier: 1234567890\n"))
+    if unsafe is None:
+        assert database_guard.isolated_cluster(Path("/workspace"), 54330) == "1234567890"
+        assert commands == [("/usr/lib/postgresql/15/bin/pg_controldata", "/tmp/tauric-test-postgres")]
+    else:
+        with pytest.raises(RuntimeError, match="identity"):
+            database_guard.isolated_cluster(Path("/workspace"), 54330)
+    if unsafe not in {None, "control_identity"}:
+        assert commands == []

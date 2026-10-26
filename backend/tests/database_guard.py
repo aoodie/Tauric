@@ -3,8 +3,10 @@
 import json
 import os
 import re
+import socket
 import subprocess
 from functools import cache
+from pathlib import Path
 
 from sqlalchemy import text
 
@@ -34,8 +36,51 @@ def validate_target(url, name):
         raise RuntimeError(MESSAGE)
 
 
+def isolated_cluster(root, port):
+    """Bind the fixed executor's fresh PostgreSQL to its local control file.
+
+    No environment flag disables host verification. This branch is available
+    only in the non-root, read-only, capability-free network namespace used by
+    the fixed engineering entry point, with its private ephemeral cluster.
+    """
+    if root != Path("/workspace") or port != 54330 or os.geteuid() != 10001:
+        return None
+    try:
+        status = dict(
+            line.split(":", 1) for line in Path("/proc/self/status").read_text().splitlines()
+            if ":" in line
+        )
+        data = Path("/tmp/tauric-test-postgres")
+        interfaces = [name for _, name in socket.if_nameindex()]
+        # Some kernels expose dormant tunnel devices even with --network none.
+        # With every capability removed, a child cannot bring them up.
+        external_up = any(
+            name != "lo" and int((Path("/sys/class/net") / name / "flags").read_text(), 16) & 1
+            for name in interfaces
+        )
+        if (
+            not os.statvfs("/").f_flag & os.ST_RDONLY
+            or "lo" not in interfaces or external_up
+            or status.get("NoNewPrivs", "").strip() != "1"
+            or any(int(status.get(name, "1").strip(), 16) != 0 for name in ("CapEff", "CapPrm", "CapBnd", "CapAmb"))
+            or data.is_symlink() or not data.is_dir()
+            or data.stat().st_uid != 10001 or data.stat().st_mode & 0o077
+        ):
+            raise RuntimeError(MESSAGE)
+        control = command("/usr/lib/postgresql/15/bin/pg_controldata", str(data))
+        matched = re.search(r"^Database system identifier:\s*([0-9]{1,20})\s*$", control, re.MULTILINE)
+        if not matched:
+            raise RuntimeError(MESSAGE)
+        return matched.group(1)
+    except (OSError, ValueError):
+        raise RuntimeError(MESSAGE) from None
+
+
 @cache
 def local_cluster(root, port):
+    isolated = isolated_cluster(root, port)
+    if isolated is not None:
+        return isolated
     # A loopback socket alone could be an SSH tunnel. Bind its server identity
     # to the running database of this exact checkout through a local Docker API.
     endpoint = (

@@ -18,6 +18,8 @@ The four historical plaintext `.env.*backup.dump` files were encrypted with auth
 
 These are implemented capabilities until the exact checked release and host units are installed and independently verified. Deployment, key activation, first scheduled backup, off-host transfer and a new 24-hour observation have separate evidence; none is implied by this document.
 
+The first complete release attempt, [40281411346](https://github.com/aoodie/Tauric/actions/runs/40281411346), passed all check lanes, five image publications and clean installation/full backup restoration, then failed its isolated engineering backend/API test. The new host database guard required Docker, which is intentionally absent from that executor. The correction verifies the executor's read-only, non-root, capability-free and externally disconnected environment and binds the disposable PostgreSQL identity to its local control file. No environment bypass or weaker host/tunnel check was added. A real isolated container with the repair passed all 26 selected guard and backend/API tests. The failed release remains failed; a fresh source-bound complete release is required.
+
 ## Acceptance that requires real outcomes
 
 The next AI-enabled cycle is due after 18:05:46 UTC on 26 October. Verify its original usage record, frozen ideas, actual engine results and final outcome. Keep failures and reservations; do not rebill an uncertain request or relax research criteria.
