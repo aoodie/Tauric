@@ -6,8 +6,10 @@ import json
 import os
 import re
 import subprocess
+import time
 from pathlib import Path
 
+import quant_release
 import shared_ingress
 from release_publish import save
 
@@ -141,6 +143,7 @@ def recover_before_migration(active_release, state, project, progress):
     installer.install(active_release, state)
     compose = compose_command(server, state, project) + ["--profile", "*"]
     resume_services(server, compose, progress["previous_services"])
+    quant_release.resume_original(progress.get("quant_source"))
     return True
 
 
@@ -255,6 +258,24 @@ print(json.dumps({'backend/tauric/'+p.relative_to(root).as_posix():blob(p.read_b
     }
 
 
+def publish_current(active_release, candidate, pointer=Path('/srv/tauric/current')):
+    """Reconcile the canonical pointer only after installed source verification."""
+    if active_release.is_symlink() or candidate.is_symlink():
+        raise ValueError('A checked release directory cannot be a symbolic link.')
+    active_release, candidate = active_release.resolve(), candidate.resolve()
+    if not pointer.is_symlink() or pointer.resolve() not in {active_release, candidate}:
+        raise ValueError('The canonical active release pointer changed.')
+    if pointer.resolve() == candidate:
+        return
+    pending = pointer.with_name('current.release.pending')
+    if pending.exists() or pending.is_symlink():
+        if not pending.is_symlink() or pending.resolve() != candidate:
+            raise ValueError('Original release pointer publication needs reconciliation.')
+    else:
+        pending.symlink_to(candidate)
+    pending.replace(pointer)
+
+
 def install(
     *,
     active_release,
@@ -288,6 +309,8 @@ def install(
         authorize()
         if not engineering_idle(state):
             raise EngineeringBusy()
+        if not quant_release.idle(old, old_compose):
+            raise EngineeringBusy()
         if {k: values[k] for k in old.IMAGE_KEYS} != previous_manifest["images"]:
             raise ValueError("The installed base changed before this release.")
         active = (
@@ -302,8 +325,10 @@ def install(
             raise ValueError(
                 "Production database is not available for a recovery backup."
             )
+        research_source = quant_release.prepare(candidate, tree, previous_manifest['revision'], units=journal.get('quant_units'))
         progress.update(
             {
+                "quant_source": research_source,
                 "previous_services": active,
                 "old_images": previous_manifest["images"],
                 "non_image_checksum": hashlib.sha256(
@@ -330,6 +355,12 @@ def install(
             progress.clear()
             save(journal_path, journal)
             raise EngineeringBusy()
+        if not quant_release.idle(old, old_compose, frozen=True):
+            resume_services(old, old_compose, progress['previous_services'])
+            progress.clear()
+            save(journal_path, journal)
+            raise EngineeringBusy()
+        quant_release.stop(progress.get('quant_source'))
         before = old.snapshot(old_compose)
         private = Path(values["TAURIC_SECRETS_DIR"])
         names = [
@@ -599,4 +630,12 @@ def install(
         raise ValueError(
             "Installation did not reach independently verified completion."
         )
+    authorize()
+    publish_current(active_release, candidate)
+    prepared = progress.get('quant_source')
+    if prepared:
+        prepared.setdefault('activation_started_epoch', time.time())
+        save(journal_path, journal)
+    progress['result']['research_engines'] = quant_release.activate(prepared, new, compose)
+    save(journal_path, journal)
     return progress["result"]
