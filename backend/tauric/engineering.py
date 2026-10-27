@@ -30,6 +30,8 @@ def atomic(path, data):
 
 
 def enqueue(db, owner, turn, body):
+    if body.purpose == "verify" and (body.script != "api_smoke" or body.timeout_seconds < 45):
+        raise HTTPException(422, "Independent verification requires script=api_smoke and at least 45 seconds; initialize the workspace first.")
     current = agent_tasks.for_turn(db, turn, effect=True)
     db.execute(select(func.pg_advisory_xact_lock(913570080)))
     owned = agent_tasks.owned(db, owner, body.task_id)
@@ -163,12 +165,16 @@ def observe(db, owner, job_id):
 
 
 def view(row):
+    result = dict(row.result)
+    if row.inputs.get("purpose") == "test":
+        result.update(tests_reported=result.get("tests_reported", result.get("tests_executed", 0)),
+                      tests_executed=0, test_runner=False, test_evidence="workspace_report_only")
     return {
         "id": row.id,
         "task_id": row.task_id,
         "status": row.status,
         "input_checksum": row.checksum,
-        "result": row.result,
+        "result": result,
         "financial_authority": False,
         "runtime_code_changed": False,
     }

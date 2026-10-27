@@ -38,7 +38,7 @@ def create(db, owner, **extra):
         TaskCreate(
             request_id=uuid4(),
             objective="Verify a bounded development task",
-            criteria=[{"description": "Actual test command passes", "proof": "tests_passed"}],
+            criteria=[{"description": "The specified workspace reports passing tests", "proof": "workspace_tests_reported", "binding": {"command_sha256": hashlib.sha256(b"python -m pytest backend/tests/test_api.py").hexdigest()}}],
             **extra,
         ),
     )
@@ -130,7 +130,8 @@ def test_api_spooled_request_passes_real_host_integrity_validation(database, tmp
     runtime_config.cache_clear()
 
 
-def test_signed_actual_result_and_tampered_receipt(database, tmp_path, monkeypatch):
+@pytest.mark.parametrize("purpose", ["test", "verify"])
+def test_signed_actual_result_and_tampered_receipt(database, tmp_path, monkeypatch, purpose):
     key = Ed25519PrivateKey.generate()
     public = tmp_path / "public.pem"
     public.write_bytes(
@@ -145,8 +146,11 @@ def test_signed_actual_result_and_tampered_receipt(database, tmp_path, monkeypat
     (tmp_path / "receipts").mkdir()
     with Session(database[0]) as db:
         owner = db.scalar(select(Owner))
-        task = create(db, owner)
-        inputs = {"purpose": "test", "workspace_id": task["root_id"]}
+        task = create(db, owner) if purpose == "test" else agent_tasks.create(db, owner, TaskCreate(
+            request_id=uuid4(), objective="Verify the limited API smoke contract independently",
+            criteria=[{"description": "All four protected API smoke checks pass", "proof": "tests_passed",
+                       "binding": {"verification_profile": "tauric_api_smoke_v1"}}]))
+        inputs = {"purpose": purpose, "workspace_id": task["root_id"], "script": "python -m pytest backend/tests/test_api.py" if purpose == "test" else "api_smoke"}
         row = EngineeringJob(
             id=str(uuid4()),
             owner_id=owner.id,
@@ -183,6 +187,13 @@ def test_signed_actual_result_and_tampered_receipt(database, tmp_path, monkeypat
         result["source_artifact_checksum"] = hashlib.sha256(
             json.dumps(bundle, sort_keys=True).encode()
         ).hexdigest()
+        if purpose == "verify":
+            result.update(tests_executed=4, independent_verification={
+                "profile": "tauric_api_smoke_v1", "passed": True, "source_unchanged": True,
+                "source_tree_checksum": bundle["tree_checksum"], "tests_executed": 4,
+                "cases": [{"name": name, "passed": True} for name in (
+                    "live_health", "database_readiness", "owner_authentication_required", "validation_redacts_password")],
+            })
         signature = base64.b64encode(key.sign(json.dumps(result, sort_keys=True).encode())).decode()
         receipt = tmp_path / "receipts" / (row.id + ".json")
         receipt.write_text(
@@ -196,6 +207,12 @@ def test_signed_actual_result_and_tampered_receipt(database, tmp_path, monkeypat
         with pytest.raises(HTTPException, match="signed binding"):
             engineering.source(db, owner, row.id)
         source.write_text(json.dumps(bundle))
+        if purpose == "verify":
+            invalid = {**result, "independent_verification": {**result["independent_verification"], "source_tree_checksum": "d" * 64}}
+            invalid_signature = base64.b64encode(key.sign(json.dumps(invalid, sort_keys=True).encode())).decode()
+            receipt.write_text(json.dumps({"result": invalid, "signature": invalid_signature}))
+            assert "tests_passed" not in agent_tasks.reference(db, owner, JobReference(kind="engineering", id=row.id))["proofs"]
+            receipt.write_text(json.dumps({"result": result, "signature": signature}))
         done = agent_tasks.invoke(
             db,
             owner,
@@ -212,7 +229,7 @@ def test_signed_actual_result_and_tampered_receipt(database, tmp_path, monkeypat
         assert done["status"] == "completed"
         assert done["result"]["verified_evidence"][0]["proofs"] == [
             "command_success",
-            "tests_passed",
+            "workspace_tests_reported" if purpose == "test" else "tests_passed",
         ]
     runtime_config.cache_clear()
 
@@ -271,6 +288,7 @@ def signed_inspection(database, tmp_path, monkeypatch):
                     "output": output,
                     "test_runner": False,
                     "tests_executed": 0,
+                    "output_truncated": False,
                     "source_tree_checksum": bundle["tree_checksum"],
                     "source_artifact_checksum": hashlib.sha256(json.dumps(bundle, sort_keys=True).encode()).hexdigest(),
                 }
@@ -726,7 +744,7 @@ def test_async_research_observation_survives_a_supervisor_restart(database, monk
                 request_id=uuid4(),
                 objective="Follow the original research job to its artifact",
                 criteria=[
-                    {"description": "The original report is available", "proof": "research_report"}
+                    {"description": "The original EUR/USD report is available", "proof": "research_report", "binding": {"instrument_id": "oanda:fx:EUR_USD"}}
                 ],
             ),
         )

@@ -23,5 +23,6 @@ openclaw/node_modules/
 openclaw/plugin/dist/
 
 openclaw/dist/
+openclaw/runtime-patches.json
 private/
 latest-source/

@@ -1,0 +1,1799 @@
+[
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-53613",
+    "package": "bsdutils",
+    "version": "1:2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No fstab-authorized privileged mounts, SYS_ADMIN capability or host devices are available to these application containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-53615",
+    "package": "bsdutils",
+    "version": "1:2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No supplied block-device image probing or host devices; affected partition parser is outside service data paths.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-76642",
+    "package": "bsdutils",
+    "version": "1:2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No privileged external mount helper or post-mount hooks are authorized in these containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-78408",
+    "package": "bsdutils",
+    "version": "1:2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "Bookworm nsenter lacks --join-cgroup; no privileged host cgroup migration route is provided.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-78409",
+    "package": "bsdutils",
+    "version": "1:2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No fstab-authorized privileged X-mount.subdir operation is provided in these containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-78410",
+    "package": "bsdutils",
+    "version": "1:2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No privileged restricted bind mount or X-mount.owner/group/mode route is provided in these containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-41992",
+    "package": "gzip",
+    "version": "1.12-1",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No service uses the crafted sequential LZW/LZH gzip trigger; arbitrary engineering input processing remains isolated and bounded.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-54369",
+    "package": "libacl1",
+    "version": "2.3.1-3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No privileged ACL executor accepts workspace paths; no-new-privileges and capability restrictions prevent privilege acquisition.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-53613",
+    "package": "libblkid1",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No fstab-authorized privileged mounts, SYS_ADMIN capability or host devices are available to these application containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-53615",
+    "package": "libblkid1",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No supplied block-device image probing or host devices; affected partition parser is outside service data paths.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-76642",
+    "package": "libblkid1",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No privileged external mount helper or post-mount hooks are authorized in these containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-78408",
+    "package": "libblkid1",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "Bookworm nsenter lacks --join-cgroup; no privileged host cgroup migration route is provided.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-78409",
+    "package": "libblkid1",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No fstab-authorized privileged X-mount.subdir operation is provided in these containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-78410",
+    "package": "libblkid1",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No privileged restricted bind mount or X-mount.owner/group/mode route is provided in these containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-53613",
+    "package": "libmount1",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No fstab-authorized privileged mounts, SYS_ADMIN capability or host devices are available to these application containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-53615",
+    "package": "libmount1",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No supplied block-device image probing or host devices; affected partition parser is outside service data paths.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-76642",
+    "package": "libmount1",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No privileged external mount helper or post-mount hooks are authorized in these containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-78408",
+    "package": "libmount1",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "Bookworm nsenter lacks --join-cgroup; no privileged host cgroup migration route is provided.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-78409",
+    "package": "libmount1",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No fstab-authorized privileged X-mount.subdir operation is provided in these containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-78410",
+    "package": "libmount1",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No privileged restricted bind mount or X-mount.owner/group/mode route is provided in these containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-53613",
+    "package": "libsmartcols1",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No fstab-authorized privileged mounts, SYS_ADMIN capability or host devices are available to these application containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-53615",
+    "package": "libsmartcols1",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No supplied block-device image probing or host devices; affected partition parser is outside service data paths.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-76642",
+    "package": "libsmartcols1",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No privileged external mount helper or post-mount hooks are authorized in these containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-78408",
+    "package": "libsmartcols1",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "Bookworm nsenter lacks --join-cgroup; no privileged host cgroup migration route is provided.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-78409",
+    "package": "libsmartcols1",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No fstab-authorized privileged X-mount.subdir operation is provided in these containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-78410",
+    "package": "libsmartcols1",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No privileged restricted bind mount or X-mount.owner/group/mode route is provided in these containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-16742",
+    "package": "libsystemd0",
+    "version": "252.39-1~deb12u2",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "Affected systemd-homed service is absent; these library packages do not provide a homed login service.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2025-69720",
+    "package": "libtinfo6",
+    "version": "6.4-4",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "Affected infocmp analyzer is not a network service path; arbitrary engineering CLI runs remain resource bounded without production secrets.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-16742",
+    "package": "libudev1",
+    "version": "252.39-1~deb12u2",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "Affected systemd-homed service is absent; these library packages do not provide a homed login service.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-53613",
+    "package": "libuuid1",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No fstab-authorized privileged mounts, SYS_ADMIN capability or host devices are available to these application containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-53615",
+    "package": "libuuid1",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No supplied block-device image probing or host devices; affected partition parser is outside service data paths.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-76642",
+    "package": "libuuid1",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No privileged external mount helper or post-mount hooks are authorized in these containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-78408",
+    "package": "libuuid1",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "Bookworm nsenter lacks --join-cgroup; no privileged host cgroup migration route is provided.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-78409",
+    "package": "libuuid1",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No fstab-authorized privileged X-mount.subdir operation is provided in these containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-78410",
+    "package": "libuuid1",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No privileged restricted bind mount or X-mount.owner/group/mode route is provided in these containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-53613",
+    "package": "mount",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No fstab-authorized privileged mounts, SYS_ADMIN capability or host devices are available to these application containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-53615",
+    "package": "mount",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No supplied block-device image probing or host devices; affected partition parser is outside service data paths.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-76642",
+    "package": "mount",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No privileged external mount helper or post-mount hooks are authorized in these containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-78408",
+    "package": "mount",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "Bookworm nsenter lacks --join-cgroup; no privileged host cgroup migration route is provided.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-78409",
+    "package": "mount",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No fstab-authorized privileged X-mount.subdir operation is provided in these containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-78410",
+    "package": "mount",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No privileged restricted bind mount or X-mount.owner/group/mode route is provided in these containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2025-69720",
+    "package": "ncurses-base",
+    "version": "6.4-4",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "Affected infocmp analyzer is not a network service path; arbitrary engineering CLI runs remain resource bounded without production secrets.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2025-69720",
+    "package": "ncurses-bin",
+    "version": "6.4-4",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "Affected infocmp analyzer is not a network service path; arbitrary engineering CLI runs remain resource bounded without production secrets.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-9538",
+    "package": "perl-base",
+    "version": "5.36.0-7+deb12u4",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "Gateway perl-base lacks Archive::Tar; disposable engineering archive processing retains enforced memory/time bounds and no production secrets.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-53613",
+    "package": "util-linux",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No fstab-authorized privileged mounts, SYS_ADMIN capability or host devices are available to these application containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-53615",
+    "package": "util-linux",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No supplied block-device image probing or host devices; affected partition parser is outside service data paths.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-76642",
+    "package": "util-linux",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No privileged external mount helper or post-mount hooks are authorized in these containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-78408",
+    "package": "util-linux",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "Bookworm nsenter lacks --join-cgroup; no privileged host cgroup migration route is provided.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-78409",
+    "package": "util-linux",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No fstab-authorized privileged X-mount.subdir operation is provided in these containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-78410",
+    "package": "util-linux",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No privileged restricted bind mount or X-mount.owner/group/mode route is provided in these containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-53613",
+    "package": "util-linux-extra",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No fstab-authorized privileged mounts, SYS_ADMIN capability or host devices are available to these application containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-53615",
+    "package": "util-linux-extra",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No supplied block-device image probing or host devices; affected partition parser is outside service data paths.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-76642",
+    "package": "util-linux-extra",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No privileged external mount helper or post-mount hooks are authorized in these containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-78408",
+    "package": "util-linux-extra",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "Bookworm nsenter lacks --join-cgroup; no privileged host cgroup migration route is provided.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-78409",
+    "package": "util-linux-extra",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No fstab-authorized privileged X-mount.subdir operation is provided in these containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-78410",
+    "package": "util-linux-extra",
+    "version": "2.38.1-5+deb12u3",
+    "severity": "HIGH",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No privileged restricted bind mount or X-mount.owner/group/mode route is provided in these containers.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2023-45853",
+    "package": "zlib1g",
+    "version": "1:1.2.13.dfsg-1",
+    "severity": "CRITICAL",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "Bookworm zlib binary does not build the affected contrib/minizip code; vendor-confirmed component absence.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "openclaw"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "Node.js",
+    "id": "CVE-2026-93748",
+    "package": "http-cache-semantics",
+    "version": "4.2.0",
+    "severity": "HIGH",
+    "package_path": "app/node_modules/npm/node_modules/http-cache-semantics/package.json",
+    "expires": "2026-11-03",
+    "reason": "Exact npm make-fetch-happen dependency uses shared:false; no shared HTTP cache role. Gateway shell/npm tools are disabled; engineering network is none.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "Node.js",
+    "id": "CVE-2026-93748",
+    "package": "http-cache-semantics",
+    "version": "4.2.0",
+    "severity": "HIGH",
+    "package_path": "usr/local/lib/node_modules/npm/node_modules/http-cache-semantics/package.json",
+    "expires": "2026-11-03",
+    "reason": "Exact npm make-fetch-happen dependency uses shared:false; no shared HTTP cache role. Gateway shell/npm tools are disabled; engineering network is none.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "kinds": [
+      "api",
+      "worker",
+      "openclaw",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-82560",
+    "package": "perl-base",
+    "version": "5.36.0-7+deb12u4",
+    "severity": "UNKNOWN",
+    "package_path": "",
+    "expires": "2026-11-03",
+    "reason": "No service formats attacker-supplied Perl POD; arbitrary engineering code retains memory/CPU/time isolation and no production secrets.",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27"
+  },
+  {
+    "target": "os:debian:12.15",
+    "id": "CVE-2025-69720",
+    "package": "libncursesw6",
+    "version": "6.4-4",
+    "severity": "HIGH",
+    "package_path": "",
+    "kinds": [
+      "worker",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "reason": "Affected infocmp analyzer is not a network service path; arbitrary engineering CLI runs remain resource bounded without production secrets.",
+    "expires": "2026-11-03",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md"
+  },
+  {
+    "target": "os:debian:12.15",
+    "id": "CVE-2025-7458",
+    "package": "libsqlite3-0",
+    "version": "3.40.1-2+deb12u2",
+    "severity": "CRITICAL",
+    "package_path": "",
+    "kinds": [
+      "api",
+      "worker",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "reason": "No arbitrary SQLite SQL or uploaded database execution route. Internal checkpoints have fixed queries; general engineering SQL is confined without production authority.",
+    "expires": "2026-11-03",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md"
+  },
+  {
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-11822",
+    "package": "libsqlite3-0",
+    "version": "3.40.1-2+deb12u2",
+    "severity": "HIGH",
+    "package_path": "",
+    "kinds": [
+      "api",
+      "worker",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "reason": "No arbitrary SQLite SQL or uploaded database execution route. Internal checkpoints have fixed queries; general engineering SQL is confined without production authority.",
+    "expires": "2026-11-03",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md"
+  },
+  {
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-11824",
+    "package": "libsqlite3-0",
+    "version": "3.40.1-2+deb12u2",
+    "severity": "HIGH",
+    "package_path": "",
+    "kinds": [
+      "api",
+      "worker",
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "reason": "No arbitrary SQLite SQL or uploaded database execution route. Internal checkpoints have fixed queries; general engineering SQL is confined without production authority.",
+    "expires": "2026-11-03",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md"
+  },
+  {
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-12064",
+    "package": "libcurl3-gnutls",
+    "version": "7.88.1-10+deb12u15",
+    "severity": "HIGH",
+    "package_path": "",
+    "kinds": [
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "reason": "Exact engineering OS curl library has no external network or production credentials; its network/authentication attack prerequisites are unavailable.",
+    "expires": "2026-11-03",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md"
+  },
+  {
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-6276",
+    "package": "libcurl3-gnutls",
+    "version": "7.88.1-10+deb12u15",
+    "severity": "HIGH",
+    "package_path": "",
+    "kinds": [
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "reason": "Exact engineering OS curl library has no external network or production credentials; its network/authentication attack prerequisites are unavailable.",
+    "expires": "2026-11-03",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md"
+  },
+  {
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-8286",
+    "package": "libcurl3-gnutls",
+    "version": "7.88.1-10+deb12u15",
+    "severity": "HIGH",
+    "package_path": "",
+    "kinds": [
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "reason": "Exact engineering OS curl library has no external network or production credentials; its network/authentication attack prerequisites are unavailable.",
+    "expires": "2026-11-03",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md"
+  },
+  {
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-8458",
+    "package": "libcurl3-gnutls",
+    "version": "7.88.1-10+deb12u15",
+    "severity": "HIGH",
+    "package_path": "",
+    "kinds": [
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "reason": "Exact engineering OS curl library has no external network or production credentials; its network/authentication attack prerequisites are unavailable.",
+    "expires": "2026-11-03",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md"
+  },
+  {
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-8927",
+    "package": "libcurl3-gnutls",
+    "version": "7.88.1-10+deb12u15",
+    "severity": "HIGH",
+    "package_path": "",
+    "kinds": [
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "reason": "Exact engineering OS curl library has no external network or production credentials; its network/authentication attack prerequisites are unavailable.",
+    "expires": "2026-11-03",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md"
+  },
+  {
+    "target": "os:debian:12.15",
+    "id": "CVE-2023-2953",
+    "package": "libldap-2.5-0",
+    "version": "2.5.13+dfsg-5",
+    "severity": "HIGH",
+    "package_path": "",
+    "kinds": [
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "reason": "No LDAP service authentication is configured in the disposable test database; engineering remains network-isolated and resource-bounded.",
+    "expires": "2026-11-03",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md"
+  },
+  {
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-9538",
+    "package": "libperl5.36",
+    "version": "5.36.0-7+deb12u4",
+    "severity": "HIGH",
+    "package_path": "",
+    "kinds": [
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "reason": "Gateway perl-base lacks Archive::Tar; disposable engineering archive processing retains enforced memory/time bounds and no production secrets.",
+    "expires": "2026-11-03",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md"
+  },
+  {
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-82560",
+    "package": "libperl5.36",
+    "version": "5.36.0-7+deb12u4",
+    "severity": "UNKNOWN",
+    "package_path": "",
+    "kinds": [
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "reason": "No service formats attacker-supplied Perl POD; arbitrary engineering code retains memory/CPU/time isolation and no production secrets.",
+    "expires": "2026-11-03",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md"
+  },
+  {
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-6653",
+    "package": "libxml2",
+    "version": "2.9.14+dfsg-1.3~deb12u6",
+    "severity": "CRITICAL",
+    "package_path": "",
+    "kinds": [
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "reason": "Only disposable engineering parses arbitrary source/XML with this OS library, under enforced isolation/resource limits and without production secrets.",
+    "expires": "2026-11-03",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md"
+  },
+  {
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-74860",
+    "package": "libxml2",
+    "version": "2.9.14+dfsg-1.3~deb12u6",
+    "severity": "HIGH",
+    "package_path": "",
+    "kinds": [
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "reason": "Only disposable engineering parses arbitrary source/XML with this OS library, under enforced isolation/resource limits and without production secrets.",
+    "expires": "2026-11-03",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md"
+  },
+  {
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-86138",
+    "package": "libxml2",
+    "version": "2.9.14+dfsg-1.3~deb12u6",
+    "severity": "HIGH",
+    "package_path": "",
+    "kinds": [
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "reason": "Only disposable engineering parses arbitrary source/XML with this OS library, under enforced isolation/resource limits and without production secrets.",
+    "expires": "2026-11-03",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md"
+  },
+  {
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-86140",
+    "package": "libxml2",
+    "version": "2.9.14+dfsg-1.3~deb12u6",
+    "severity": "HIGH",
+    "package_path": "",
+    "kinds": [
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "reason": "Only disposable engineering parses arbitrary source/XML with this OS library, under enforced isolation/resource limits and without production secrets.",
+    "expires": "2026-11-03",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md"
+  },
+  {
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-86142",
+    "package": "libxml2",
+    "version": "2.9.14+dfsg-1.3~deb12u6",
+    "severity": "HIGH",
+    "package_path": "",
+    "kinds": [
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "reason": "Only disposable engineering parses arbitrary source/XML with this OS library, under enforced isolation/resource limits and without production secrets.",
+    "expires": "2026-11-03",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md"
+  },
+  {
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-86143",
+    "package": "libxml2",
+    "version": "2.9.14+dfsg-1.3~deb12u6",
+    "severity": "HIGH",
+    "package_path": "",
+    "kinds": [
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "reason": "Only disposable engineering parses arbitrary source/XML with this OS library, under enforced isolation/resource limits and without production secrets.",
+    "expires": "2026-11-03",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md"
+  },
+  {
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-86144",
+    "package": "libxml2",
+    "version": "2.9.14+dfsg-1.3~deb12u6",
+    "severity": "HIGH",
+    "package_path": "",
+    "kinds": [
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "reason": "Only disposable engineering parses arbitrary source/XML with this OS library, under enforced isolation/resource limits and without production secrets.",
+    "expires": "2026-11-03",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md"
+  },
+  {
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-9538",
+    "package": "perl",
+    "version": "5.36.0-7+deb12u4",
+    "severity": "HIGH",
+    "package_path": "",
+    "kinds": [
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "reason": "Gateway perl-base lacks Archive::Tar; disposable engineering archive processing retains enforced memory/time bounds and no production secrets.",
+    "expires": "2026-11-03",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md"
+  },
+  {
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-82560",
+    "package": "perl",
+    "version": "5.36.0-7+deb12u4",
+    "severity": "UNKNOWN",
+    "package_path": "",
+    "kinds": [
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "reason": "No service formats attacker-supplied Perl POD; arbitrary engineering code retains memory/CPU/time isolation and no production secrets.",
+    "expires": "2026-11-03",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md"
+  },
+  {
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-9538",
+    "package": "perl-modules-5.36",
+    "version": "5.36.0-7+deb12u4",
+    "severity": "HIGH",
+    "package_path": "",
+    "kinds": [
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "reason": "Gateway perl-base lacks Archive::Tar; disposable engineering archive processing retains enforced memory/time bounds and no production secrets.",
+    "expires": "2026-11-03",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md"
+  },
+  {
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-82560",
+    "package": "perl-modules-5.36",
+    "version": "5.36.0-7+deb12u4",
+    "severity": "UNKNOWN",
+    "package_path": "",
+    "kinds": [
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "reason": "No service formats attacker-supplied Perl POD; arbitrary engineering code retains memory/CPU/time isolation and no production secrets.",
+    "expires": "2026-11-03",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md"
+  },
+  {
+    "target": "Node.js",
+    "id": "CVE-2026-93748",
+    "package": "http-cache-semantics",
+    "version": "4.2.0",
+    "severity": "HIGH",
+    "package_path": "opt/engineering-deps/openclaw/node_modules/npm/node_modules/http-cache-semantics/package.json",
+    "kinds": [
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "reason": "Exact npm make-fetch-happen dependency uses shared:false; no shared HTTP cache role. Gateway shell/npm tools are disabled; engineering network is none.",
+    "expires": "2026-11-03",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md"
+  },
+  {
+    "kinds": [
+      "engineering"
+    ],
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "target": "os:debian:12.15",
+    "id": "CVE-2026-115506",
+    "package": "libexpat1",
+    "version": "2.5.0-1+deb12u5",
+    "severity": "UNKNOWN",
+    "package_path": "",
+    "reason": "The exact engineering XML entity-amplification exposure remains within enforced CPU/memory/time limits and has no production secrets or authority.",
+    "expires": "2026-11-03",
+    "reviewer": "Codex automated technical reachability review, 2026-10-27",
+    "evidence": "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md"
+  }
+]

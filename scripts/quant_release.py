@@ -128,11 +128,16 @@ def prepare(candidate, tree, previous, *, units=None):
     helper = next((r['sha'] for r in tree if r['path'] == 'scripts/quant_host.py' and r['type'] == 'blob'), None)
     if blob((ROOT / 'control/quant_host.py').read_bytes()) != helper:
         raise ValueError('The fixed research controller needs separate trusted installation.')
-    for name in PATHS[2:]:
-        if blob((ROOT / 'source' / previous / name).read_bytes()) != expected[name]:
-            raise ValueError('Changed research runtime dependencies need a separate tested installation.')
+    transition = None
+    if any(blob((ROOT / 'source' / previous / name).read_bytes()) != expected[name] for name in PATHS[2:]):
+        from research_runtime_transition import validate
+
+        try:
+            transition = validate(revision, previous, expected, original)
+        except (ValueError, OSError, KeyError) as error:
+            raise ValueError('Changed research runtime dependencies need a separate tested installation.') from error
     verify_inventory(ROOT / 'source' / previous, original['source_files'])
-    selected = active_units() if units is None else list(units)
+    selected = transition['units'] if transition else (active_units() if units is None else list(units))
     if not set(selected) <= set(UNITS) or len(set(selected)) != len(selected):
         raise ValueError('Research recovery cannot broaden the original service scope.')
     for unit in selected:
@@ -161,7 +166,7 @@ def prepare(candidate, tree, previous, *, units=None):
     updated = {**original, 'source_revision': revision, 'source_files': inventory, 'host_control_revision': revision}
     updated.pop('source_archive_sha256', None)
     updated['source_tree_sha256'] = hashlib.sha256(json.dumps(inventory, sort_keys=True).encode()).hexdigest()
-    return {'original': original, 'target': updated, 'units': selected, 'source_revision': revision, 'files_verified': len(inventory), 'controller_sha256': hashlib.sha256((ROOT / 'control/quant_host.py').read_bytes()).hexdigest()}
+    return {'original': original, 'target': updated, 'units': selected, 'source_revision': revision, 'files_verified': len(inventory), 'controller_sha256': hashlib.sha256((ROOT / 'control/quant_host.py').read_bytes()).hexdigest(), 'dependency_transition': revision if transition else None}
 
 
 def stop(prepared):
@@ -208,6 +213,10 @@ def resume_units(units):
 
 
 def resume_original(prepared):
+    if prepared and prepared.get('dependency_transition'):
+        # Dependencies have already changed under a separately checked receipt.
+        # Old source may not resume; only activate() can bind the new source.
+        return
     if prepared and prepared['units']:
         if json.loads((ROOT / 'control/config.json').read_text()) != prepared['original']:
             raise ValueError('Previous research recovery refuses a changed source configuration.')
@@ -229,6 +238,11 @@ def activate(prepared, server, compose):
     if not prepared:
         return {'installed': False, 'workers_resumed': []}
     target, original = prepared['target'], prepared['original']
+    if prepared.get('dependency_transition'):
+        from research_runtime_transition import validate
+
+        expected = {name: blob((ROOT / 'source' / target['source_revision'] / name).read_bytes()) for name in PATHS[2:]}
+        validate(target['source_revision'], original['source_revision'], expected, original)
     if hashlib.sha256((ROOT / 'control/quant_host.py').read_bytes()).hexdigest() != prepared['controller_sha256']:
         raise ValueError('The fixed research controller changed before activation.')
     path = ROOT / 'control/config.json'

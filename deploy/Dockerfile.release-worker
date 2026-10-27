@@ -1,4 +1,9 @@
-FROM python:3.13-slim-bookworm@sha256:5024f48ba9441d4b13a95d3945abc6365538e3a31109833367a1923523c6efed
+FROM python:3.13-slim-bookworm@sha256:93498f36dc7e24ef233bfdf6cc17d4b8bd32d94ee737143e906460d5f5a914c5
+ADD --checksum=sha256:04c721c2c7448767e9e3f2520a475663d8ee0f09c31890f6d2bd70fd636a9647 https://files.pythonhosted.org/packages/31/f9/c0a1c127f9049db9155afc316952ea571720dd01833ff5e4d7e8e6352dbb/msgpack-1.2.1.tar.gz /tooling-inputs/msgpack-1.2.1.tar.gz
+ADD --checksum=sha256:0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3 https://files.pythonhosted.org/packages/92/9d/c4e665119135114480843e7ab388fa94d8480650450e6f8e26b70d323a4c/urllib3-2.8.0-py3-none-any.whl /tooling-inputs/urllib3-2.8.0-py3-none-any.whl
+COPY scripts/patch_python_tooling.py /patch_python_tooling.py
+RUN python -I /patch_python_tooling.py && python -I -m pip --version && rm -rf /tooling-inputs
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 LANGSMITH_TRACING=false
 WORKDIR /app
 COPY backend/requirements.runtime.lock ./requirements.runtime.lock

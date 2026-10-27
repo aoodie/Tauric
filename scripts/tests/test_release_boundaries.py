@@ -125,7 +125,7 @@ class EncryptedRecovery(unittest.TestCase):
 class HealthAlerts(unittest.TestCase):
     def test_disabled_financial_profiles_are_not_reported_as_failed_required_services(self):
         service = {"running": True, "health": "healthy", "oom_killed": False, "restart_count": 0, "container_id": "same", "memory_limit_bytes": 100}
-        sample = {"services": {"api": service, "broker_execution": {**service, "running": False}}, "host_memory": {"physical_total_bytes": 16 * 1024**3, "physical_available_bytes": 6 * 1024**3}, "available_disk_bytes": 20 * 1024**3}
+        sample = {"services": {"api": service, "broker_execution": {**service, "running": False}}, "host_memory": {"physical_total_bytes": 16 * 1024**3, "physical_available_bytes": 6 * 1024**3}, "available_disk_bytes": 20 * 1024**3, "backup_age_seconds": 10, "offhost_backup_age_seconds": 20}
         self.assertEqual(operations_watch.alerts(sample, {"api"}), [])
         sample["services"]["broker_execution"]["running"] = True
         self.assertEqual(operations_watch.alerts(sample, {"api"})[0]["key"], "financial_service:broker_execution")

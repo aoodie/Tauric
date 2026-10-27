@@ -203,11 +203,15 @@ export function PortfolioResearch({
               {state.asset_capabilities.map((c) => (
                 <p key={String(c.asset_class)}>
                   <strong>{String(c.label)}</strong> · data{" "}
-                  {c.data_ready ? "ready" : "pending"}, screening{" "}
-                  {c.screening_ready ? "ready" : "pending"}, replay{" "}
-                  {c.replay_ready ? "ready" : "pending"}, native research{" "}
-                  {c.native_research_ready ? "daily context" : "pending"}, live
-                  execution disabled. {String(c.detail)}
+                  {c.data_configured
+                    ? "configured; checked on each request"
+                    : "connection needed"}
+                  , screening{" "}
+                  {c.screening_implemented ? "implemented" : "pending"}, replay{" "}
+                  {c.replay_ready ? "implemented" : "pending"}, native research{" "}
+                  {c.native_research_ready ? "daily context" : "pending"}.
+                  Execution authority is checked per account in Trading.{" "}
+                  {String(c.detail)}
                 </p>
               ))}
             </div>

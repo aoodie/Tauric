@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from sqlalchemy import func, select, update
 
 from . import chat, governance, paper
-from .agent_contracts import TaskComplete, TaskCreate, TaskWait
+from .agent_contracts import Criterion, TaskComplete, TaskCreate, TaskWait
 from .agent_models import AgentTask, AgentTaskEvent, AgentTaskWake, EngineeringJob
 from .models import AnalysisArtifact, AnalysisJob, AssistantRecord, AuditEvent, ChatTurn, Owner, now
 from .quant_models import QuantRecord
@@ -244,6 +244,17 @@ def control(db, owner, task_id, body):
         fail("The task changed; reload its latest state.")
     if task.status in TERMINAL:
         fail("A finished or cancelled task cannot be resumed.")
+    if body.action == "waive_child":
+        child = owned(db, owner, body.child_id, lock=True)
+        if child.parent_id != task.id or child.status != "cancelled":
+            fail("Only this parent's explicitly cancelled child can be removed from scope.")
+        waived = dict(task.result.get("waived_children", {}))
+        waived[child.id] = {"owner_id": owner.id, "reason": body.reason, "at": now().isoformat()}
+        task.result = {**task.result, "waived_children": waived}
+        task.revision += 1
+        event(db, task, "child_scope_removed", {"child_id": child.id, **waived[child.id]})
+        db.commit()
+        return view(task, db)
     if body.action == "resume" and task.deadline <= now():
         fail("This goal's deadline expired. Create a new owner-authorized goal to continue.")
     rows = db.scalars(
@@ -298,7 +309,7 @@ def control(db, owner, task_id, body):
     return view(task, db)
 
 
-def reference(db, owner, ref):
+def _reference(db, owner, ref):
     """Observe actual service state; a request receipt never means completion."""
     key = str(ref.id)
     if ref.kind == "discovery":
@@ -338,6 +349,7 @@ def reference(db, owner, ref):
             else [],
             "checksum": paper.checksum(result),
             "error": result.get("error"),
+            "source_revision": result.get("revision"),
         }
     if ref.kind == "open_research":
         row = db.get(AuditEvent, key)
@@ -442,10 +454,26 @@ def reference(db, owner, ref):
             proofs = ["command_success"]
             if (
                 row.inputs["purpose"] == "test"
-                and row.result.get("test_runner")
-                and type(row.result.get("tests_executed")) is int
-                and row.result["tests_executed"] > 0
+                and (row.result.get("test_report_passed") or row.result.get("test_runner"))
+                and type(row.result.get("tests_reported", row.result.get("tests_executed"))) is int
+                and row.result.get("tests_reported", row.result.get("tests_executed", 0)) > 0
             ):
+                # Submitted code controls its JUnit/TAP output. A host signature
+                # authenticates that report, not independent test execution.
+                proofs.append("workspace_tests_reported")
+            verification = row.result.get("independent_verification") or {}
+            if (row.inputs["purpose"] == "verify"
+                    and verification.get("profile") == "tauric_api_smoke_v1"
+                    and verification.get("passed") is True
+                    and verification.get("tests_executed") == 4
+                    and type(verification.get("tests_executed")) is int
+                    and verification.get("source_unchanged") is True
+                    and verification.get("source_tree_checksum") == row.result.get("source_tree_checksum")
+                    and verification.get("cases") == [
+                        {"name": name, "passed": True} for name in (
+                            "live_health", "database_readiness", "owner_authentication_required",
+                            "validation_redacts_password")]
+                    and all(case["passed"] is True for case in verification["cases"])):
                 proofs.append("tests_passed")
         observation = {
             "kind": ref.kind,
@@ -466,9 +494,12 @@ def reference(db, owner, ref):
                 "purpose": row.inputs["purpose"],
                 "exit_code": row.result.get("exit_code"),
                 "untrusted_output": output[:ENGINEERING_OUTPUT_LIMIT],
-                "output_truncated": len(output) > ENGINEERING_OUTPUT_LIMIT,
-                "tests_executed": row.result.get("tests_executed", 0),
-                "test_runner": row.result.get("test_runner", False),
+                "output_truncated": row.result.get("output_truncated", True)
+                or len(output) > ENGINEERING_OUTPUT_LIMIT,
+                "tests_executed": row.result.get("tests_executed", 0) if "tests_passed" in proofs else 0,
+                "test_runner": "tests_passed" in proofs,
+                "tests_reported": row.result.get("tests_reported", row.result.get("tests_executed", 0)),
+                "test_evidence": "independent_api_smoke" if "tests_passed" in proofs else "workspace_report_only",
                 "source_revision": row.result.get("source_revision"),
             }
         return observation
@@ -483,6 +514,66 @@ def reference(db, owner, ref):
             "error": row.error,
         }
     fail("A submission receipt cannot establish goal completion.", 422)
+
+
+def reference(db, owner, ref):
+    result = _reference(db, owner, ref)
+    from .discovery_models import DiscoveryRecord
+
+    models = {"analysis": AnalysisJob, "quant": QuantRecord, "discovery": DiscoveryRecord,
+              "open_research": AuditEvent, "engineering": EngineeringJob, "task": AgentTask,
+              "release": AssistantRecord, "assistant_receipt": AssistantRecord}
+    row = db.get(models[ref.kind], str(ref.id))
+    values = {"evidence_id": str(ref.id), "checksum": result.get("checksum")}
+    if row:
+        result["evidence_created_at"] = row.created_at.isoformat()
+        if ref.kind == "analysis":
+            values["instrument_id"] = row.instrument_id
+        elif ref.kind in {"quant", "discovery"}:
+            payload = row.payload
+            values["instrument_id"] = (payload.get("instrument_id")
+                or payload.get("instrument", {}).get("id")
+                or payload.get("input", {}).get("instrument_id"))
+            ids = payload.get("input", {}).get("parameters", {}).get("instrument_ids", [])
+            if not values["instrument_id"] and len(ids) == 1:
+                values["instrument_id"] = ids[0]
+        elif ref.kind == "task":
+            values["objective_sha256"] = hashlib.sha256(row.objective.encode()).hexdigest()
+        elif ref.kind == "open_research":
+            values["url"] = row.details.get("evidence", {}).get("url")
+        elif ref.kind == "engineering":
+            values.update(command_sha256=hashlib.sha256(row.inputs.get("script", "").encode()).hexdigest(),
+                          source_revision=row.result.get("source_revision"),
+                          source_tree_checksum=row.result.get("source_tree_checksum"))
+            verification = row.result.get("independent_verification") or {}
+            if verification.get("profile"):
+                values["verification_profile"] = verification["profile"]
+        elif ref.kind == "release":
+            job = db.get(EngineeringJob, row.payload["test_job_id"])
+            values.update(command_sha256=hashlib.sha256(job.inputs.get("script", "").encode()).hexdigest(),
+                          source_revision=result.get("source_revision"))
+    result["binding"] = {k: v for k, v in values.items() if v is not None}
+    return result
+
+
+def verify_criterion(criterion, proof, task):
+    criterion = Criterion.model_validate(criterion)
+    if criterion.proof not in proof["proofs"]:
+        fail("A completion criterion has not passed its authoritative evidence check.")
+    if not criterion.binding or any(
+        proof.get("binding", {}).get(k) != v for k, v in criterion.binding.items()
+    ):
+        fail("The completion criterion requires matching explicit evidence bindings.")
+    if criterion.proof == "tests_passed" and criterion.binding.get("verification_profile") != "tauric_api_smoke_v1":
+        fail("The tests criterion must explicitly select the independently verified API smoke profile; it does not certify the full suite.")
+    from datetime import datetime
+
+    stamp = proof.get("evidence_created_at")
+    created = datetime.fromisoformat(stamp) if stamp else None
+    explicit_existing = criterion.binding.get("evidence_id") == proof["id"]
+    if (not created or (created < task.created_at and not explicit_existing) or created > now()
+            or now() - created > timedelta(seconds=criterion.max_age_seconds)):
+        fail("The completion criterion requires fresh evidence created for this task window.")
 
 
 def invoke(db, owner, turn, body):
@@ -537,8 +628,7 @@ def invoke(db, owner, turn, body):
             fail("Supply one independently checked result for every completion criterion.", 422)
         observed = [reference(db, owner, ref) for ref in params.evidence]
         for criterion, proof in zip(row.criteria, observed, strict=True):
-            if criterion["proof"] not in proof["proofs"]:
-                fail("A completion criterion has not passed its authoritative evidence check.")
+            verify_criterion(criterion, proof, row)
             if proof["kind"] == "engineering":
                 job = db.get(EngineeringJob, proof["id"])
                 job_task = owned(db, owner, job.task_id)
@@ -552,14 +642,15 @@ def invoke(db, owner, turn, body):
                 release = release_jobs.intent(db, owner, proof["id"])
                 if owned(db, owner, release.payload["task_id"]).root_id != row.root_id:
                     fail("Release proof must come from this project goal.", 403)
-        unfinished = db.scalar(
-            select(AgentTask.id)
-            .where(AgentTask.parent_id == row.id, AgentTask.status != "completed")
-            .limit(1)
-        )
+        waivers = row.result.get("waived_children", {})
+        unfinished = db.scalar(select(AgentTask.id).where(
+            AgentTask.parent_id == row.id, AgentTask.status != "completed",
+            ~AgentTask.id.in_(list(waivers)),
+        ).limit(1))
         if unfinished:
             fail("Complete or resolve outstanding child tasks before completing their parent.")
         row.result = {
+            "waived_children": waivers,
             "summary": params.summary,
             "verified_evidence": observed,
             "verified_at": now().isoformat(),
@@ -594,6 +685,9 @@ def instructions(db, turn):
         "remaining task budget, with its own stable effect_key and the original failure "
         "preserved. Never change keys to replay an uncertain execution. This does not grant "
         "financial retry authority. "
+        "Completion requires each criterion's explicit binding and fresh evidence; free-text descriptions "
+        "alone never establish completion. Workspace test reports are advisory and cannot satisfy tests_passed. "
+        "Use narrowly targeted reads; reuse retained output rather than repeating broad inspections. "
         "Use needs_owner for missing access or exhausted recovery. Current task:\n"
         + json.dumps(view(task, db), default=str)
     )
@@ -716,7 +810,7 @@ def tick(db):
             task.next_check_at = now() + timedelta(seconds=30)
             db.commit()
             return False
-        task.status, task.result = "queued", {"last_observation": observation}
+        task.status, task.result = "queued", {**task.result, "last_observation": observation}
         event(db, task, "result_observed", observation)
     dependencies = [owned(db, owner, key) for key in task.dependencies]
     if any(dep.status in {"failed", "cancelled", "requires_owner"} for dep in dependencies):

@@ -2,7 +2,7 @@
 
 All Tauric work belongs in the private [aoodie/Tauric repository](https://github.com/aoodie/Tauric). Keep separate pull requests for separate workstreams; see the [GitHub work index and current deployment status](docs/GITHUB_WORKSTREAMS.md).
 
-OpenClaw is the intended general autonomous project owner. The owner's standing mandate includes planning, engineering, research, follow-up, operations, and routine tested deployments and recovery under the existing release process. See [project ownership, authority and acceptance](docs/OPENCLAW_PROJECT_OWNERSHIP.md); the mandate is recorded, while the full persistent ownership runtime still requires implementation and verification.
+OpenClaw is the intended general autonomous project owner. The owner's standing mandate includes planning, engineering, research, follow-up, operations, and routine tested deployments and recovery under the existing release process. See [project ownership, authority and acceptance](docs/OPENCLAW_PROJECT_OWNERSHIP.md). Durable tasks, isolated engineering and the release bridge are implemented; full autonomous ownership still requires independently verified production acceptance.
 
 Oracle is the sole active workstation at [tauric.aoodie.xyz](https://tauric.aoodie.xyz). The IONOS runtime was retired on 19 October 2026 after its final backup passed an isolated restoration on Oracle. Existing Oracle settings and disabled financial execution services were preserved. See the [Oracle-only deployment and recovery record](docs/ORACLE_ONLY_2026-10-19.md).
 

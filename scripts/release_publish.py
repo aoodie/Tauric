@@ -22,11 +22,13 @@ PROTECTED_PREFIXES = (".github/", "deploy/")
 PROTECTED_FILES = {
     "AGENTS.md",
     "docs/OPENCLAW_PROJECT_OWNERSHIP.md",
+    "docs/SECURITY_EXCEPTION_REVIEW_2026-10-27.md",
     ".dockerignore",
     "scripts/server.py",
     "scripts/shared_ingress.py",
     "scripts/research_release.py",
     "scripts/quant_release.py",
+    "scripts/research_runtime_transition.py",
     "scripts/quant_host.py",
     "scripts/trusted_research_install.py",
     "scripts/backup_vault.py",
@@ -34,6 +36,10 @@ PROTECTED_FILES = {
     "scripts/maintenance_backup.py",
     "scripts/project_tree.py",
     "scripts/engineering_host.py",
+    "scripts/engineering_verify.py",
+    "scripts/operations_install.py",
+    "scripts/pull_recovery_backups.py",
+    "scripts/offhost_watch.py",
     "scripts/engineering_install.py",
     "scripts/engineering_entry.py",
     "scripts/registry_pull.py",
@@ -49,6 +55,11 @@ PROTECTED_FILES = {
     "scripts/release_bundle.py",
     "scripts/release_smoke.py",
     "scripts/engineering_smoke.py",
+    "scripts/patch_runtime_dependencies.mjs",
+    "scripts/patch_python_tooling.py",
+    "scripts/python_tooling_smoke.py",
+    "scripts/security_policy.py",
+    "scripts/scan_release_images.py",
     "backend/tauric/auth.py",
     "backend/tauric/agent_api.py",
     "backend/tauric/agent_tasks.py",
@@ -101,17 +112,27 @@ def signed_source(
     request_digest = hashlib.sha256(
         json.dumps(original, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
+    independent = request.get("purpose") == "verify"
+    count = result.get("tests_executed") if independent else result.get("tests_reported", result.get("tests_executed"))
+    report_passed = result.get("test_runner") if independent else (result.get("test_report_passed") or result.get("test_runner"))
+    verification = result.get("independent_verification") or {}
     if (
         request.get("checksum") != request_digest
-        or request.get("purpose") != "test"
+        or request.get("purpose") not in {"test", "verify"}
         or result.get("request_checksum") != request_digest
         or result.get("id") != request.get("id")
         or result.get("workspace_id") != request.get("workspace_id")
         or result.get("cancelled")
         or result.get("exit_code") != 0
-        or type(result.get("tests_executed")) is not int
-        or result["tests_executed"] < 1
-        or not result.get("test_runner")
+        or type(count) is not int or count < 1
+        or not report_passed
+        or independent and (
+            request.get("script") != "api_smoke" or count != 4
+            or verification.get("profile") != "tauric_api_smoke_v1"
+            or verification.get("passed") is not True
+            or verification.get("source_unchanged") is not True
+            or verification.get("source_tree_checksum") != bundle.get("tree_checksum")
+        )
         or identities.get(result.get("image_id")) != installed_revision
         or bundle.get("job_id") != request["id"]
         or bundle.get("workspace_id") != request["workspace_id"]
@@ -121,7 +142,7 @@ def signed_source(
         or not re.fullmatch(r"[a-f0-9]{40}", installed_revision)
     ):
         raise ValueError(
-            "The signed source does not prove successful tests on the installed base."
+            "The signed workspace test report is invalid or uses a different installed base. Independent release checks remain required."
         )
     paths = set(bundle["files"]) | set(bundle["deleted"])
     if (

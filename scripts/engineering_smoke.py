@@ -118,8 +118,8 @@ PY""")
             tested = job(
                 "python -m pytest scripts/tests/test_owner_acceptance.py -q", "test"
             )
-            assert tested["exit_code"] == 0 and tested["test_runner"], tested
-            assert tested["tests_executed"] == 1, tested
+            assert tested["exit_code"] == 0 and tested["test_report_passed"], tested
+            assert tested["tests_reported"] == 1, tested
             artifact = json.loads(
                 (
                     root
@@ -137,8 +137,33 @@ PY""")
                 "test",
             )
             assert (
-                integration["exit_code"] == 0 and integration["tests_executed"] == 1
+                integration["exit_code"] == 0 and integration["tests_reported"] == 1
             ), integration
+            independent = job("api_smoke", "verify")
+            assert independent["exit_code"] == 0 and independent["tests_executed"] == 4, independent
+            assert independent["independent_verification"]["source_unchanged"], independent
+            job('''python - <<'PY'
+from pathlib import Path
+p=Path('backend/tauric/app.py')
+text=p.read_text()
+original='def live():\\n    return {"status": "ok"}'
+assert original in text
+p.write_text(text.replace(original,'def live():\\n    return {"status": "broken"}',1))
+Path('scripts/tests/test_forged_report.py').write_text('def test_sentinel(): assert False\\n')
+Path('scripts/tests/conftest.py').write_text("import os,sys\\nfrom pathlib import Path\\ndef pytest_configure(config):\\n report=next(x.split('=',1)[1] for x in sys.argv if x.startswith('--junitxml='))\\n Path(report).write_text('<testsuites><testsuite tests=\\\"1\\\" failures=\\\"0\\\" errors=\\\"0\\\" skipped=\\\"0\\\"/></testsuites>')\\n os._exit(0)\\n")
+PY''')
+            forged = job("python -m pytest scripts/tests/test_forged_report.py -q", "test")
+            assert forged["test_report_passed"] and forged["tests_executed"] == 0 and not forged["test_runner"], forged
+            rejected = job("api_smoke", "verify")
+            assert rejected["exit_code"] != 0 and not rejected["test_runner"], rejected
+            assert not rejected["independent_verification"]["passed"], rejected
+            job('''python - <<'PY'
+from pathlib import Path
+import shutil
+shutil.copyfile('/source/backend/tauric/app.py','backend/tauric/app.py')
+Path('scripts/tests/conftest.py').unlink()
+Path('scripts/tests/test_forged_report.py').unlink()
+PY''')
             resumed = job(
                 """python - <<'PY'
 from pathlib import Path
@@ -175,7 +200,10 @@ PY""",
                 "image_id": tested["image_id"],
                 "model_calls": 0,
                 "broker_calls": 0,
-                "tests_executed": tested["tests_executed"],
+                "tests_reported": tested["tests_reported"],
+                "independent_test_attestation": False,
+                "independent_api_smoke_cases": independent["tests_executed"],
+                "forged_workspace_report_rejected_as_independent_proof": True,
                 "source_tree_checksum": tested["source_tree_checksum"],
                 "checks": [
                     "real isolated code change",

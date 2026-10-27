@@ -12106,10 +12106,39 @@
               "job_success",
               "command_success",
               "tests_passed",
+              "workspace_tests_reported",
               "child_complete",
               "deployment_verified"
             ],
             "title": "Proof"
+          },
+          "binding": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "enum": [
+                "evidence_id",
+                "checksum",
+                "instrument_id",
+                "url",
+                "command_sha256",
+                "source_revision",
+                "source_tree_checksum",
+                "verification_profile",
+                "objective_sha256"
+              ]
+            },
+            "type": "object",
+            "maxProperties": 9,
+            "title": "Binding"
+          },
+          "max_age_seconds": {
+            "type": "integer",
+            "maximum": 604800.0,
+            "minimum": 1.0,
+            "title": "Max Age Seconds",
+            "default": 86400
           }
         },
         "additionalProperties": false,
@@ -13285,7 +13314,8 @@
             "enum": [
               "inspect",
               "develop",
-              "test"
+              "test",
+              "verify"
             ],
             "title": "Purpose",
             "default": "develop"
@@ -21284,7 +21314,8 @@
             "enum": [
               "pause",
               "resume",
-              "cancel"
+              "cancel",
+              "waive_child"
             ],
             "title": "Action"
           },
@@ -21293,6 +21324,18 @@
             "maxLength": 500,
             "minLength": 3,
             "title": "Reason"
+          },
+          "child_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Id"
           }
         },
         "additionalProperties": false,

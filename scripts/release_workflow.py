@@ -15,7 +15,7 @@ from release_publish import save
 
 UTC = timezone.utc  # Native host tools support Python 3.10.
 WORKFLOW = ".github/workflows/release.yml"
-REQUIRED_JOBS = {"checks / checks", "checks / quant-runtimes", "checks / host-tools-310", "bundle"} | {
+REQUIRED_JOBS = {"checks / checks", "checks / quant-runtimes", "checks / host-tools-310", "image-security", "bundle"} | {
     "images (" + kind + ", " + dockerfile + ")"
     for kind, dockerfile in {
         "api": "deploy/Dockerfile.release-api",
@@ -114,7 +114,7 @@ def completed_release(client, run, revision, branch):
     }
     if not REQUIRED_JOBS <= successful:
         raise ValueError(
-            "Required checks, five image builds or installation rehearsal did not pass."
+            "Required checks, image security scans, five builds or installation rehearsal did not pass."
         )
     return True
 

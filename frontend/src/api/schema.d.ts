@@ -4581,8 +4581,18 @@ export interface components {
         | "job_success"
         | "command_success"
         | "tests_passed"
+        | "workspace_tests_reported"
         | "child_complete"
         | "deployment_verified";
+      /** Binding */
+      binding?: {
+        [key: string]: string;
+      };
+      /**
+       * Max Age Seconds
+       * @default 86400
+       */
+      max_age_seconds: number;
     };
     /** DataContext */
     DataContext: {
@@ -5127,7 +5137,7 @@ export interface components {
        * @default develop
        * @enum {string}
        */
-      purpose: "inspect" | "develop" | "test";
+      purpose: "inspect" | "develop" | "test" | "verify";
     };
     /** EquityPoint */
     EquityPoint: {
@@ -8529,9 +8539,11 @@ export interface components {
        * Action
        * @enum {string}
        */
-      action: "pause" | "resume" | "cancel";
+      action: "pause" | "resume" | "cancel" | "waive_child";
       /** Reason */
       reason: string;
+      /** Child Id */
+      child_id?: string | null;
     };
     /** TaskCreate */
     TaskCreate: {

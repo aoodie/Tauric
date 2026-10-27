@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID
 
+import engineering_verify
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from project_tree import collect
@@ -26,6 +27,20 @@ LABEL = "io.tauric.engineering"
 WORKSPACE_ROOT = Path("/var/lib/tauric-engineering/workspaces")
 MAX_WORKSPACES = 8
 WORKSPACE_BYTES = 512 * 1024 * 1024
+
+
+def captured_output(raw):
+    """Keep cumulative loss information when a short line-tail hides a long log."""
+    text = raw.decode("utf-8", "replace")
+    lines = text.splitlines(keepends=True)
+    tail = "".join(lines[-300:])
+    return {
+        "output": tail[-30000:],
+        "output_truncated": len(lines) > 300 or len(tail) > 30000
+        or "[Output truncated to the last 30 KB.]" in text,
+        "output_observed_bytes": len(raw),
+        "test_evidence": "workspace_report_only",
+    }
 
 
 def canonical(value):
@@ -85,7 +100,8 @@ def container_args(image, job):
         "--mount",
         "type=bind,source="
         + str(WORKSPACE_ROOT / workspace / "mount")
-        + ",target=/workspace",
+        + ",target=/workspace"
+        + (",readonly" if job.get("purpose") == "verify" else ""),
         "--log-opt",
         "max-size=1m",
         "--log-opt",
@@ -238,7 +254,9 @@ def process(path, root, image, key):
         request_checksum(values) != job["checksum"]
         or type(job["timeout_seconds"]) is not int
         or not 1 <= job["timeout_seconds"] <= 600
-        or job["purpose"] not in {"inspect", "develop", "test"}
+        or job["purpose"] not in {"inspect", "develop", "test", "verify"}
+        or job["purpose"] == "verify" and job["script"] != "api_smoke"
+        or job["purpose"] == "verify" and job["timeout_seconds"] < 45
     ):
         raise ValueError("Engineering request integrity or limits failed.")
     receipt = root / "receipts" / (job_id + ".json")
@@ -266,6 +284,10 @@ def process(path, root, image, key):
     started = time.monotonic()
     cancelled, timeout = False, False
     launcher = None
+    verification_path = root / "receipts" / (job_id + ".verification.json")
+    verification = json.loads(verification_path.read_text()) if verification_path.exists() else None
+    if verification and verification.get("request_checksum") != job["checksum"]:
+        raise ValueError("Independent verification has a different request identity.")
     if state["State"]["Status"] == "created":
         if (root / "cancel" / (job_id + ".json")).exists():
             signed_write(receipt, cancelled_result(job, image_id), key)
@@ -308,14 +330,39 @@ def process(path, root, image, key):
         timeout = elapsed > job["timeout_seconds"] + 15
         if cancelled or timeout:
             docker("kill", name)
+        elif job["purpose"] == "verify" and state["State"]["Status"] == "running":
+            if verification is None:
+                before = checksum(collect(target))
+                verification_started = time.monotonic()
+                try:
+                    verification = engineering_verify.verify(name)
+                except subprocess.SubprocessError:
+                    verification = {"profile": engineering_verify.PROFILE, "passed": False, "tests_executed": 0}
+                after = checksum(collect(target))
+                verification.update(request_checksum=job["checksum"], source_tree_checksum=before,
+                                    source_unchanged=before == after)
+                verification["passed"] = verification["passed"] and before == after
+                verification_path.write_text(json.dumps(verification, sort_keys=True))
+                verification_path.chmod(0o600)
+                timeout = elapsed + time.monotonic() - verification_started > job["timeout_seconds"] + 15
+            cancelled = (root / "cancel" / (job_id + ".json")).exists()
+            docker("kill", name)
         time.sleep(0.5)
     if launcher:
         launcher.wait(timeout=10)
-    log = docker("logs", "--tail", "300", name).decode("utf-8", "replace")[-30000:]
+    captured = captured_output(docker("logs", name))
+    log = captured["output"]
     tests = {}
     markers = re.findall(r"^TAURIC_TEST_RESULT=(.+)$", log, re.MULTILINE)
-    if markers:
-        tests = json.loads(markers[-1])
+    if markers and job["purpose"] == "test":
+        try:
+            reported = json.loads(markers[-1])
+            if (isinstance(reported, dict)
+                    and all(type(reported.get(k)) is int and 0 <= reported[k] <= 1000000
+                            for k in ("executed", "failed"))):
+                tests = reported
+        except (ValueError, TypeError):
+            pass  # Untrusted diagnostics cannot crash receipt publication.
     test_runner = (
         job["purpose"] == "test"
         and tests.get("executed", 0) > 0
@@ -328,9 +375,12 @@ def process(path, root, image, key):
         "image_id": state["Image"],
         "exit_code": 124 if timeout else int(state["State"]["ExitCode"]),
         "cancelled": cancelled,
-        "output": log,
-        "test_runner": test_runner,
-        "tests_executed": tests.get("executed", 0),
+        **captured,
+        "test_runner": False,
+        "tests_executed": 0,
+        "test_report_passed": test_runner,
+        "workspace_test_runner": tests.get("runner"),
+        "tests_reported": tests.get("executed", 0),
         "finished_at": datetime.now(UTC).isoformat(),
         "error": "Time budget exceeded."
         if timeout
@@ -338,9 +388,19 @@ def process(path, root, image, key):
         if cancelled
         else None,
     }
+    if job["purpose"] == "verify":
+        success = bool(verification and verification.get("passed"))
+        result.update(independent_verification=verification, tests_executed=(verification or {}).get("tests_executed", 0),
+                      test_runner=success, exit_code=0 if success and not cancelled and not timeout else 1,
+                      test_evidence="independent_api_smoke")
+        if not success and not result.get("error"):
+            result["error"] = "Independent API smoke verification failed; inspect its recorded cases."
     if not cancelled:
         try:
             result.update(source_export(name, target, root / "receipts", job, image_id))
+            if (verification and verification.get("passed")
+                    and verification.get("source_tree_checksum") != result["source_tree_checksum"]):
+                result.update(exit_code=126, error="Source changed after independent verification.", test_runner=False)
         except (ValueError, OSError, subprocess.CalledProcessError):
             result["exit_code"] = result["exit_code"] or 126
             result["error"] = (

@@ -30,6 +30,14 @@ entry_spec.loader.exec_module(entry)
 
 
 class Isolation(unittest.TestCase):
+    def test_short_tail_keeps_upstream_truncation_information(self):
+        captured = host.captured_output(b"x\n" * 500)
+        self.assertTrue(captured["output_truncated"])
+        self.assertLess(len(captured["output"]), 20000)
+        self.assertEqual(captured["output_observed_bytes"], 1000)
+        self.assertTrue(host.captured_output(b"short\n[Output truncated to the last 30 KB.]\n")["output_truncated"])
+        self.assertFalse(host.captured_output(b"complete short output")["output_truncated"])
+
     def test_arbitrary_script_cannot_choose_host_mounts_image_or_network(self):
         job = {
             "id": str(uuid4()),
