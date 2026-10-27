@@ -1459,6 +1459,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/sso/status": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Sso Status */
+    get: operations["sso_status_api_v1_sso_status_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/sso/start": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Sso Start */
+    get: operations["sso_start_api_v1_sso_start_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/forex-data/connection": {
     parameters: {
       query?: never;
@@ -8322,6 +8356,11 @@ export interface components {
        */
       monetary_cap: false;
     };
+    /** SsoStatus */
+    SsoStatus: {
+      /** Enabled */
+      enabled: boolean;
+    };
     /** StrategyAnalytics */
     StrategyAnalytics: {
       /** Deployment Id */
@@ -11711,6 +11750,46 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  sso_status_api_v1_sso_status_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SsoStatus"];
+        };
+      };
+    };
+  };
+  sso_start_api_v1_sso_start_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
         };
       };
     };

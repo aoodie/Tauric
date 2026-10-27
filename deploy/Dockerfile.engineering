@@ -8,7 +8,8 @@ RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && useradd --create-home --uid 10001 engineer \
     && mkdir /workspace && chown engineer:engineer /workspace
 COPY backend/requirements.lock /requirements.lock
-RUN pip install --no-cache-dir -r /requirements.lock \
+COPY backend/requirements.sso.lock /requirements.sso.lock
+RUN pip install --no-cache-dir -r /requirements.lock -r /requirements.sso.lock \
     && python -c 'import pathlib,site; (pathlib.Path(site.getsitepackages()[0])/"tauric-workspace.pth").write_text("/workspace/backend\n")'
 COPY backend/ /source/backend/
 COPY frontend/ /source/frontend/

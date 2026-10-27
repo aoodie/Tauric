@@ -52,6 +52,7 @@ from .schemas import (
     WorkspaceCreate,
     WorkspaceView,
 )
+from .sso import router as sso_router
 from .strategy_api import router as strategy_router
 from .trading_api import resource as trading_resource
 from .trading_api import router as trading_router
@@ -72,6 +73,7 @@ app.include_router(qualification_router)
 app.include_router(quant_router)
 app.include_router(discovery_router)
 app.include_router(market_connections_router)
+app.include_router(sso_router)
 
 app.include_router(forex_connection_router)
 app.include_router(tradingview_connection_router)
@@ -82,10 +84,16 @@ async def security_headers(request: Request, call_next):
     if request.url.path == "/api/v1/tradingview/callback":
         request.state.tradingview_query = request.scope.get("query_string", b"")
         request.scope["query_string"] = b""
+    if request.url.path == "/api/v1/sso/callback":
+        request.state.sso_query = request.scope.get("query_string", b"")
+        request.scope["query_string"] = b""
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = (
-        "no-referrer" if request.url.path == "/api/v1/tradingview/callback" else "same-origin"
+        "no-referrer"
+        if request.url.path
+        in {"/api/v1/tradingview/callback", "/api/v1/sso/start", "/api/v1/sso/callback"}
+        else "same-origin"
     )
     response.headers["Cache-Control"] = "no-store"
     if request.url.path == CALLBACK_PATH:
@@ -93,6 +101,14 @@ async def security_headers(request: Request, call_next):
             OAUTH_COOKIE,
             path=CALLBACK_PATH,
             secure=runtime_config().secure_cookies,
+            httponly=True,
+            samesite="lax",
+        )
+    if request.url.path == "/api/v1/sso/callback":
+        response.delete_cookie(
+            "tauric_sso_attempt",
+            path="/api/v1/sso/callback",
+            secure=True,
             httponly=True,
             samesite="lax",
         )

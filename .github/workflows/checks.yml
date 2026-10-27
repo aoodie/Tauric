@@ -36,6 +36,7 @@ jobs:
         run: |
           python -m venv .venv
           .venv/bin/pip install -r backend/requirements.lock
+          .venv/bin/pip install -r backend/requirements.sso.lock
           npm --prefix frontend ci --no-audit --no-fund
           npm --prefix openclaw ci --ignore-scripts --no-audit --no-fund
       - name: Prepare disposable test storage
@@ -85,6 +86,7 @@ jobs:
         run: |
           python -m venv .venv
           .venv/bin/pip install -r backend/requirements.lock
+          .venv/bin/pip install -r backend/requirements.sso.lock
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.12"

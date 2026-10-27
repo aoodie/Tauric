@@ -116,6 +116,12 @@ def login(request: Request, db: Session, username: str, password: str):
         db.commit()
         raise HTTPException(401, "The username or password is incorrect.")
     throttle.attempts = 0
+    return create_owner_session(db, owner, "Owner signed in")
+
+
+def create_owner_session(db: Session, owner: Owner, reason: str):
+    current = now()
+    config = runtime_config()
     token = secrets.token_urlsafe(48)
     stored = OwnerSession(
         token_hash=digest(token),
@@ -130,7 +136,7 @@ def login(request: Request, db: Session, username: str, password: str):
             action="session.signed_in",
             resource_type="owner",
             resource_id=owner.id,
-            reason="Owner signed in",
+            reason=reason,
             details={},
         )
     )
