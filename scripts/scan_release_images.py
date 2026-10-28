@@ -33,10 +33,12 @@ def scan(images, output, revision, repository):
             if report.exists():
                 raise ValueError('Do not reuse a report from an earlier scan.')
             command = ['docker', 'run', '--rm', '--read-only', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges:true',
-                       '-v', str(cache.resolve()) + ':/root/.cache',
+                       '--user', str(os.getuid()) + ':' + str(os.getgid()),
+                       '-e', 'HOME=/tmp',
+                       '-v', str(cache.resolve()) + ':/cache',
                        '-v', str(output.resolve()) + ':/reports',
                        '-v', str(Path(os.environ.get('DOCKER_CONFIG', str(Path.home() / '.docker'))).resolve()) + ':/registry:ro',
-                       '-e', 'DOCKER_CONFIG=/registry', TRIVY, 'image', '--image-src', 'remote', '--platform', platform,
+                       '-e', 'DOCKER_CONFIG=/registry', TRIVY, 'image', '--cache-dir', '/cache', '--image-src', 'remote', '--platform', platform,
                        '--scanners', 'vuln', '--ignorefile', '/dev/null', '--format', 'json', '--output', '/reports/' + report.name,
                        '--parallel', '1', '--timeout', '10m', entry['image']]
             with tempfile.TemporaryDirectory(prefix='scratch-', dir=output) as scratch:
