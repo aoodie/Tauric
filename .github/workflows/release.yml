@@ -208,6 +208,7 @@ jobs:
           image=$(python -c 'import json; print(json.load(open("artifacts/tauric-release/engineering-image.json"))["image"])')
           docker pull "$image"
           python3 scripts/python_tooling_smoke.py --image "$image"
+          sudo /tmp/tauric-engineering-check/bin/python scripts/release_source_mount_smoke.py --image "$image"
           sudo /tmp/tauric-engineering-check/bin/python scripts/engineering_smoke.py --image "$image" --output artifacts/engineering-smoke.json
       - name: Preserve redacted installation failure evidence
         if: failure()

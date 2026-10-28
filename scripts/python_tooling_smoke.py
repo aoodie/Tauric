@@ -6,14 +6,14 @@ import subprocess
 
 PROBE = '''import importlib.util,json,pathlib,subprocess,tempfile,venv,zipfile
 from pip._vendor import msgpack,urllib3
-assert msgpack.version==(1,2,1) and urllib3.__version__=="2.8.0"
+assert msgpack.version==(1,2,3) and urllib3.__version__=="2.8.0"
 assert msgpack.unpackb(msgpack.packb({"verified":True}))=={"verified":True}
 assert importlib.util.find_spec("pip._vendor.pkg_resources") is None
 with tempfile.TemporaryDirectory() as tmp:
  p=pathlib.Path(tmp)
  venv.EnvBuilder(with_pip=True,symlinks=True).create(p/"venv")
  python=str(p/"venv/bin/python")
- code="import os;os.environ['_PIP_USE_IMPORTLIB_METADATA']='0';from pip._vendor import msgpack,urllib3;assert msgpack.version==(1,2,1);assert urllib3.__version__=='2.8.0';from pip._internal.metadata import select_backend;assert select_backend().NAME=='importlib'"
+ code="import os;os.environ['_PIP_USE_IMPORTLIB_METADATA']='0';from pip._vendor import msgpack,urllib3;assert msgpack.version==(1,2,3);assert urllib3.__version__=='2.8.0';from pip._internal.metadata import select_backend;assert select_backend().NAME=='importlib'"
  subprocess.run([python,"-I","-c",code],check=True,timeout=20)
  wheel=p/"tauric_fixture-1.0-py3-none-any.whl"
  with zipfile.ZipFile(wheel,"w") as z:

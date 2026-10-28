@@ -18,7 +18,7 @@ The owner requested fixes and an independent backup folder. Routine tested relea
 
 ## Independent backup and observer installed on the owner's Mac
 
-The private `Tauric Backups` directory in Documents contains the encrypted October 26 and 27 checkpoint pairs and authenticated copy receipts. Each ciphertext matched its Oracle hash and decrypted in a streaming authentication check without writing plaintext. Recovery key material is retained separately in a private directory. Oracle's checkpoint reports now reference verified off-host receipts.
+The private `Tauric Backups` directory in Documents contains the encrypted October 26, 27 and 28 checkpoint pairs and authenticated copy receipts. Each ciphertext matched its Oracle hash and decrypted in a streaming authentication check without writing plaintext. Recovery key material is retained separately in a private directory. Oracle's checkpoint reports now reference verified off-host receipts.
 
 A user LaunchAgent runs a pinned copy of the observer/pull tools every fifteen minutes and at load. Its Python environment is now private and outside cloud-offloaded Documents storage. Its first independent run succeeded and submitted a macOS notification for the root project goal requiring owner attention. Unchanged status is quiet; failed delivery is retried. The observer checks Oracle monitor freshness, task availability and independent backup recovery.
 
@@ -40,10 +40,10 @@ Final image scanning is now a required release job on both amd64 and arm64, befo
 | --- | --- |
 | S01/S02 | Implemented; local adversarial contract checks and real isolated API smoke pass; full hosted release and production proof pending |
 | S03 | Financial database/key separation is not implemented; requires a data-only gateway and service-specific authority, not just renaming a role |
-| S04 | Unified owner-wide monetary reservation is not implemented; existing allowances stay unchanged |
+| S04 | Owner authorized USD 99/day on October 28 (Europe/London); unified monetary reservation across all model lanes is not implemented or active; existing allowances stay unchanged |
 | S05 | Real dependency findings are being patched; release image scan policy and exact runtime installation pending |
 | O01 | Independent Mac observer installed; host changes pending release; always-on external coverage remains separate |
-| O02 | Verified independent copies and recurring pull installed; subsequent unattended checkpoint still needs observation |
+| O02 | Verified independent copies and recurring pull installed; October 28 unattended checkpoint copied and authenticated; recovery-host drill remains separate |
 | O03 | Safe retry/freshness implementation awaits installation and failure drill |
 | O04 | Representative 24-hour operating acceptance remains incomplete |
 | O05 | Terminal engineering workspace archival is not implemented |
@@ -66,3 +66,13 @@ The initial comprehensive backend run had 1,298 passes and one obsolete capabili
 Evidence is retained in the ignored `artifacts/audit-remediation-20261027/` directory. Passing fixtures, this document and a submitted workflow do not establish deployed completion.
 
 On October 28, the source-bound Linux run for `9b323a3d95c8e7e18102220c0cdf85ac362b012a` was inspected: 1,301 backend tests, 111 host checks, all nine browser workflows, frontend/OpenClaw contracts and both real research engines passed. All five dual-platform images built. Release bundling was correctly blocked when the scanner could not write to a private runner-owned directory. The scanner now uses the runner's UID/GID while retaining read-only filesystem, dropped capabilities, private scratch and read-only registry credentials. A regression check and a real scan in a mode-0700 folder pass. The updated source still requires its complete release gate and deployment verification.
+
+## October 28 integration and follow-up
+
+Production separately moved to SSO source `debe4d02a3b6d3919c6ad74fd4f5afeec5e8c5e0`. This branch includes that exact implementation and its verified deployment record; the audit release must use that installed base and preserve all four private SSO settings. The SSO installation exposed a staging permission fault: verified bind-mounted Python source was mode 0600 and unreadable by application UID 10001. Staging now validates the entire expected tree before making source directories 0755 and files 0644. Private intents, credentials and journals remain outside the source tree. Unit checks pass; the release gate must also reproduce the failure and successful correction under an actual Linux bind mount.
+
+The full hosted scan at `da5fdd96795d845a48dfeec0f18b476214e75931` completed all ten architecture scans and correctly blocked new fixable findings. Pip's msgpack backport is now 1.2.3. The web assembly rebuilds standard Caddy 2.11.7 with Go 1.26.10 and locked dependency fixes; its local scan has zero blocked findings and two exact, expiring reachability exceptions. The exact final hosted images remain unverified.
+
+Root release operations use urllib and do not inherit application's certifi. Oracle's measured system roots still include emSign. The release client now uses a separately bundled, checksum-checked certifi 2026.10.18 public root store for both API and credential-free artifact downloads, without changing shared host trust. The bundle includes its upstream license and provenance. Tests confirm hostname/certificate verification, no emSign roots, environment-independent trust and rejection of altered bundle bytes. This correction is not yet installed on Oracle.
+
+Local follow-up checks: 116 host tests pass; the freshly built msgpack 1.2.3 worker image passes all eight real isolated tooling checks (including venv bootstrap and offline wheel install/import). These checks do not substitute for the complete exact-source Linux release.

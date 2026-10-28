@@ -1,4 +1,4 @@
-.venv/
+.venv
 __pycache__/
 .pytest_cache/
 .ruff_cache/
@@ -7,7 +7,7 @@ __pycache__/
 .env
 .env.*
 !.env.example
-frontend/node_modules/
+frontend/node_modules
 frontend/dist/
 artifacts/*
 !artifacts/.gitkeep

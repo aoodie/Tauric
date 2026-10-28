@@ -36,10 +36,10 @@ class PythonTooling(unittest.TestCase):
         (backend / '__init__.py').write_text('if sys.version_info >= (3, 14):\n    return True\n')
         inputs = root / 'inputs'
         inputs.mkdir()
-        with tarfile.open(inputs / 'msgpack-1.2.1.tar.gz', 'w:gz') as archive:
+        with tarfile.open(inputs / 'msgpack-1.2.3.tar.gz', 'w:gz') as archive:
             for name in ('__init__.py', 'fallback.py'):
                 data = b'new published implementation\n'
-                info = tarfile.TarInfo('msgpack-1.2.1/msgpack/' + name)
+                info = tarfile.TarInfo('msgpack-1.2.3/msgpack/' + name)
                 info.size = len(data)
                 archive.addfile(info, io.BytesIO(data))
         with zipfile.ZipFile(inputs / 'urllib3-2.8.0-py3-none-any.whl', 'w') as archive:
@@ -63,7 +63,7 @@ class PythonTooling(unittest.TestCase):
                 self.assertFalse(any('pkg_resources' in x for x in archive.namelist()))
                 bom = archive.read('pip/_vendor/bom.cdx.json').decode()
                 self.assertNotIn('setuptools', bom)
-                self.assertIn('pkg:pypi/msgpack@1.2.1', bom)
+                self.assertIn('pkg:pypi/msgpack@1.2.3', bom)
                 records = list(csv.reader(archive.read('pip-26.2.2.dist-info/RECORD').decode().splitlines()))
                 self.assertEqual({r[0] for r in records}, set(archive.namelist()))
                 for name, checksum, size in records:

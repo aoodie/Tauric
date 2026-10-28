@@ -18,7 +18,7 @@ from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from release_identity import ReleaseAccessError
 
 UTC = timezone.utc  # Native host tools support Python 3.10.
-PROTECTED_PREFIXES = (".github/", "deploy/")
+PROTECTED_PREFIXES = (".github/", "deploy/", "scripts/operations_trust/")
 PROTECTED_FILES = {
     "AGENTS.md",
     "docs/OPENCLAW_PROJECT_OWNERSHIP.md",
@@ -58,9 +58,12 @@ PROTECTED_FILES = {
     "scripts/patch_runtime_dependencies.mjs",
     "scripts/patch_python_tooling.py",
     "scripts/python_tooling_smoke.py",
+    "scripts/release_source_mount_smoke.py",
     "scripts/security_policy.py",
     "scripts/scan_release_images.py",
     "backend/tauric/auth.py",
+    "backend/tauric/sso.py",
+    "backend/tauric/config.py",
     "backend/tauric/agent_api.py",
     "backend/tauric/agent_tasks.py",
     "backend/tauric/agent_contracts.py",

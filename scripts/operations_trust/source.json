@@ -1,0 +1,7 @@
+{
+  "package": "certifi",
+  "version": "2026.10.18",
+  "wheel_sha256": "73191c47aaa79da394e8fee2dbc2ec827432cab56311122c9e47abf79e390f62",
+  "bundle_sha256": "d87887200c9a705dccc937b9b83b5e67e47024c4a4b7f9dd15700c72e0f55453",
+  "upstream_advisory": "https://github.com/certifi/python-certifi/security/advisories/GHSA-6q48-6c7w-9gw2"
+}

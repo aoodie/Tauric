@@ -2,6 +2,7 @@
 
 import io
 import json
+import ssl
 import sys
 import tempfile
 import unittest
@@ -19,10 +20,27 @@ from release_identity import (
     GitHubApp,
     NoRedirect,
     ReleaseAccessError,
+    operations_tls,
 )
 
 
 class ReleaseIdentity(unittest.TestCase):
+    def test_operations_roots_exclude_revoked_emsign_and_ignore_environment_store(self):
+        with patch.dict("os.environ", {"SSL_CERT_FILE": "/untrusted/fixture.pem"}):
+            context = operations_tls()
+        self.assertEqual(context.verify_mode, ssl.CERT_REQUIRED)
+        self.assertTrue(context.check_hostname)
+        subjects = str([root["subject"] for root in context.get_ca_certs()])
+        self.assertNotIn("emSign", subjects)
+        self.assertIn("ISRG Root X1", subjects)
+
+    def test_changed_root_bundle_fails_closed(self):
+        with (
+            patch("release_identity.Path.read_bytes", return_value=b"changed roots"),
+            self.assertRaisesRegex(ReleaseAccessError, "certificate store differs"),
+        ):
+            operations_tls()
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)

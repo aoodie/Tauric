@@ -19,7 +19,7 @@ import zipfile
 from pathlib import Path, PurePosixPath
 
 INPUTS = {
-    'msgpack-1.2.1.tar.gz': '04c721c2c7448767e9e3f2520a475663d8ee0f09c31890f6d2bd70fd636a9647',
+    'msgpack-1.2.3.tar.gz': '32edb81a2b5eb7cd7c9d941b2bfbbb082fd2cd09e0e725930316af6b708db186',
     'urllib3-2.8.0-py3-none-any.whl': '0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3',
 }
 
@@ -29,9 +29,9 @@ def sources(folder):
         if hashlib.sha256((folder / name).read_bytes()).hexdigest() != checksum:
             raise ValueError('Python tooling backport input checksum differs.')
     result = {}
-    with tarfile.open(folder / 'msgpack-1.2.1.tar.gz') as archive:
+    with tarfile.open(folder / 'msgpack-1.2.3.tar.gz') as archive:
         for member in archive.getmembers():
-            prefix = 'msgpack-1.2.1/msgpack/'
+            prefix = 'msgpack-1.2.3/msgpack/'
             if member.name.startswith(prefix) and member.name.endswith(('.py', '.pyi')):
                 if not member.isfile() or '..' in PurePosixPath(member.name).parts:
                     raise ValueError('Tooling source must contain regular package files.')
@@ -85,11 +85,11 @@ def patch(package, metadata, bootstrap, folder, output):
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
     updated = re.sub(r'^\s*setuptools==70\.3\.0\n', '', before, flags=re.MULTILINE)
-    updated = updated.replace('msgpack==1.1.2', 'msgpack==1.2.1').replace('urllib3==2.7.0', 'urllib3==2.8.0')
+    updated = updated.replace('msgpack==1.1.2', 'msgpack==1.2.3').replace('urllib3==2.7.0', 'urllib3==2.8.0')
     (vendors / 'vendor.txt').write_text(updated)
     # The upstream component inventory describes the bundled code. Keep it
     # truthful when backporting code, including the wheel used by ensurepip.
-    changed = {'pkg:pypi/msgpack@1.1.2': 'pkg:pypi/msgpack@1.2.1',
+    changed = {'pkg:pypi/msgpack@1.1.2': 'pkg:pypi/msgpack@1.2.3',
                'pkg:pypi/urllib3@2.7.0': 'pkg:pypi/urllib3@2.8.0'}
     removed = 'pkg:pypi/setuptools@70.3.0'
     bom['components'] = [x for x in bom['components'] if x.get('bom-ref') != removed]
@@ -132,7 +132,7 @@ def patch(package, metadata, bootstrap, folder, output):
     pending.replace(bootstrap)
     value = {'upstream_pip': '26.2.2', 'assembly': 'tauric_python_tooling_backports_v1',
              'upstream_vendor_bom_sha256': hashlib.sha256(bom_original).hexdigest(),
-             'inputs': INPUTS, 'msgpack': '1.2.1 (pure Python)', 'urllib3': '2.8.0',
+             'inputs': INPUTS, 'msgpack': '1.2.3 (pure Python)', 'urllib3': '2.8.0',
              'removed_deprecated_backend': 'pkg_resources', 'metadata_backend': 'importlib',
              'package_sha256': hashlib.sha256(json.dumps({n: hashlib.sha256(d).hexdigest() for n, d in files.items()}, sort_keys=True).encode()).hexdigest(),
              'bootstrap_wheel_sha256': hashlib.sha256(bootstrap.read_bytes()).hexdigest()}
