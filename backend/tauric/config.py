@@ -1,6 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -18,6 +18,10 @@ class RuntimeConfig(BaseSettings):
     login_attempt_limit: int = Field(default=5, ge=1, le=50)
     login_window_seconds: int = Field(default=300, ge=30, le=3600)
     trusted_proxy_hosts: list[str] = Field(default_factory=list, max_length=8)
+    sso_issuer: str = ""
+    sso_client_id: str = ""
+    sso_subject: str = ""
+    sso_callback_uri: str = ""
     market_url: str = "https://data-api.binance.vision"
     market_timeout_seconds: int = Field(default=10, ge=1, le=30)
     market_refresh_seconds: int = Field(default=30, ge=10, le=3600)
@@ -34,6 +38,39 @@ class RuntimeConfig(BaseSettings):
     engineering_spool_directory: str = "/run/tauric-engineering"
     engineering_public_key_file: str = "/run/tauric-engineering/public/public.pem"
     release_spool_directory: str = "/run/tauric-release"
+
+    @model_validator(mode="after")
+    def sso_configuration(self):
+        values = (self.sso_issuer, self.sso_client_id, self.sso_subject, self.sso_callback_uri)
+        if not any(values):
+            return self
+        issuer = urlsplit(self.sso_issuer)
+        callback = urlsplit(self.sso_callback_uri)
+        if (
+            not all(values)
+            or len(self.sso_client_id) > 255
+            or len(self.sso_subject) > 255
+            or not self.secure_cookies
+            or issuer.scheme != "https"
+            or not issuer.hostname
+            or issuer.username
+            or issuer.password
+            or issuer.query
+            or issuer.fragment
+            or not self.sso_issuer.endswith("/")
+            or callback.scheme != "https"
+            or not callback.hostname
+            or callback.username
+            or callback.password
+            or callback.query
+            or callback.fragment
+            or callback.path != "/api/v1/sso/callback"
+            or self.allowed_origins != [f"https://{callback.netloc}"]
+        ):
+            raise ValueError(
+                "SSO requires a complete HTTPS configuration and the exact workstation origin."
+            )
+        return self
 
     @model_validator(mode="after")
     def private_database_password(self):

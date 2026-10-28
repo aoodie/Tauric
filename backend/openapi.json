@@ -4066,6 +4066,40 @@
         }
       }
     },
+    "/api/v1/sso/status": {
+      "get": {
+        "summary": "Sso Status",
+        "operationId": "sso_status_api_v1_sso_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SsoStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sso/start": {
+      "get": {
+        "summary": "Sso Start",
+        "operationId": "sso_start_api_v1_sso_start_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/forex-data/connection": {
       "get": {
         "summary": "Get Connection",
@@ -20772,6 +20806,19 @@
           "used_today"
         ],
         "title": "SharedAdmissionBudgetView"
+      },
+      "SsoStatus": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "title": "SsoStatus"
       },
       "StrategyAnalytics": {
         "properties": {

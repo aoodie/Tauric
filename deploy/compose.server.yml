@@ -43,6 +43,10 @@
         "TAURIC_DB_USER": "tauric_app",
         "TAURIC_ALLOWED_ORIGINS": "${TAURIC_ALLOWED_ORIGINS:?Set the exact browser origin}",
         "TAURIC_SECURE_COOKIES": "${TAURIC_SECURE_COOKIES:-false}",
+        "TAURIC_SSO_ISSUER": "${TAURIC_SSO_ISSUER:-}",
+        "TAURIC_SSO_CLIENT_ID": "${TAURIC_SSO_CLIENT_ID:-}",
+        "TAURIC_SSO_SUBJECT": "${TAURIC_SSO_SUBJECT:-}",
+        "TAURIC_SSO_CALLBACK_URI": "${TAURIC_SSO_CALLBACK_URI:-}",
         "TAURIC_TRUSTED_PROXY_HOSTS": "[\"web\"]"
       },
       "secrets": [

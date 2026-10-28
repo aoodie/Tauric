@@ -220,6 +220,19 @@ function Login({
 }) {
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [ssoEnabled, setSsoEnabled] = useState(false);
+  useEffect(() => {
+    let active = true;
+    fetch("/api/v1/sso/status", { credentials: "same-origin" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((value: { enabled?: boolean } | null) => {
+        if (active) setSsoEnabled(value?.enabled === true);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setPending(true);
@@ -269,7 +282,11 @@ function Login({
             <LockKeyhole size={14} /> OWNER ACCESS
           </span>
           <h2>Open your workstation</h2>
-          <p>Sign in with the owner account created during setup.</p>
+          <p>
+            {ssoEnabled
+              ? "Sign in with Authentik or your owner account."
+              : "Sign in with the owner account created during setup."}
+          </p>
           {notice && (
             <p role="status" className="settings-success">
               {notice}
@@ -304,6 +321,11 @@ function Login({
             {pending ? "Signing in…" : "Sign in"}
             <ArrowRight size={16} />
           </button>
+          {ssoEnabled && (
+            <a className="secondary sso-button" href="/api/v1/sso/start">
+              Sign in with Authentik <ArrowRight size={16} />
+            </a>
+          )}
           <div className="setup-note">
             <CircleHelp size={18} />
             <p>
@@ -2479,7 +2501,13 @@ export function App() {
   const [session, updateSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [bootError, setBootError] = useState("");
-  const [loginNotice, setLoginNotice] = useState("");
+  const [loginNotice, setLoginNotice] = useState(() => {
+    const failed = new URLSearchParams(location.search).get("sso") === "failed";
+    if (failed) history.replaceState(null, "", location.pathname);
+    return failed
+      ? "SSO sign-in could not be verified. Try again or use your owner password."
+      : "";
+  });
   const signedIn = (next: Session) => {
     setSession(next);
     updateSession(next);

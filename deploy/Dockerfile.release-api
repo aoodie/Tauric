@@ -7,8 +7,9 @@ RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /app
 COPY backend/requirements.lock ./requirements.lock
+COPY backend/requirements.sso.lock ./requirements.sso.lock
 RUN sed -E '/^(pytest|ruff|iniconfig|pluggy|Pygments)==/d' requirements.lock > requirements.server.lock \
-    && pip install --no-cache-dir -r requirements.server.lock \
+    && pip install --no-cache-dir -r requirements.server.lock -r requirements.sso.lock \
     && useradd --create-home --uid 10001 tauric
 COPY backend/tauric ./tauric
 COPY backend/runners ./runners
