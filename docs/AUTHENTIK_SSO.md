@@ -56,3 +56,26 @@ normal session expiry and sign-out apply. To disable new SSO sign-ins, remove al
 configuration values through the controlled deployment process and disable the
 Authentik application. Existing sessions need explicit revocation if immediate
 invalidation is required. Preserve the owner password as a recovery path.
+
+## Verified deployment — 28 October 2026
+
+Source `debe4d02a3b6d3919c6ad74fd4f5afeec5e8c5e0` is installed on the existing
+Oracle workstation. The checked release, five image identities, recovery backup and
+separate restore rehearsal passed. The original twelve services are healthy; the
+research workers and release bridge resumed. The existing owner and financial state
+were preserved by the release checks.
+
+The Authentik application is visible in the dashboard and its policy allows the
+selected owner while rejecting a different identity. A browser launch from the portal
+completed the actual SSO flow into the existing Tauric workstation, and Tauric's audit
+record confirmed the SSO sign-in. Unauthenticated API access remained rejected. The
+existing password credential was preserved; an interactive password re-login was not
+performed during this verification.
+
+The initial start failed because the operator's release staging copied bind-mounted
+source files with mode `0600`, which the unprivileged API could not read. After checking
+all release contents against both manifests, the staged files were restored to their
+previous release modes and the same journaled installation resumed successfully; the
+migration was not repeated. The automatic release bridge currently also stages files
+with mode `0600`. Its staging permissions need a durable fix and a non-root bind-mount
+regression test before relying on that path for another release.
