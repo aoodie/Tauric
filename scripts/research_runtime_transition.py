@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 from datetime import datetime, timezone
@@ -37,6 +38,143 @@ def only_certificate_change(before, after):
 def reviewed_lock(before, after):
     old, new = b"certifi==2026.7.22", b"certifi==2026.10.18"
     return before.count(old) == 1 and after == before.replace(old, new)
+
+
+def bootstrap_pip(runtime_python, work, log):
+    """Build a private pip environment without changing the stripped runtime."""
+    environment = work / "installer"
+    if environment.is_symlink() or (environment.exists() and not environment.is_dir()):
+        raise ValueError("The private runtime installer path is unsafe.")
+    subprocess.run(
+        [str(runtime_python), "-I", "-m", "venv", "--clear", str(environment)],
+        check=True,
+        stdout=log,
+        stderr=log,
+        timeout=180,
+    )
+    python = environment / "bin/python"
+    subprocess.run(
+        [str(python), "-I", "-m", "pip", "--isolated", "--version"],
+        check=True,
+        stdout=log,
+        stderr=log,
+        timeout=30,
+    )
+    return python
+
+
+def runtime_site_packages(python):
+    code = "import json,sys,sysconfig;print(json.dumps([sys.prefix,sysconfig.get_path('purelib')]))"
+    result = subprocess.run(
+        [str(python), "-I", "-c", code],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=30,
+    )
+    prefix, purelib = map(Path, json.loads(result.stdout))
+    prefix, purelib = prefix.resolve(), purelib.resolve()
+    if not purelib.is_relative_to(prefix) or not purelib.is_dir():
+        raise ValueError("The runtime package directory is outside its verified environment.")
+    return purelib
+
+
+def remove_directory(path):
+    if path.is_symlink():
+        raise ValueError("A runtime package path cannot be a symlink.")
+    if path.is_dir():
+        shutil.rmtree(path)
+    elif path.exists():
+        path.unlink()
+
+
+def recover_certificate_install(site, backup, old_version):
+    """Restore any old directories moved by an interrupted package replacement."""
+    if backup.is_symlink():
+        raise ValueError("The runtime package recovery path cannot be a symlink.")
+    if not backup.exists():
+        return
+    if not backup.is_dir():
+        raise ValueError("The runtime package recovery path is not a directory.")
+    old_package = backup / "certifi"
+    old_metadata = backup / "metadata"
+    if old_package.exists():
+        remove_directory(site / "certifi")
+        os.replace(old_package, site / "certifi")
+    if old_metadata.exists():
+        remove_directory(site / f"certifi-{VERSION}.dist-info")
+        os.replace(old_metadata, site / f"certifi-{old_version}.dist-info")
+    if any(backup.iterdir()):
+        raise ValueError("Unexpected files remain in the runtime package recovery path.")
+    backup.rmdir()
+
+
+def install_certificate(installer_python, runtime_python, kind, work, request_id, before, log):
+    if kind not in {"app", "qlib"} or before.get("certifi") != "2026.7.22":
+        raise ValueError("Only the reviewed original app and qlib certificate runtimes are supported.")
+    expected_after = {**before, "certifi": VERSION}
+    site = runtime_site_packages(runtime_python)
+    old_version = before.get("certifi")
+    old_metadata = site / f"certifi-{old_version}.dist-info"
+    new_metadata = site / f"certifi-{VERSION}.dist-info"
+    backup = site.parent / f".tauric-certifi-backup-{request_id}-{kind}"
+    stage = site.parent / f".tauric-certifi-stage-{request_id}-{kind}"
+    if backup.is_symlink() or stage.is_symlink():
+        raise ValueError("A runtime package staging path cannot be a symlink.")
+    if stage.exists() and not stage.is_dir():
+        raise ValueError("The runtime package staging path is not a directory.")
+
+    current = inventory(runtime_python)
+    if current == expected_after and (site / "certifi").is_dir() and new_metadata.is_dir():
+        return current, backup
+    if backup.exists():
+        recover_certificate_install(site, backup, old_version)
+        current = inventory(runtime_python)
+    if current != before:
+        raise ValueError("The runtime package inventory needs reconciliation before retrying.")
+    if (site / "certifi").is_symlink() or old_metadata.is_symlink() or new_metadata.is_symlink():
+        raise ValueError("The original runtime certificate package cannot be a symlink.")
+    if not (site / "certifi").is_dir() or not old_metadata.is_dir() or new_metadata.exists():
+        raise ValueError("The original certificate package directories are ambiguous.")
+
+    remove_directory(stage)
+    try:
+        subprocess.run(
+            [
+                str(installer_python), "-I", "-m", "pip", "--isolated", "install",
+                "--no-index", "--find-links", str(work), "--no-deps", "--require-hashes",
+                "--target", str(stage), "-r", str(work / "requirements.txt"),
+            ],
+            check=True,
+            stdout=log,
+            stderr=log,
+            timeout=180,
+        )
+        if {path.name for path in stage.iterdir()} != {"certifi", f"certifi-{VERSION}.dist-info"}:
+            raise ValueError("The pinned wheel produced an unexpected package layout.")
+        backup.mkdir(mode=0o700)
+        os.replace(site / "certifi", backup / "certifi")
+        os.replace(old_metadata, backup / "metadata")
+        os.replace(stage / "certifi", site / "certifi")
+        os.replace(stage / f"certifi-{VERSION}.dist-info", new_metadata)
+        current = inventory(runtime_python)
+        if not only_certificate_change(before, current):
+            raise ValueError("A runtime package other than the reviewed certificate package changed.")
+        return current, backup
+    except Exception:
+        recover_certificate_install(site, backup, old_version)
+        raise
+    finally:
+        remove_directory(stage)
+
+
+def clear_certificate_backup(backup):
+    if backup.is_symlink():
+        raise ValueError("The runtime package recovery path cannot be a symlink.")
+    if backup.exists():
+        if not backup.is_dir() or not {path.name for path in backup.iterdir()} <= {"certifi", "metadata"}:
+            raise ValueError("The runtime package recovery path is unexpected.")
+        shutil.rmtree(backup)
 
 
 def receipt_path(revision):
@@ -136,21 +274,22 @@ def install(intent_path):
     requirement.write_text("certifi==" + VERSION + " --hash=sha256:" + WHEEL_SHA256 + "\n")
     with (work / "install.log").open("ab") as log:
         (work / "install.log").chmod(0o600)
-        subprocess.run([str(ROOT / "runtimes/app/bin/python"), "-I", "-m", "pip", "--isolated", "download", "--index-url", "https://pypi.org/simple", "--no-deps", "--only-binary=:all:", "--require-hashes", "-r", str(requirement), "--dest", str(work)], check=True, stdout=log, stderr=log, timeout=180)
+        installer_python = bootstrap_pip(ROOT / "runtimes/app/bin/python", work, log)
+        subprocess.run([str(installer_python), "-I", "-m", "pip", "--isolated", "download", "--index-url", "https://pypi.org/simple", "--no-deps", "--only-binary=:all:", "--require-hashes", "-r", str(requirement), "--dest", str(work)], check=True, stdout=log, stderr=log, timeout=180)
+        wheels = list(work.glob("certifi-*.whl"))
+        if len(wheels) != 1 or hashlib.sha256(wheels[0].read_bytes()).hexdigest() != WHEEL_SHA256:
+            raise ValueError("The downloaded certificate wheel does not match its reviewed hash.")
         for kind in ("app", "qlib"):
             python = ROOT / "runtimes" / kind / "bin/python"
-            expected_after = {**record["before"][kind], "certifi": VERSION}
-            if kind in record["requested"]:
-                if inventory(python) != expected_after:
-                    raise ValueError("The original runtime patch outcome needs reconciliation; it was not repeated.")
-            else:
+            if kind not in record["requested"]:
                 record["requested"].append(kind)
                 save(path, record)
-                subprocess.run([str(python), "-I", "-m", "pip", "--isolated", "install", "--no-index", "--find-links", str(work), "--no-deps", "--require-hashes", "-r", str(requirement)], check=True, stdout=log, stderr=log, timeout=180)
-            record["after"][kind] = inventory(python)
-            if not only_certificate_change(record["before"][kind], record["after"][kind]):
-                raise ValueError("A runtime package other than the reviewed certificate package changed.")
+            after, backup = install_certificate(
+                installer_python, python, kind, work, intent["id"], record["before"][kind], log
+            )
+            record["after"][kind] = after
             save(path, record)
+            clear_certificate_backup(backup)
     record.update(phase="installed_verified", verified_at=datetime.now(timezone.utc).isoformat())
     save(path, record)
     return validate(revision, previous, expected, original)
