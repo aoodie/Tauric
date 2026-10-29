@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from release_identity import REPOSITORY_ID, ReleaseAccessError
 from release_workflow import (
     REQUIRED_JOBS,
+    acceptance,
     completed_release,
     deployment_archive,
     dispatch,
@@ -176,6 +177,73 @@ class Archives(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             zip_files(value.getvalue(), {"other.json"})
+
+
+class Acceptance(unittest.TestCase):
+    def setUp(self):
+        self.manifest = {
+            "images": {
+                "TAURIC_API_IMAGE": "ghcr.io/aoodie/tauric-api@sha256:" + "a" * 64
+            }
+        }
+        smoke = {
+            "fresh_install_ready": True,
+            "test_tools_excluded": True,
+            "supervisor_saved_chat_configuration": True,
+            "owner_login_and_saved_configuration": True,
+            "api_restart_persistence": True,
+            "whole_stack_restart_persistence": True,
+            "tested_images": self.manifest["images"],
+            "restore": {
+                "table_hashes_match": True,
+                "background_services_started": False,
+            },
+            "model_calls": 0,
+            "broker_calls": 0,
+        }
+        engineering = {
+            "model_calls": 0,
+            "broker_calls": 0,
+            "tests_reported": 1,
+            "independent_test_attestation": False,
+            "independent_api_smoke_cases": 4,
+            "forged_workspace_report_rejected_as_independent_proof": True,
+        }
+        self.files = {
+            "release-smoke.json": json.dumps(smoke).encode(),
+            "engineering-smoke.json": json.dumps(engineering).encode(),
+        }
+
+    def test_accepts_independent_verifier_for_workspace_smoke(self):
+        self.assertEqual(
+            acceptance(self.files, self.manifest),
+            {"release_checks_verified": True, "executed_engineering_tests": 4},
+        )
+
+    def test_rejects_missing_independent_test_evidence(self):
+        for changes in (
+            {"independent_api_smoke_cases": 0},
+            {"independent_test_attestation": 0, "tests_executed": 1},
+            {"forged_workspace_report_rejected_as_independent_proof": False},
+            {"tests_reported": 0},
+            {"model_calls": 1},
+            {"broker_calls": 1},
+        ):
+            engineering = json.loads(self.files["engineering-smoke.json"])
+            self.files["engineering-smoke.json"] = json.dumps(
+                {**engineering, **changes}
+            ).encode()
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                acceptance(self.files, self.manifest)
+            self.files["engineering-smoke.json"] = json.dumps(engineering).encode()
+
+    def test_accepts_legacy_independent_execution_count(self):
+        engineering = {"tests_executed": 2, "model_calls": 0, "broker_calls": 0}
+        self.files["engineering-smoke.json"] = json.dumps(engineering).encode()
+        self.assertEqual(
+            acceptance(self.files, self.manifest),
+            {"release_checks_verified": True, "executed_engineering_tests": 2},
+        )
 
 
 if __name__ == "__main__":

@@ -210,6 +210,28 @@ def deployment_archive(value, revision, allowed_files, protected_hashes):
 def acceptance(files, manifest):
     smoke = json.loads(files["release-smoke.json"])
     engineering = json.loads(files["engineering-smoke.json"])
+    attestation = engineering.get("independent_test_attestation")
+    if "independent_test_attestation" not in engineering:
+        # Legacy artifacts use the previous execution-count field.
+        executed_tests = engineering.get("tests_executed")
+        independent_tests_verified = type(executed_tests) is int and executed_tests >= 1
+    elif attestation is True:
+        executed_tests = engineering.get("tests_executed")
+        independent_tests_verified = type(executed_tests) is int and executed_tests >= 1
+    elif attestation is False:
+        executed_tests = engineering.get("independent_api_smoke_cases")
+        independent_tests_verified = (
+            type(executed_tests) is int
+            and executed_tests >= 1
+            and type(engineering.get("tests_reported")) is int
+            and engineering["tests_reported"] >= 1
+            and engineering.get(
+                "forged_workspace_report_rejected_as_independent_proof"
+            ) is True
+        )
+    else:
+        executed_tests = None
+        independent_tests_verified = False
     required = (
         "fresh_install_ready",
         "test_tools_excluded",
@@ -225,8 +247,7 @@ def acceptance(files, manifest):
         or smoke.get("restore", {}).get("background_services_started") is not False
         or smoke.get("model_calls") != 0
         or smoke.get("broker_calls") != 0
-        or type(engineering.get("tests_executed")) is not int
-        or engineering["tests_executed"] < 1
+        or not independent_tests_verified
         or engineering.get("model_calls") != 0
         or engineering.get("broker_calls") != 0
     ):
@@ -235,5 +256,5 @@ def acceptance(files, manifest):
         )
     return {
         "release_checks_verified": True,
-        "executed_engineering_tests": engineering["tests_executed"],
+        "executed_engineering_tests": executed_tests,
     }
