@@ -313,7 +313,10 @@ def test_daily_scope_and_separate_screening_never_enable_live_execution(signed_i
     rows = {row["asset_class"]: row for row in research_capabilities()}
     for key in ("equity", "etf", "fx"):
         assert rows[key]["native_research_ready"]
-        assert rows[key]["screening_ready"] and not rows[key]["live_execution_ready"]
+        assert rows[key]["screening_implemented"]
+        assert rows[key]["screening_ready"] == rows[key]["data_configured"]
+        assert rows[key]["activation_status"] == "check_per_account_in_trading"
+        assert rows[key]["current_feed_freshness"] == "not_observed_by_capability_catalog"
 
 
 @pytest.mark.parametrize("profile", ["cloud", "local"])

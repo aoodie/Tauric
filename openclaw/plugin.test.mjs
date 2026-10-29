@@ -197,7 +197,7 @@ test('task actions remain expressible without nested schema alternatives',()=>{
   assert.ok(parameters.properties.criteria.items.properties.proof.enum.includes('tests_passed'));
   assert.equal(parameters.required,undefined);
   const purpose=tools[13](trusted).parameters.properties.purpose;
-  assert.deepEqual(purpose.enum,['develop','inspect','test']);assert.equal(purpose.default,'develop');
+  assert.deepEqual(purpose.enum,['develop','inspect','test','verify']);assert.equal(purpose.default,'develop');
 });
 
 test('completion and wait preserve the original evidence without creating work',async()=>{
@@ -227,7 +227,7 @@ test('populated shared task fields reach only their selected action contract',as
   // Captured provider behavior: create included all eleven shared fields and
   // the server rejected job, reason, evidence and summary on every attempt.
   const id='1b3d1382-4827-4c16-bb23-6c9d00c6ea61';
-  const parameters={objective:'Run the authorized isolated test',criteria:[{description:'Existing tests passed',proof:'tests_passed'}],scope:['engineering'],dependencies:[],max_wakes:8,max_attempts:2,deadline_hours:24,
+  const parameters={objective:'Run the authorized isolated test',criteria:[{description:'The four protected API smoke checks pass',proof:'tests_passed',binding:{verification_profile:'tauric_api_smoke_v1'},max_age_seconds:3600}],scope:['engineering'],dependencies:[],max_wakes:8,max_attempts:2,deadline_hours:24,
     job:{kind:'engineering',id},reason:'Follow the original job',evidence:[{kind:'engineering',id}],summary:'Existing signed tests passed'};
   const before=structuredClone(parameters);
   const cases=[

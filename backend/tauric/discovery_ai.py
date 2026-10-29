@@ -3,14 +3,14 @@
 import json
 from decimal import Decimal
 
-import httpx
 from fastapi import HTTPException
-from pydantic import Field
+from pydantic import Field, ValidationError
 from sqlalchemy import select
 
 from . import discovery_journal as journal
 from .discovery_contracts import ResearchStrategy
 from .discovery_models import DiscoveryRecord
+from .discovery_transport import ProviderFailure, request_json
 from .model_profiles import load_profiles
 from .models import now
 from .schemas import Contract
@@ -171,24 +171,19 @@ def generate(db, owner, campaign, frozen):
         "n": 1,
         ("max_completion_tokens" if profile.provider == "openai" else "max_tokens"): output_ceiling,
     }
+    diagnostic = {}
+    stage = "provider"
     try:
-        with httpx.Client(timeout=30, follow_redirects=False) as client:
-            with client.stream(
-                "POST", base + "/chat/completions", headers=headers, json=body
-            ) as response:
-                response.raise_for_status()
-                raw = bytearray()
-                for part in response.iter_bytes():
-                    raw.extend(part)
-                    if len(raw) > 64000:
-                        raise ValueError("Oversized model result")
-        payload = json.loads(raw)
+        payload, diagnostic = request_json(base + "/chat/completions", headers, body)
+        stage = "usage"
         tokens = payload["usage"]
         inputs, outputs = tokens["prompt_tokens"], tokens["completion_tokens"]
         if type(inputs) is not int or type(outputs) is not int or inputs < 0 or outputs < 0:
             raise ValueError("Invalid usage")
         actual = (inputs * input_price + outputs * output_price) / 1000000
+        stage = "ideas_schema"
         ideas = Ideas.model_validate_json(payload["choices"][0]["message"]["content"])
+        stage = "ideas_scope"
         if len(ideas.ideas) > campaign.payload["planned_hypotheses"]:
             raise ValueError("Too many ideas")
         from .market import INTERVAL_SECONDS
@@ -229,14 +224,29 @@ def generate(db, owner, campaign, frozen):
             ideas=value,
             prompt_tokens=inputs,
             completion_tokens=outputs,
+            diagnostic=diagnostic,
         )
         db.commit()
         return {"usage_id": usage.id, "ideas": value}
-    except (httpx.HTTPError, KeyError, ValueError, TypeError):
+    except (ProviderFailure, KeyError, ValueError, TypeError) as exc:
+        diagnostic = {**diagnostic, "category": stage}
+        if isinstance(exc, ProviderFailure):
+            diagnostic = exc.diagnostic
+        elif isinstance(exc, ValidationError):
+            schema = Ideas.model_json_schema()
+            allowed = set(schema.get("properties", {}))
+            for definition in schema.get("$defs", {}).values():
+                allowed.update(definition.get("properties", {}))
+            diagnostic["schema_paths"] = [
+                ".".join(str(part) if isinstance(part, int) or part in allowed else "unrecognized_field"
+                         for part in error["loc"])[:160]
+                for error in exc.errors(include_input=False)[:10]
+            ]
         journal.update(
             usage,
             status="failed",
             error="Model output or usage could not be verified; the full reservation remains charged to the research ceiling",
+            diagnostic=diagnostic,
         )
         db.commit()
         raise HTTPException(

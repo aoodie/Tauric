@@ -20,6 +20,19 @@ from release_publish import checked_path, checksum, publish, signed_source
 
 
 class SourceProof(unittest.TestCase):
+    def test_independent_counts_are_not_replaced_by_advisory_zero(self):
+        self.request.update(purpose="verify", script="api_smoke")
+        values = {k: v for k, v in self.request.items() if k not in {"id", "checksum"}}
+        self.request["checksum"] = hashlib.sha256(json.dumps(values, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        self.result.update(request_checksum=self.request["checksum"], tests_executed=4,
+                           tests_reported=0, independent_verification={
+                               "profile": "tauric_api_smoke_v1", "passed": True,
+                               "source_unchanged": True, "source_tree_checksum": self.bundle["tree_checksum"]})
+        self.assertEqual(self.verify(), self.bundle)
+        self.result["independent_verification"]["passed"] = False
+        with self.assertRaises(ValueError):
+            self.verify()
+
     def setUp(self):
         self.secret = Ed25519PrivateKey.generate()
         self.public = self.secret.public_key().public_bytes(

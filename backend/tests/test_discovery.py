@@ -359,9 +359,9 @@ def test_ai_budget_prevents_unpriced_or_unfunded_calls(signed_in, database, monk
         "/api/v1/research/discovery/cycles", json={"request_id": str(uuid4())}
     )
     monkeypatch.setattr(
-        discovery_ai.httpx,
-        "Client",
-        lambda **k: pytest.fail("No AI request may exceed the saved reservation ceiling"),
+        discovery_ai,
+        "request_json",
+        lambda *a: pytest.fail("No AI request may exceed the saved reservation ceiling"),
     )
     with Session(database[0]) as db:
         assert not discovery.process_one(db)
@@ -420,34 +420,11 @@ def test_ai_ideas_are_frozen_and_reservation_is_reconciled_once(signed_in, datab
         ],
     }
 
-    class Response:
-        def __enter__(self):
-            return self
+    def request_json(url, headers, body):
+        calls.append(body)
+        return payload, {"http_status": 200}
 
-        def __exit__(self, *args):
-            pass
-
-        def raise_for_status(self):
-            pass
-
-        def iter_bytes(self):
-            yield json.dumps(payload).encode()
-
-    class Client:
-        def __init__(self, **kwargs):
-            pass
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            pass
-
-        def stream(self, method, url, **kwargs):
-            calls.append(kwargs["json"])
-            return Response()
-
-    monkeypatch.setattr(discovery_ai.httpx, "Client", Client)
+    monkeypatch.setattr(discovery_ai, "request_json", request_json)
     response = signed_in.post(
         "/api/v1/research/discovery/cycles", json={"request_id": str(uuid4())}
     )
@@ -580,21 +557,11 @@ def test_uncertain_ai_request_retains_reservation_without_retry(signed_in, datab
     )
     calls = []
 
-    class Client:
-        def __init__(self, **kwargs):
-            pass
+    def request_json(*args):
+        calls.append(1)
+        raise discovery_ai.ProviderFailure({"category": "transport_timeout"})
 
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            pass
-
-        def stream(self, *args, **kwargs):
-            calls.append(1)
-            raise discovery_ai.httpx.ReadTimeout("Uncertain fixture response")
-
-    monkeypatch.setattr(discovery_ai.httpx, "Client", Client)
+    monkeypatch.setattr(discovery_ai, "request_json", request_json)
     started = signed_in.post(
         "/api/v1/research/discovery/cycles", json={"request_id": str(uuid4())}
     ).json()

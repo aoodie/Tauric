@@ -1,11 +1,26 @@
-FROM node:24-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS build
+FROM node:24-bookworm-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS build
 WORKDIR /frontend
 COPY frontend/package*.json ./
 RUN npm ci --no-fund --no-audit
 COPY frontend/ ./
 RUN npm run build
 
-FROM caddy:2-alpine@sha256:881bbc60f9986d5ab8e7cfd6cf7e4ef3c9c0439fef2429d035d065577882f028
+FROM golang:1.26.10-alpine@sha256:a2012b4a1d1f9f7e9f44e0d39b805a901e856b1dd80b4e6ee4338db547050308 AS caddy-security
+WORKDIR /src
+ENV GOTOOLCHAIN=local GOPROXY=https://proxy.golang.org GOSUMDB=sum.golang.org
+COPY deploy/caddy/go.mod deploy/caddy/go.sum ./
+RUN go mod download
+COPY deploy/caddy/main.go ./
+RUN mkdir /out \
+    && CGO_ENABLED=0 go build -mod=readonly -trimpath -ldflags='-s -w' -o /out/caddy . \
+    && go list -mod=readonly -deps . > /out/imports.txt \
+    && ! grep -E '^golang.org/x/crypto/openpgp(/|$)' /out/imports.txt \
+    && go version -m /out/caddy > /out/build-info.txt
+
+FROM caddy:2-alpine@sha256:eb4d35b7452d1ab6171fbdbe8d9275b2301dad6dad92115d91e19fb9b24d510f
+RUN apk upgrade --no-cache
+COPY --from=caddy-security /out/caddy /usr/bin/caddy
+COPY --from=caddy-security /out/imports.txt /out/build-info.txt /usr/share/tauric-caddy/
 COPY deploy/Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /frontend/dist /srv
 EXPOSE 80

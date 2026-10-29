@@ -113,6 +113,8 @@ def backup(state, output, day):
         code = "from sqlalchemy import text;from tauric.database import engine;\nwith engine().connect() as d:\n d.execute(text('SET TRANSACTION READ ONLY'));print(d.scalar(text(\"SELECT count(*) FROM quant_records WHERE kind='quant_job' AND payload->>'status' IN ('queued','running')\")))"
         jobs = server.run(compose + ["exec", "-T", "api", "python", "-c", code], stdout=subprocess.PIPE)
         if jobs.stdout.strip() != b"0":
+            report.update(deferred_at=datetime.now(UTC).isoformat(), defer_reason="original_research_active")
+            save(path, report)
             raise ValueError("Original research jobs must finish before a consistent full backup.")
         units = [name for name in QUANT_UNITS if subprocess.run(["systemctl", "is-active", "--quiet", name], capture_output=True, check=False).returncode == 0]
         report.update(phase="backup_requested", quant_units=units)
@@ -178,7 +180,11 @@ def main():
     args = parser.parse_args()
     state = args.state_dir.resolve()
     with (state / "maintenance.lock").open("a") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            save(args.output / "maintenance-deferred.json", {"deferred_at": datetime.now(UTC).isoformat(), "reason": "maintenance_busy"})
+            return
         print(json.dumps(backup(state, args.output.resolve(), datetime.now(UTC).date().isoformat()), sort_keys=True))
 
 

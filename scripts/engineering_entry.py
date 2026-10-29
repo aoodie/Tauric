@@ -15,7 +15,7 @@ from pathlib import Path
 TEST_MARKER = "TAURIC_TEST_RESULT="
 
 
-def test_database(workspace):
+def test_database(workspace, *, write_environment=True):
     """Disposable database wholly inside the network-disabled execution container."""
     binary = "/usr/lib/postgresql/15/bin/"
     data = "/tmp/tauric-test-postgres"
@@ -60,9 +60,22 @@ def test_database(workspace):
             stdout=log,
             stderr=log,
         )
-    (workspace / ".env").write_text(
-        "POSTGRES_PASSWORD=isolated-test-only\nTAURIC_DB_PASSWORD=isolated-test-only\nDB_PORT=54330\n"
-    )
+    if write_environment:
+        (workspace / ".env").write_text(
+            "POSTGRES_PASSWORD=isolated-test-only\nTAURIC_DB_PASSWORD=isolated-test-only\nDB_PORT=54330\n"
+        )
+
+
+def verification_subject(workspace, env):
+    test_database(workspace, write_environment=False)
+    subprocess.run(["/usr/lib/postgresql/15/bin/createdb", "-h", "127.0.0.1", "-p", "54330", "-U", "tauric_admin", "tauric_verification"], check=True)
+    admin = {**env, "TAURIC_DATABASE_URL": "postgresql+psycopg://tauric_admin@127.0.0.1:54330/tauric_verification"}
+    subprocess.run([sys.executable, "-m", "alembic", "-c", str(workspace / "backend/alembic.ini"), "upgrade", "head"],
+                   cwd=workspace / "backend", env=admin, check=True)
+    app = {**env, "TAURIC_DATABASE_URL": "postgresql+psycopg://tauric_app@127.0.0.1:54330/tauric_verification",
+           "TAURIC_ALLOWED_ORIGINS": '["http://127.0.0.1:18000"]'}
+    # No submitted command or test runner controls the verification process.
+    return subprocess.call([sys.executable, "-m", "uvicorn", "tauric.app:app", "--host", "127.0.0.1", "--port", "18000"], cwd=workspace, env=app)
 
 
 def test_command(script, report="/tmp/tauric-tests.xml"):
@@ -123,6 +136,8 @@ def main():
     request = json.load(sys.stdin)
     workspace = Path("/workspace")
     marker = workspace / ".tauric-workspace"
+    if request["purpose"] == "verify" and (request["script"] != "api_smoke" or not marker.is_file()):
+        raise ValueError("Initialize the workspace first; verification only supports the fixed api_smoke profile.")
     if not marker.exists():
         for source in Path("/source").iterdir():
             target = workspace / source.name
@@ -138,7 +153,7 @@ def main():
         subprocess.run(["git", "add", "."], check=True)
         subprocess.run(["git", "commit", "-qm", "Verified release source"], check=True)
         marker.write_text("isolated development; no production authority\n")
-    for package in ("frontend", "openclaw"):
+    for package in (() if request["purpose"] == "verify" else ("frontend", "openclaw")):
         dependencies = workspace / package / "node_modules"
         if not dependencies.exists():
             dependencies.mkdir()
@@ -158,6 +173,8 @@ def main():
         "PYTHONDONTWRITEBYTECODE": "1",
         "PYTHONUNBUFFERED": "1",
     }
+    if request["purpose"] == "verify":
+        return verification_subject(workspace, env)
     report = "/tmp/tauric-tests.xml"
     args = (
         test_command(request["script"], report)

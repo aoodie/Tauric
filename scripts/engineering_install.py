@@ -44,6 +44,7 @@ def install(release, state):
     for name in (
         "engineering-image.json",
         "scripts/engineering_host.py",
+        "scripts/engineering_verify.py",
         "scripts/project_tree.py",
     ):
         if hashlib.sha256((release / name).read_bytes()).hexdigest() != manifest[
@@ -103,6 +104,7 @@ def install(release, state):
     shutil.copyfile(release / "scripts/engineering_host.py", launcher)
     launcher.chmod(0o600)
     shutil.copyfile(release / "scripts/project_tree.py", runtime / "project_tree.py")
+    shutil.copyfile(release / "scripts/engineering_verify.py", runtime / "engineering_verify.py")
     identity = public / "identity.json"
     previous = json.loads(identity.read_text()) if identity.exists() else {"images": {}}
     previous["images"][inspected["Id"]] = revision

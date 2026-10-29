@@ -4066,6 +4066,40 @@
         }
       }
     },
+    "/api/v1/sso/status": {
+      "get": {
+        "summary": "Sso Status",
+        "operationId": "sso_status_api_v1_sso_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SsoStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sso/start": {
+      "get": {
+        "summary": "Sso Start",
+        "operationId": "sso_start_api_v1_sso_start_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/forex-data/connection": {
       "get": {
         "summary": "Get Connection",
@@ -12106,10 +12140,39 @@
               "job_success",
               "command_success",
               "tests_passed",
+              "workspace_tests_reported",
               "child_complete",
               "deployment_verified"
             ],
             "title": "Proof"
+          },
+          "binding": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "enum": [
+                "evidence_id",
+                "checksum",
+                "instrument_id",
+                "url",
+                "command_sha256",
+                "source_revision",
+                "source_tree_checksum",
+                "verification_profile",
+                "objective_sha256"
+              ]
+            },
+            "type": "object",
+            "maxProperties": 9,
+            "title": "Binding"
+          },
+          "max_age_seconds": {
+            "type": "integer",
+            "maximum": 604800.0,
+            "minimum": 1.0,
+            "title": "Max Age Seconds",
+            "default": 86400
           }
         },
         "additionalProperties": false,
@@ -13285,7 +13348,8 @@
             "enum": [
               "inspect",
               "develop",
-              "test"
+              "test",
+              "verify"
             ],
             "title": "Purpose",
             "default": "develop"
@@ -20743,6 +20807,19 @@
         ],
         "title": "SharedAdmissionBudgetView"
       },
+      "SsoStatus": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "title": "SsoStatus"
+      },
       "StrategyAnalytics": {
         "properties": {
           "deployment_id": {
@@ -21284,7 +21361,8 @@
             "enum": [
               "pause",
               "resume",
-              "cancel"
+              "cancel",
+              "waive_child"
             ],
             "title": "Action"
           },
@@ -21293,6 +21371,18 @@
             "maxLength": 500,
             "minLength": 3,
             "title": "Reason"
+          },
+          "child_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Id"
           }
         },
         "additionalProperties": false,

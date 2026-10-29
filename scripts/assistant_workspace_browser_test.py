@@ -26,8 +26,10 @@ with sync_playwright() as p:
     page.get_by_role("button", name="New scanner", exact=True).click()
     form = page.get_by_role("form", name="Scanner profile form")
     expect(form.get_by_label("Scanner name", exact=True)).to_be_visible()
-    assert form.locator("details.workflow-advanced").get_attribute("open") is None
+    for section in form.locator("details.workflow-advanced").all():
+        assert section.get_attribute("open") is None
     form.get_by_label("Scanner name", exact=True).fill("Simple breakout watch")
+    form.get_by_label("Setup scoring", exact=True).select_option("legacy_v1")
     form.get_by_label("Find a saved symbol", exact=True).fill("BTC")
     form.get_by_label("BTC/USDT", exact=True).check()
     form.get_by_label("Find a saved symbol", exact=True).fill("ETH")
@@ -48,10 +50,10 @@ with sync_playwright() as p:
     form.get_by_role("button", name="Save scanner", exact=True).click()
     profile = page.get_by_role("article", name="Simple breakout watch scanner profile")
     expect(profile).to_be_visible()
-    profile.get_by_role("button", name="Scan now", exact=True).click()
-    page.wait_for_function(
-        "async()=> (await(await fetch('/api/v1/scanners')).json()).candidates.length===2"
-    )
+    with page.expect_response(lambda response: response.url.endswith("/api/v1/scanners/runs")
+                              and response.request.method == "POST") as response:
+        profile.get_by_role("button", name="Scan now", exact=True).click()
+    assert response.value.status == 200
     page.get_by_role("tab", name="Opportunities", exact=False).click()
     expect(page.locator(".scanner-candidate")).to_have_count(2)
     page.get_by_role("button", name="Forex", exact=True).click()

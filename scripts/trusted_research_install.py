@@ -71,6 +71,15 @@ def install(intent_path):
         if jobs.stdout.strip() != "0" or not release_install.engineering_idle(STATE):
             raise release_install.EngineeringBusy()
         journal["quant_units"] = [name for name in QUANT_UNITS if active(name)]
+        from research_runtime_transition import receipt_path, validate
+
+        if receipt_path(intent['revision']).exists():
+            from quant_release import ROOT, source_files
+
+            config = json.loads((ROOT / 'control/config.json').read_text())
+            transition = validate(intent['revision'], intent['base_revision'], source_files(tree['tree']), config)
+            journal['quant_units'] = transition['units']
+            journal['runtime_dependencies_changed'] = True
         save(journal_path, journal)
     if journal.get('installation', {}).get('phase') != 'verified':
         for unit in journal["quant_units"]:
@@ -84,7 +93,7 @@ def install(intent_path):
         if phase in {"freeze_requested", "frozen", "backed_up", "rehearsed"}:
             journal["previous_services_recovered"] = release_install.recover_before_migration(base, STATE, PROJECT, journal["installation"])
             save(journal_path, journal)
-        if phase is None or journal.get("previous_services_recovered"):
+        if not journal.get('runtime_dependencies_changed') and (phase is None or journal.get("previous_services_recovered")):
             for unit in journal["quant_units"]:
                 subprocess.run(["systemctl", "start", unit], check=True, capture_output=True)
             subprocess.run(["systemctl", "start", "tauric-release-bridge.service"], check=True, capture_output=True)

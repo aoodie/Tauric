@@ -1,4 +1,8 @@
-FROM python:3.13-slim-bookworm@sha256:5024f48ba9441d4b13a95d3945abc6365538e3a31109833367a1923523c6efed AS builder
+FROM python:3.13-slim-bookworm@sha256:93498f36dc7e24ef233bfdf6cc17d4b8bd32d94ee737143e906460d5f5a914c5 AS builder
+ADD --checksum=sha256:32edb81a2b5eb7cd7c9d941b2bfbbb082fd2cd09e0e725930316af6b708db186 https://files.pythonhosted.org/packages/0a/e7/bb605a7bab2d8425a64b3fa762b39dc1bf1c7e3f11ba6fb5413d6db0ff8c/msgpack-1.2.3.tar.gz /tooling-inputs/msgpack-1.2.3.tar.gz
+ADD --checksum=sha256:0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3 https://files.pythonhosted.org/packages/92/9d/c4e665119135114480843e7ab388fa94d8480650450e6f8e26b70d323a4c/urllib3-2.8.0-py3-none-any.whl /tooling-inputs/urllib3-2.8.0-py3-none-any.whl
+COPY scripts/patch_python_tooling.py /patch_python_tooling.py
+RUN python -I /patch_python_tooling.py && python -I -m pip --version && rm -rf /tooling-inputs
 COPY --from=ghcr.io/astral-sh/uv:0.9.24@sha256:816fdce3387ed2142e37d2e56e1b1b97ccc1ea87731ba199dc8a25c04e4997c5 /uv /bin/uv
 WORKDIR /app
 ENV UV_LINK_MODE=copy PYTHONDONTWRITEBYTECODE=1
@@ -7,7 +11,7 @@ RUN uv sync --frozen --no-install-project --no-group dev
 ENV TIKTOKEN_CACHE_DIR=/app/tokenizer-cache
 RUN /app/.venv/bin/python -c "import tiktoken; tiktoken.get_encoding('o200k_base'); tiktoken.get_encoding('cl100k_base')"
 
-FROM python:3.13-slim-bookworm@sha256:5024f48ba9441d4b13a95d3945abc6365538e3a31109833367a1923523c6efed
+FROM python:3.13-slim-bookworm@sha256:93498f36dc7e24ef233bfdf6cc17d4b8bd32d94ee737143e906460d5f5a914c5
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PATH=/app/.venv/bin:$PATH TIKTOKEN_CACHE_DIR=/app/tokenizer-cache
 RUN useradd --create-home --uid 10001 honcho

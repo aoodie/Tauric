@@ -1459,6 +1459,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/sso/status": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Sso Status */
+    get: operations["sso_status_api_v1_sso_status_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/sso/start": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Sso Start */
+    get: operations["sso_start_api_v1_sso_start_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/forex-data/connection": {
     parameters: {
       query?: never;
@@ -4581,8 +4615,18 @@ export interface components {
         | "job_success"
         | "command_success"
         | "tests_passed"
+        | "workspace_tests_reported"
         | "child_complete"
         | "deployment_verified";
+      /** Binding */
+      binding?: {
+        [key: string]: string;
+      };
+      /**
+       * Max Age Seconds
+       * @default 86400
+       */
+      max_age_seconds: number;
     };
     /** DataContext */
     DataContext: {
@@ -5127,7 +5171,7 @@ export interface components {
        * @default develop
        * @enum {string}
        */
-      purpose: "inspect" | "develop" | "test";
+      purpose: "inspect" | "develop" | "test" | "verify";
     };
     /** EquityPoint */
     EquityPoint: {
@@ -8322,6 +8366,11 @@ export interface components {
        */
       monetary_cap: false;
     };
+    /** SsoStatus */
+    SsoStatus: {
+      /** Enabled */
+      enabled: boolean;
+    };
     /** StrategyAnalytics */
     StrategyAnalytics: {
       /** Deployment Id */
@@ -8529,9 +8578,11 @@ export interface components {
        * Action
        * @enum {string}
        */
-      action: "pause" | "resume" | "cancel";
+      action: "pause" | "resume" | "cancel" | "waive_child";
       /** Reason */
       reason: string;
+      /** Child Id */
+      child_id?: string | null;
     };
     /** TaskCreate */
     TaskCreate: {
@@ -11711,6 +11762,46 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  sso_status_api_v1_sso_status_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SsoStatus"];
+        };
+      };
+    };
+  };
+  sso_start_api_v1_sso_start_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
         };
       };
     };

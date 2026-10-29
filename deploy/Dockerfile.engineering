@@ -1,14 +1,19 @@
-FROM node:24-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS node
-FROM python:3.13-slim-bookworm@sha256:5024f48ba9441d4b13a95d3945abc6365538e3a31109833367a1923523c6efed
+FROM node:24-bookworm-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS node
+FROM python:3.13-slim-bookworm@sha256:93498f36dc7e24ef233bfdf6cc17d4b8bd32d94ee737143e906460d5f5a914c5
+ADD --checksum=sha256:32edb81a2b5eb7cd7c9d941b2bfbbb082fd2cd09e0e725930316af6b708db186 https://files.pythonhosted.org/packages/0a/e7/bb605a7bab2d8425a64b3fa762b39dc1bf1c7e3f11ba6fb5413d6db0ff8c/msgpack-1.2.3.tar.gz /tooling-inputs/msgpack-1.2.3.tar.gz
+ADD --checksum=sha256:0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3 https://files.pythonhosted.org/packages/92/9d/c4e665119135114480843e7ab388fa94d8480650450e6f8e26b70d323a4c/urllib3-2.8.0-py3-none-any.whl /tooling-inputs/urllib3-2.8.0-py3-none-any.whl
+COPY scripts/patch_python_tooling.py /patch_python_tooling.py
+RUN python -I /patch_python_tooling.py && python -I -m pip --version && rm -rf /tooling-inputs
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
 COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
 RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
-    && apt-get update && apt-get install -y --no-install-recommends git postgresql-15 \
+    && apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends git postgresql-15 \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --uid 10001 engineer \
     && mkdir /workspace && chown engineer:engineer /workspace
 COPY backend/requirements.lock /requirements.lock
-RUN pip install --no-cache-dir -r /requirements.lock \
+COPY backend/requirements.sso.lock /requirements.sso.lock
+RUN pip install --no-cache-dir -r /requirements.lock -r /requirements.sso.lock \
     && python -c 'import pathlib,site; (pathlib.Path(site.getsitepackages()[0])/"tauric-workspace.pth").write_text("/workspace/backend\n")'
 COPY backend/ /source/backend/
 COPY frontend/ /source/frontend/
@@ -17,8 +22,12 @@ COPY deploy/ /source/deploy/
 COPY .github/ /source/.github/
 COPY frontend/package.json frontend/package-lock.json /opt/engineering-deps/frontend/
 COPY openclaw/package.json openclaw/package-lock.json /opt/engineering-deps/openclaw/
+COPY scripts/patch_runtime_dependencies.mjs /patch_runtime_dependencies.mjs
 RUN npm --prefix /opt/engineering-deps/frontend ci --ignore-scripts --no-audit --no-fund \
-    && npm --prefix /opt/engineering-deps/openclaw ci --ignore-scripts --no-audit --no-fund
+    && npm --prefix /opt/engineering-deps/openclaw ci --ignore-scripts --no-audit --no-fund \
+    && node /patch_runtime_dependencies.mjs /opt/engineering-deps/openclaw \
+    && rm -rf /usr/local/lib/node_modules/npm \
+    && cp -a /opt/engineering-deps/openclaw/node_modules/npm /usr/local/lib/node_modules/npm
 COPY docs/ /source/docs/
 COPY scripts/ /source/scripts/
 COPY README.md AGENTS.md .gitignore .dockerignore /source/

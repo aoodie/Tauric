@@ -79,6 +79,31 @@ export function ProjectTasks() {
       setBusy("");
     }
   }
+  async function waiveChild(child: Task) {
+    const parent = tasks.find((task) => task.id === child.parent_id);
+    const reason = window.prompt(
+      "Explain why this cancelled child is no longer required for the parent goal.",
+    );
+    if (!parent || !reason?.trim()) return;
+    setBusy(child.id);
+    try {
+      await api.controlProjectTask(parent.id, {
+        expected_revision: parent.revision,
+        action: "waive_child",
+        child_id: child.id,
+        reason,
+      });
+      await reload();
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : "The child scope could not be updated.",
+      );
+    } finally {
+      setBusy("");
+    }
+  }
   return (
     <details className="assistant-controls project-tasks">
       <summary>
@@ -169,6 +194,15 @@ export function ProjectTasks() {
               <summary>Verified results and saved references</summary>
               <pre>{JSON.stringify(task.result, null, 2)}</pre>
             </details>
+          )}
+          {task.status === "cancelled" && task.parent_id && (
+            <button
+              className="secondary small"
+              disabled={busy === task.id}
+              onClick={() => void waiveChild(task)}
+            >
+              Remove cancelled child from parent scope
+            </button>
           )}
         </article>
       ))}

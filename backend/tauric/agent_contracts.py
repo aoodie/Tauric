@@ -19,9 +19,16 @@ class Criterion(Contract):
         "job_success",
         "command_success",
         "tests_passed",
+        "workspace_tests_reported",
         "child_complete",
         "deployment_verified",
     ]
+    # Free text is an explanation, never an executable completion predicate.
+    binding: dict[
+        Literal["evidence_id", "checksum", "instrument_id", "url", "command_sha256",
+                "source_revision", "source_tree_checksum", "verification_profile", "objective_sha256"], str
+    ] = Field(default_factory=dict, max_length=9)
+    max_age_seconds: int = Field(default=86400, ge=1, le=604800, strict=True)
 
 
 class TaskCreate(Contract):
@@ -39,8 +46,9 @@ class TaskCreate(Contract):
 
 class TaskControl(Contract):
     expected_revision: int = Field(ge=1, strict=True)
-    action: Literal["pause", "resume", "cancel"]
+    action: Literal["pause", "resume", "cancel", "waive_child"]
     reason: str = Field(min_length=3, max_length=500)
+    child_id: UUID | None = None
 
 
 class JobReference(Contract):
@@ -81,7 +89,7 @@ class EngineeringInvocation(ChatIdentity):
     effect_key: str = Field(min_length=3, max_length=80, pattern=r"^[a-zA-Z0-9_.:-]+$")
     script: str = Field(min_length=1, max_length=30000)
     timeout_seconds: int = Field(default=120, ge=1, le=600, strict=True)
-    purpose: Literal["inspect", "develop", "test"] = "develop"
+    purpose: Literal["inspect", "develop", "test", "verify"] = "develop"
 
 
 class TaskView(Contract):

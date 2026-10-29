@@ -50,7 +50,7 @@ Notify the owner of meaningful completion, material changes, failures and necess
 
 This document records authority and intended behavior. It does not prove that a runtime can perform the work or that a deployment has activated it.
 
-The current integration has durable service-specific jobs and guarded management tools, but its Gateway configuration disables recurring scheduling, its general tools do not execute shell commands or tests, and its changed-code workspaces do not run submitted code. These gaps must be implemented and verified; instructions alone cannot close them.
+The integration implements durable shared tasks, event-driven continuation, isolated shell/code/test execution, source-bound release handoff and owner pause/cancellation. Workspace test output is advisory: submitted code can fabricate a JUnit/TAP report, and its host signature does not certify independent execution. Completion requires explicit evidence bindings and freshness. An immutable API smoke verifier runs as a separate identity against read-only source; its limited profile is distinct from workspace unit-test reports. Full production ownership acceptance and narrow existing-service recovery remain separate open milestones; instructions and operator deployments cannot close them.
 
 The full ownership implementation must provide:
 

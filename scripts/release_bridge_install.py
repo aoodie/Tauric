@@ -16,12 +16,16 @@ from release_publish import save
 FILES = (
     "release_bridge.py",
     "release_identity.py",
+    "operations_trust/cacert.pem",
+    "operations_trust/LICENSE",
+    "operations_trust/source.json",
     "release_publish.py",
     "release_workflow.py",
     "release_install.py",
     "shared_ingress.py",
     "research_release.py",
     "quant_release.py",
+    "research_runtime_transition.py",
 )
 SERVICE = "tauric-release-bridge.service"
 
@@ -115,6 +119,7 @@ def install(release):
         source = release / "scripts" / name
         if "scripts/" + name not in manifest["files"]:
             raise ValueError("The checked release omitted a fixed bridge component.")
+        (runtime / name).parent.mkdir(mode=0o700, parents=True, exist_ok=True)
         shutil.copyfile(source, runtime / name)
         (runtime / name).chmod(0o600)
     save(

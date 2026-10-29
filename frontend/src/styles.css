@@ -315,6 +315,13 @@ small {
   margin-top: 2px;
   min-height: 43px;
 }
+.login-form .sso-button {
+  min-height: 43px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-decoration: none;
+}
 .setup-note {
   display: flex;
   align-items: flex-start;

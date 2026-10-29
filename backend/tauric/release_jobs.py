@@ -108,8 +108,8 @@ def enqueue(db, owner, turn, body):
     if access["status"] != "active" or task.status not in {"queued", "running"}:
         raise HTTPException(403, "This project goal does not authorize a new release.")
     proof = agent_tasks.reference(db, owner, JobReference(kind="engineering", id=body.test_job_id))
-    if "tests_passed" not in proof["proofs"]:
-        raise HTTPException(409, "A release requires signed successful executed tests.")
+    if not {"workspace_tests_reported", "tests_passed"} & set(proof["proofs"]):
+        raise HTTPException(409, "A release requires a signed workspace test report; independent release checks remain mandatory.")
     source = engineering.source(db, owner, body.test_job_id)
     if not source.get("files") and not source.get("deleted"):
         raise HTTPException(422, "The tested workspace contains no source change to release.")

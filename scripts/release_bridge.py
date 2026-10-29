@@ -198,6 +198,31 @@ def source(access, active_manifest):
     )
 
 
+def public_source_permissions(target, files):
+    """Make only verified public source readable through unprivileged mounts."""
+    if target.is_symlink() or not target.is_dir():
+        raise ValueError('The release source directory must be regular.')
+    expected = set()
+    regular_files = set()
+    for name in files:
+        relative = Path(name)
+        if relative.is_absolute() or '..' in relative.parts or relative.as_posix() != name:
+            raise ValueError('Release source permissions cannot escape their verified inventory.')
+        expected.add(relative)
+        regular_files.add(relative)
+        expected.update(parent for parent in relative.parents if parent != Path('.'))
+    actual = {p.relative_to(target): p for p in target.rglob('*')}
+    if set(actual) != expected or any((not p.is_file()) if name in regular_files else (not p.is_dir())
+                                    for name, p in actual.items()) or any(p.is_symlink() or p.stat().st_uid != os.geteuid()
+                                    or not (p.is_file() or p.is_dir()) for p in [target, *actual.values()]):
+        raise ValueError('Unexpected entries or ownership in the verified release source.')
+    # Validate the complete inventory before granting any additional read access.
+    # Private state, signing keys and operator intents are outside this subtree.
+    target.chmod(0o755)
+    for p in actual.values():
+        p.chmod(0o755 if p.is_dir() else 0o644)
+
+
 def staged_release(client, journal, path, active, active_manifest):
     revision = journal["publication"]["commit"]
     run_id = journal["release_run"]["run_id"]
@@ -244,6 +269,7 @@ def staged_release(client, journal, path, active, active_manifest):
             )
             with os.fdopen(fd, "wb") as handle:
                 handle.write(data)
+    public_source_permissions(target, release_files)
     journal["candidate"] = {
         "revision": revision,
         "root": str(target),

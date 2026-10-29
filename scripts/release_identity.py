@@ -4,7 +4,9 @@ This module is never copied into a submitted engineering workspace with keys.
 Tokens stay in memory and are scoped again on every refresh.
 """
 
+import hashlib
 import json
+import ssl
 import stat
 import time
 import urllib.error
@@ -23,6 +25,16 @@ PERMISSIONS = {
 }
 REPOSITORY = "aoodie/Tauric"
 REPOSITORY_ID = 1405263842
+CA_SHA256 = "d87887200c9a705dccc937b9b83b5e67e47024c4a4b7f9dd15700c72e0f55453"
+
+
+def operations_tls():
+    """Use the reviewed public roots, independent of stale host/environment roots."""
+    path = Path(__file__).with_name("operations_trust") / "cacert.pem"
+    data = path.read_bytes()
+    if hashlib.sha256(data).hexdigest() != CA_SHA256:
+        raise ReleaseAccessError("The checked operations certificate store differs.")
+    return ssl.create_default_context(cadata=data.decode("ascii"))
 
 
 class ReleaseAccessError(RuntimeError):
@@ -72,7 +84,9 @@ class GitHubApp:
             )
         self.token = None
         self.token_deadline = 0
-        self.opener = urllib.request.build_opener(NoRedirect())
+        self.opener = urllib.request.build_opener(
+            NoRedirect(), urllib.request.HTTPSHandler(context=operations_tls())
+        )
 
     def jwt(self):
         stamp = int(time.time())

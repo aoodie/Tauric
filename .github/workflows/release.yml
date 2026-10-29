@@ -139,8 +139,44 @@ jobs:
           name: digest-${{ matrix.kind }}
           path: image-digests/*.json
           retention-days: 14
-  bundle:
+  image-security:
     needs: images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Reserve disposable runner disk for complete image analysis
+        run: |
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /usr/share/swift
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: digest-*
+          path: image-digests
+          merge-multiple: true
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Scan final installed packages on both image platforms
+        env:
+          REVISION: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: python3 scripts/scan_release_images.py --images-dir image-digests --output artifacts/image-security --revision "$REVISION" --repository "$REPOSITORY"
+      - name: Preserve complete security evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: image-security-${{ github.sha }}
+          path: |
+            artifacts/image-security/*.json
+          retention-days: 90
+  bundle:
+    needs: image-security
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -171,6 +207,8 @@ jobs:
           /tmp/tauric-engineering-check/bin/pip install cryptography==46.0.5
           image=$(python -c 'import json; print(json.load(open("artifacts/tauric-release/engineering-image.json"))["image"])')
           docker pull "$image"
+          python3 scripts/python_tooling_smoke.py --image "$image"
+          sudo /tmp/tauric-engineering-check/bin/python scripts/release_source_mount_smoke.py --image "$image"
           sudo /tmp/tauric-engineering-check/bin/python scripts/engineering_smoke.py --image "$image" --output artifacts/engineering-smoke.json
       - name: Preserve redacted installation failure evidence
         if: failure()
